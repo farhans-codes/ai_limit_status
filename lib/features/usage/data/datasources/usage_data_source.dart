@@ -36,6 +36,7 @@ class LiveUsageDataSource implements UsageDataSource {
     } on UsageReadException catch (error) {
       final cachedUsage = _lastSuccessfulUsage[provider];
       if (error.issue == UsageConnectionIssue.unavailable &&
+          cachedUsage != null &&
           _isFresh(cachedUsage)) {
         return cachedUsage;
       }
@@ -45,7 +46,7 @@ class LiveUsageDataSource implements UsageDataSource {
       );
     } on Object {
       final cachedUsage = _lastSuccessfulUsage[provider];
-      if (_isFresh(cachedUsage)) {
+      if (cachedUsage != null && _isFresh(cachedUsage)) {
         return cachedUsage;
       }
       return ProviderUsageModel.disconnected(
@@ -55,8 +56,7 @@ class LiveUsageDataSource implements UsageDataSource {
     }
   }
 
-  bool _isFresh(ProviderUsageModel? usage) {
-    return usage != null &&
-        DateTime.now().difference(usage.fetchedAt) <= _maximumCachedUsageAge;
+  bool _isFresh(ProviderUsageModel usage) {
+    return DateTime.now().difference(usage.fetchedAt) <= _maximumCachedUsageAge;
   }
 }
