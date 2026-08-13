@@ -260,6 +260,96 @@ abstract class AppLocalizations {
   /// **'Live usage is temporarily unavailable.'**
   String get providerUnavailableMessage;
 
+  /// No description provided for @installAndSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Install & sign in'**
+  String get installAndSignIn;
+
+  /// No description provided for @openSetupGuide.
+  ///
+  /// In en, this message translates to:
+  /// **'Open setup guide'**
+  String get openSetupGuide;
+
+  /// No description provided for @signIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in'**
+  String get signIn;
+
+  /// No description provided for @checkAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Check again'**
+  String get checkAgain;
+
+  /// No description provided for @signInStartedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete sign-in'**
+  String get signInStartedTitle;
+
+  /// No description provided for @signInStartedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Finish {provider} sign-in in the terminal. This app will reconnect automatically.'**
+  String signInStartedMessage(String provider);
+
+  /// No description provided for @setupFailedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Setup could not finish'**
+  String get setupFailedTitle;
+
+  /// No description provided for @wingetUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Windows App Installer (WinGet) was not found. Open the setup guide to install the provider safely.'**
+  String get wingetUnavailable;
+
+  /// No description provided for @automaticSetupUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic installation is not available on this platform. Open the official setup guide instead.'**
+  String get automaticSetupUnavailable;
+
+  /// No description provided for @providerSetupFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not set up {provider}. Open its official setup guide and try again.'**
+  String providerSetupFailed(String provider);
+
+  /// No description provided for @warningThresholdsTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Alerts at 50% and 20% remaining, and 5h and 1h before reset'**
+  String get warningThresholdsTooltip;
+
+  /// No description provided for @usageWarningTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{provider} usage warning'**
+  String usageWarningTitle(String provider);
+
+  /// No description provided for @resetWarningTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{provider} reset reminder'**
+  String resetWarningTitle(String provider);
+
+  /// No description provided for @remainingWarningBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{limit} has {percent}% remaining (the {threshold}% alert).'**
+  String remainingWarningBody(String limit, int percent, int threshold);
+
+  /// No description provided for @resetWarningBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{hours, plural, =1{{limit} will reset within 1 hour.} other{{limit} will reset within {hours} hours.}}'**
+  String resetWarningBody(String limit, int hours);
+
   /// No description provided for @openDashboard.
   ///
   /// In en, this message translates to:

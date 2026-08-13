@@ -105,6 +105,72 @@ class AppLocalizationsEn extends AppLocalizations {
       'Live usage is temporarily unavailable.';
 
   @override
+  String get installAndSignIn => 'Install & sign in';
+
+  @override
+  String get openSetupGuide => 'Open setup guide';
+
+  @override
+  String get signIn => 'Sign in';
+
+  @override
+  String get checkAgain => 'Check again';
+
+  @override
+  String get signInStartedTitle => 'Complete sign-in';
+
+  @override
+  String signInStartedMessage(String provider) {
+    return 'Finish $provider sign-in in the terminal. This app will reconnect automatically.';
+  }
+
+  @override
+  String get setupFailedTitle => 'Setup could not finish';
+
+  @override
+  String get wingetUnavailable =>
+      'Windows App Installer (WinGet) was not found. Open the setup guide to install the provider safely.';
+
+  @override
+  String get automaticSetupUnavailable =>
+      'Automatic installation is not available on this platform. Open the official setup guide instead.';
+
+  @override
+  String providerSetupFailed(String provider) {
+    return 'Could not set up $provider. Open its official setup guide and try again.';
+  }
+
+  @override
+  String get warningThresholdsTooltip =>
+      'Alerts at 50% and 20% remaining, and 5h and 1h before reset';
+
+  @override
+  String usageWarningTitle(String provider) {
+    return '$provider usage warning';
+  }
+
+  @override
+  String resetWarningTitle(String provider) {
+    return '$provider reset reminder';
+  }
+
+  @override
+  String remainingWarningBody(String limit, int percent, int threshold) {
+    return '$limit has $percent% remaining (the $threshold% alert).';
+  }
+
+  @override
+  String resetWarningBody(String limit, int hours) {
+    String _temp0 = intl.Intl.pluralLogic(
+      hours,
+      locale: localeName,
+      other: '$limit will reset within $hours hours.',
+      one: '$limit will reset within 1 hour.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get openDashboard => 'Open details';
 
   @override

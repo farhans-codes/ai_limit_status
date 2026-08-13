@@ -2,14 +2,17 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:ai_limit_status/features/usage/data/datasources/provider_executable_locator.dart';
 import 'package:ai_limit_status/features/usage/data/datasources/usage_read_exception.dart';
 import 'package:ai_limit_status/features/usage/data/models/provider_usage_model.dart';
 import 'package:ai_limit_status/features/usage/domain/entities/provider_usage.dart';
 
 class CodexUsageReader {
-  const CodexUsageReader();
+  const CodexUsageReader(this._executableLocator);
 
   static const _timeout = Duration(seconds: 8);
+
+  final ProviderExecutableLocator _executableLocator;
 
   Future<ProviderUsageModel> read() async {
     final process = await _startProcess();
@@ -24,7 +27,7 @@ class CodexUsageReader {
           'id': 1,
           'method': 'initialize',
           'params': {
-            'clientInfo': {'name': 'limit-status', 'version': '0.1.0'},
+            'clientInfo': {'name': 'limit-status', 'version': '0.2.0'},
             'capabilities': {'experimentalApi': true},
           },
         }),
@@ -70,25 +73,15 @@ class CodexUsageReader {
   }
 
   Future<Process> _startProcess() async {
-    final home = Platform.environment['HOME'];
-    final candidates = <String>[
-      if (Platform.isMacOS)
-        '/Applications/ChatGPT.app/Contents/Resources/codex',
-      if (Platform.isMacOS) '/opt/homebrew/bin/codex',
-      if (Platform.isMacOS) '/usr/local/bin/codex',
-      if (Platform.isMacOS && home != null) '$home/.local/bin/codex',
-      if (Platform.isWindows) 'codex.exe' else 'codex',
-    ];
-
-    for (final candidate in candidates) {
-      try {
-        return await Process.start(candidate, const ['app-server', '--stdio']);
-      } on ProcessException {
-        continue;
-      }
+    final executable = await _executableLocator.find(UsageProvider.codex);
+    if (executable == null) {
+      throw const UsageReadException(UsageConnectionIssue.cliNotFound);
     }
-
-    throw const UsageReadException(UsageConnectionIssue.cliNotFound);
+    try {
+      return await executable.start(const ['app-server', '--stdio']);
+    } on ProcessException {
+      throw const UsageReadException(UsageConnectionIssue.cliNotFound);
+    }
   }
 
   Future<Map<String, dynamic>> _responseFor(

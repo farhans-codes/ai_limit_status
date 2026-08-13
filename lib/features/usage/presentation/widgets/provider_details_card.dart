@@ -4,9 +4,24 @@ import 'package:ai_limit_status/features/usage/presentation/widgets/provider_ico
 import 'package:ai_limit_status/l10n/app_localizations.dart';
 
 class ProviderDetailsCard extends StatelessWidget {
-  const ProviderDetailsCard({required this.usage, super.key});
+  const ProviderDetailsCard({
+    required this.usage,
+    required this.automaticSetupAvailable,
+    required this.isSetupInProgress,
+    required this.onInstall,
+    required this.onSignIn,
+    required this.onOpenSetupGuide,
+    required this.onCheckAgain,
+    super.key,
+  });
 
   final ProviderUsage usage;
+  final bool automaticSetupAvailable;
+  final bool isSetupInProgress;
+  final VoidCallback onInstall;
+  final VoidCallback onSignIn;
+  final VoidCallback onOpenSetupGuide;
+  final VoidCallback onCheckAgain;
 
   @override
   Widget build(BuildContext context) {
@@ -71,6 +86,25 @@ class ProviderDetailsCard extends StatelessWidget {
             else
               _DisconnectedMessage(
                 message: _connectionMessage(l10n, usage.connectionIssue),
+                primaryLabel: _primarySetupLabel(
+                  l10n,
+                  usage.connectionIssue,
+                  automaticSetupAvailable,
+                ),
+                primaryIcon: _primarySetupIcon(
+                  usage.connectionIssue,
+                  automaticSetupAvailable,
+                ),
+                onPrimary: _primarySetupAction(
+                  usage.connectionIssue,
+                  automaticSetupAvailable,
+                  onInstall: onInstall,
+                  onSignIn: onSignIn,
+                  onOpenSetupGuide: onOpenSetupGuide,
+                ),
+                checkAgainLabel: l10n.checkAgain,
+                onCheckAgain: onCheckAgain,
+                isSetupInProgress: isSetupInProgress,
               ),
             const SizedBox(height: 8),
             Divider(
@@ -151,25 +185,108 @@ class _LimitMetric extends StatelessWidget {
 }
 
 class _DisconnectedMessage extends StatelessWidget {
-  const _DisconnectedMessage({required this.message});
+  const _DisconnectedMessage({
+    required this.message,
+    required this.primaryLabel,
+    required this.primaryIcon,
+    required this.onPrimary,
+    required this.checkAgainLabel,
+    required this.onCheckAgain,
+    required this.isSetupInProgress,
+  });
 
   final String message;
+  final String? primaryLabel;
+  final IconData? primaryIcon;
+  final VoidCallback? onPrimary;
+  final String checkAgainLabel;
+  final VoidCallback onCheckAgain;
+  final bool isSetupInProgress;
 
   @override
   Widget build(BuildContext context) {
     return ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: 62),
-      child: Center(
-        child: Text(
-          message,
-          textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
+      constraints: const BoxConstraints(minHeight: 92),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
-        ),
+          const SizedBox(height: 12),
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              if (onPrimary != null && primaryLabel != null)
+                FilledButton.icon(
+                  onPressed: isSetupInProgress ? null : onPrimary,
+                  icon: isSetupInProgress
+                      ? const SizedBox.square(
+                          dimension: 15,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Icon(primaryIcon, size: 17),
+                  label: Text(primaryLabel!),
+                ),
+              OutlinedButton.icon(
+                onPressed: isSetupInProgress ? null : onCheckAgain,
+                icon: const Icon(Icons.refresh_rounded, size: 17),
+                label: Text(checkAgainLabel),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
+}
+
+String? _primarySetupLabel(
+  AppLocalizations l10n,
+  UsageConnectionIssue? issue,
+  bool automaticSetupAvailable,
+) {
+  return switch (issue) {
+    UsageConnectionIssue.cliNotFound =>
+      automaticSetupAvailable ? l10n.installAndSignIn : l10n.openSetupGuide,
+    UsageConnectionIssue.notSignedIn => l10n.signIn,
+    UsageConnectionIssue.unavailable || null => null,
+  };
+}
+
+IconData? _primarySetupIcon(
+  UsageConnectionIssue? issue,
+  bool automaticSetupAvailable,
+) {
+  return switch (issue) {
+    UsageConnectionIssue.cliNotFound =>
+      automaticSetupAvailable
+          ? Icons.download_rounded
+          : Icons.open_in_new_rounded,
+    UsageConnectionIssue.notSignedIn => Icons.login_rounded,
+    UsageConnectionIssue.unavailable || null => null,
+  };
+}
+
+VoidCallback? _primarySetupAction(
+  UsageConnectionIssue? issue,
+  bool automaticSetupAvailable, {
+  required VoidCallback onInstall,
+  required VoidCallback onSignIn,
+  required VoidCallback onOpenSetupGuide,
+}) {
+  return switch (issue) {
+    UsageConnectionIssue.cliNotFound =>
+      automaticSetupAvailable ? onInstall : onOpenSetupGuide,
+    UsageConnectionIssue.notSignedIn => onSignIn,
+    UsageConnectionIssue.unavailable || null => null,
+  };
 }
 
 Color _indicatorColor(BuildContext context, int percentage) {

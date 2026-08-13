@@ -59,6 +59,54 @@
   "cliNotFoundMessage": "Install the provider CLI to read live subscription usage.",
   "notSignedInMessage": "Sign in to the provider CLI to read live subscription usage.",
   "providerUnavailableMessage": "Live usage is temporarily unavailable.",
+  "installAndSignIn": "Install & sign in",
+  "openSetupGuide": "Open setup guide",
+  "signIn": "Sign in",
+  "checkAgain": "Check again",
+  "signInStartedTitle": "Complete sign-in",
+  "signInStartedMessage": "Finish {provider} sign-in in the terminal. This app will reconnect automatically.",
+  "@signInStartedMessage": {
+    "placeholders": {
+      "provider": {"type": "String"}
+    }
+  },
+  "setupFailedTitle": "Setup could not finish",
+  "wingetUnavailable": "Windows App Installer (WinGet) was not found. Open the setup guide to install the provider safely.",
+  "automaticSetupUnavailable": "Automatic installation is not available on this platform. Open the official setup guide instead.",
+  "providerSetupFailed": "Could not set up {provider}. Open its official setup guide and try again.",
+  "@providerSetupFailed": {
+    "placeholders": {
+      "provider": {"type": "String"}
+    }
+  },
+  "warningThresholdsTooltip": "Alerts at 50% and 20% remaining, and 5h and 1h before reset",
+  "usageWarningTitle": "{provider} usage warning",
+  "@usageWarningTitle": {
+    "placeholders": {
+      "provider": {"type": "String"}
+    }
+  },
+  "resetWarningTitle": "{provider} reset reminder",
+  "@resetWarningTitle": {
+    "placeholders": {
+      "provider": {"type": "String"}
+    }
+  },
+  "remainingWarningBody": "{limit} has {percent}% remaining (the {threshold}% alert).",
+  "@remainingWarningBody": {
+    "placeholders": {
+      "limit": {"type": "String"},
+      "percent": {"type": "int"},
+      "threshold": {"type": "int"}
+    }
+  },
+  "resetWarningBody": "{hours, plural, =1{{limit} will reset within 1 hour.} other{{limit} will reset within {hours} hours.}}",
+  "@resetWarningBody": {
+    "placeholders": {
+      "limit": {"type": "String"},
+      "hours": {"type": "int"}
+    }
+  },
   "openDashboard": "Open details",
   "quit": "Quit",
   "trayTitle": "{codexValue} · {claudeValue}",

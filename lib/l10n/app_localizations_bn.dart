@@ -105,6 +105,66 @@ class AppLocalizationsBn extends AppLocalizations {
       'লাইভ ব্যবহারের তথ্য সাময়িকভাবে পাওয়া যাচ্ছে না।';
 
   @override
+  String get installAndSignIn => 'ইনস্টল ও সাইন ইন';
+
+  @override
+  String get openSetupGuide => 'সেটআপ গাইড খুলুন';
+
+  @override
+  String get signIn => 'সাইন ইন';
+
+  @override
+  String get checkAgain => 'আবার যাচাই করুন';
+
+  @override
+  String get signInStartedTitle => 'সাইন ইন সম্পন্ন করুন';
+
+  @override
+  String signInStartedMessage(String provider) {
+    return 'টার্মিনালে $provider-এর সাইন ইন সম্পন্ন করুন। অ্যাপটি স্বয়ংক্রিয়ভাবে আবার সংযোগ করবে।';
+  }
+
+  @override
+  String get setupFailedTitle => 'সেটআপ সম্পন্ন হয়নি';
+
+  @override
+  String get wingetUnavailable =>
+      'Windows App Installer (WinGet) পাওয়া যায়নি। নিরাপদে provider ইনস্টল করতে সেটআপ গাইড খুলুন।';
+
+  @override
+  String get automaticSetupUnavailable =>
+      'এই প্ল্যাটফর্মে স্বয়ংক্রিয় ইনস্টল পাওয়া যায় না। অফিসিয়াল সেটআপ গাইড খুলুন।';
+
+  @override
+  String providerSetupFailed(String provider) {
+    return '$provider সেটআপ করা যায়নি। অফিসিয়াল সেটআপ গাইড খুলে আবার চেষ্টা করুন।';
+  }
+
+  @override
+  String get warningThresholdsTooltip =>
+      '৫০% ও ২০% বাকি থাকলে এবং রিসেটের ৫ ঘণ্টা ও ১ ঘণ্টা আগে সতর্কতা';
+
+  @override
+  String usageWarningTitle(String provider) {
+    return '$provider ব্যবহারের সতর্কতা';
+  }
+
+  @override
+  String resetWarningTitle(String provider) {
+    return '$provider রিসেটের রিমাইন্ডার';
+  }
+
+  @override
+  String remainingWarningBody(String limit, int percent, int threshold) {
+    return '$limit-এ $percent% বাকি আছে ($threshold% সতর্কতা)।';
+  }
+
+  @override
+  String resetWarningBody(String limit, int hours) {
+    return '$limit আগামী $hours ঘণ্টার মধ্যে রিসেট হবে।';
+  }
+
+  @override
   String get openDashboard => 'বিস্তারিত খুলুন';
 
   @override

@@ -1,19 +1,22 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:ai_limit_status/features/usage/data/datasources/provider_executable_locator.dart';
 import 'package:ai_limit_status/features/usage/data/datasources/usage_read_exception.dart';
 import 'package:ai_limit_status/features/usage/data/models/provider_usage_model.dart';
 import 'package:ai_limit_status/features/usage/domain/entities/provider_usage.dart';
 
 class ClaudeUsageReader {
-  const ClaudeUsageReader();
+  const ClaudeUsageReader(this._executableLocator);
 
   static const _requestTimeout = Duration(seconds: 8);
+
+  final ProviderExecutableLocator _executableLocator;
 
   Future<ProviderUsageModel> read() async {
     final accessToken = await _readAccessToken();
     if (accessToken == null || accessToken.isEmpty) {
-      final executable = await _findExecutable();
+      final executable = await _executableLocator.find(UsageProvider.claude);
       throw UsageReadException(
         executable == null
             ? UsageConnectionIssue.cliNotFound
@@ -38,31 +41,6 @@ class ClaudeUsageReader {
       isConnected: true,
       fetchedAt: DateTime.now(),
     );
-  }
-
-  Future<String?> _findExecutable() async {
-    final home = Platform.environment['HOME'];
-    final candidates = <String>[
-      if (Platform.isMacOS) '/opt/homebrew/bin/claude',
-      if (Platform.isMacOS) '/usr/local/bin/claude',
-      if (Platform.isMacOS && home != null) '$home/.local/bin/claude',
-      if (Platform.isWindows) 'claude.exe' else 'claude',
-    ];
-
-    for (final candidate in candidates) {
-      try {
-        final result = await Process.run(candidate, const [
-          '--version',
-        ]).timeout(_requestTimeout);
-        if (result.exitCode == 0) {
-          return candidate;
-        }
-      } on Object {
-        continue;
-      }
-    }
-
-    return null;
   }
 
   Future<String?> _readAccessToken() async {
@@ -106,7 +84,7 @@ class ClaudeUsageReader {
       request.headers
         ..set(HttpHeaders.authorizationHeader, 'Bearer $accessToken')
         ..set(HttpHeaders.contentTypeHeader, 'application/json')
-        ..set(HttpHeaders.userAgentHeader, 'limit-status/0.1.0')
+        ..set(HttpHeaders.userAgentHeader, 'limit-status/0.2.0')
         ..set('anthropic-beta', 'oauth-2025-04-20');
       final response = await request.close().timeout(_requestTimeout);
       if (response.statusCode == HttpStatus.unauthorized ||

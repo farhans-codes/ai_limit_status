@@ -81,6 +81,7 @@ class UsagePage extends GetView<UsageController> {
                         _Header(
                           title: l10n.appTitle,
                           liveLabel: l10n.liveData,
+                          warningsTooltip: l10n.warningThresholdsTooltip,
                           refreshTooltip: l10n.refresh,
                           isRefreshing: controller.isLoading.value,
                           onRefresh: controller.refreshUsage,
@@ -97,10 +98,24 @@ class UsagePage extends GetView<UsageController> {
                             itemCount: controller.usages.length,
                             separatorBuilder: (_, _) =>
                                 const SizedBox(height: 10),
-                            itemBuilder: (context, index) =>
-                                ProviderDetailsCard(
-                                  usage: controller.usages[index],
+                            itemBuilder: (context, index) {
+                              final usage = controller.usages[index];
+                              return ProviderDetailsCard(
+                                usage: usage,
+                                automaticSetupAvailable:
+                                    controller.supportsAutomaticInstall,
+                                isSetupInProgress: controller.isSettingUp(
+                                  usage.provider,
                                 ),
+                                onInstall: () =>
+                                    controller.installProvider(usage.provider),
+                                onSignIn: () =>
+                                    controller.signInProvider(usage.provider),
+                                onOpenSetupGuide: () =>
+                                    controller.openSetupGuide(usage.provider),
+                                onCheckAgain: controller.refreshUsage,
+                              );
+                            },
                           ),
                         ),
                       ],
@@ -120,6 +135,7 @@ class _Header extends StatelessWidget {
   const _Header({
     required this.title,
     required this.liveLabel,
+    required this.warningsTooltip,
     required this.refreshTooltip,
     required this.isRefreshing,
     required this.onRefresh,
@@ -127,6 +143,7 @@ class _Header extends StatelessWidget {
 
   final String title;
   final String liveLabel;
+  final String warningsTooltip;
   final String refreshTooltip;
   final bool isRefreshing;
   final VoidCallback onRefresh;
@@ -157,6 +174,13 @@ class _Header extends StatelessWidget {
               color: const Color(0xFF2B8A57),
               fontWeight: FontWeight.w600,
             ),
+          ),
+        ),
+        Tooltip(
+          message: warningsTooltip,
+          child: const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 5),
+            child: Icon(Icons.notifications_active_outlined, size: 17),
           ),
         ),
         const SizedBox(width: 4),
