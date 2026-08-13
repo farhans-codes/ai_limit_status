@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:get/get.dart';
+import 'package:ai_limit_status/core/platform/app_instance_guard.dart';
 import 'package:ai_limit_status/core/platform/app_window_service.dart';
 import 'package:ai_limit_status/core/theme/app_theme.dart';
 import 'package:ai_limit_status/features/usage/presentation/bindings/usage_binding.dart';
@@ -12,6 +13,9 @@ import 'package:window_manager/window_manager.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  if (!await AppInstanceGuard.acquire()) {
+    exit(0);
+  }
   await windowManager.ensureInitialized();
 
   final windowService = AppWindowService();
