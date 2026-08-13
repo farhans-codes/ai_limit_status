@@ -11,7 +11,9 @@ class EvaluateUsageWarnings {
     final now = currentTime ?? DateTime.now();
     final warnings = <UsageWarning>[];
 
-    for (final usage in usages.where((item) => item.isConnected)) {
+    for (final usage in usages.where(
+      (item) => item.isConnected && !item.isStale,
+    )) {
       for (final limit in usage.limits) {
         final remainingThreshold = _firstMatchingThreshold(
           remainingThresholds,

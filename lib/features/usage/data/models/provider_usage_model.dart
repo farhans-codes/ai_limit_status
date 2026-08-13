@@ -6,8 +6,20 @@ class ProviderUsageModel extends ProviderUsage {
     required super.limits,
     required super.isConnected,
     required super.fetchedAt,
+    super.isStale,
     super.connectionIssue,
   });
+
+  ProviderUsageModel asStale() {
+    return ProviderUsageModel(
+      provider: provider,
+      limits: limits,
+      isConnected: isConnected,
+      fetchedAt: fetchedAt,
+      isStale: true,
+      connectionIssue: connectionIssue,
+    );
+  }
 
   factory ProviderUsageModel.disconnected({
     required UsageProvider provider,

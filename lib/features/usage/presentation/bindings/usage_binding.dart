@@ -5,6 +5,7 @@ import 'package:ai_limit_status/core/platform/mac_status_bar_service.dart';
 import 'package:ai_limit_status/core/platform/tray_service.dart';
 import 'package:ai_limit_status/features/usage/data/datasources/provider_executable_locator.dart';
 import 'package:ai_limit_status/features/usage/data/datasources/usage_data_source.dart';
+import 'package:ai_limit_status/features/usage/data/datasources/usage_cache_store.dart';
 import 'package:ai_limit_status/features/usage/data/datasources/claude_usage_reader.dart';
 import 'package:ai_limit_status/features/usage/data/datasources/codex_usage_reader.dart';
 import 'package:ai_limit_status/features/usage/data/datasources/usage_warning_state_store.dart';
@@ -36,10 +37,12 @@ class UsageBinding extends Bindings {
     Get.lazyPut<ClaudeUsageReader>(
       () => ClaudeUsageReader(Get.find<ProviderExecutableLocator>()),
     );
+    Get.lazyPut<UsageCacheStore>(UsageCacheStore.new);
     Get.lazyPut<UsageDataSource>(
       () => LiveUsageDataSource(
         Get.find<CodexUsageReader>(),
         Get.find<ClaudeUsageReader>(),
+        Get.find<UsageCacheStore>(),
       ),
     );
     Get.lazyPut<UsageRepository>(
