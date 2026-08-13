@@ -10,6 +10,7 @@
   "opusWeeklyLimit": "Opus সাপ্তাহিক সীমা",
   "sonnetWeeklyLimit": "Sonnet সাপ্তাহিক সীমা",
   "connected": "সংযুক্ত",
+  "cachedData": "সংরক্ষিত",
   "disconnected": "সংযোগ নেই",
   "resetsInHoursMinutes": "রিসেট হবে {hours} ঘণ্টা {minutes} মিনিট পরে",
   "resetsInDaysHours": "রিসেট হবে {days} দিন {hours} ঘণ্টা পরে",

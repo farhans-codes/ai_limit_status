@@ -29,9 +29,16 @@ class ProviderDetailsCard extends StatelessWidget {
     final providerName = usage.provider == UsageProvider.codex
         ? l10n.providerCodex
         : l10n.providerClaude;
-    final statusColor = usage.isConnected
+    final statusColor = usage.isStale
+        ? const Color(0xFFC06B16)
+        : usage.isConnected
         ? const Color(0xFF2B8A57)
         : Theme.of(context).colorScheme.error;
+    final statusLabel = usage.isStale
+        ? l10n.cachedData
+        : usage.isConnected
+        ? l10n.connected
+        : l10n.disconnected;
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -66,7 +73,7 @@ class ProviderDetailsCard extends StatelessWidget {
                 Icon(Icons.circle, size: 8, color: statusColor),
                 const SizedBox(width: 6),
                 Text(
-                  usage.isConnected ? l10n.connected : l10n.disconnected,
+                  statusLabel,
                   style: Theme.of(context).textTheme.labelMedium?.copyWith(
                     color: statusColor,
                     fontWeight: FontWeight.w600,
@@ -116,7 +123,12 @@ class ProviderDetailsCard extends StatelessWidget {
             Row(
               children: [
                 Expanded(child: Text(_lastUpdatedLabel(l10n, usage.fetchedAt))),
-                Text(l10n.autoRefreshMinutes(1), textAlign: TextAlign.end),
+                Text(
+                  l10n.autoRefreshMinutes(
+                    usage.provider == UsageProvider.claude ? 5 : 1,
+                  ),
+                  textAlign: TextAlign.end,
+                ),
               ],
             ),
           ],

@@ -158,6 +158,12 @@ abstract class AppLocalizations {
   /// **'Connected'**
   String get connected;
 
+  /// No description provided for @cachedData.
+  ///
+  /// In en, this message translates to:
+  /// **'Cached'**
+  String get cachedData;
+
   /// No description provided for @disconnected.
   ///
   /// In en, this message translates to:

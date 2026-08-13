@@ -20,6 +20,7 @@
   "opusWeeklyLimit": "Opus weekly limit",
   "sonnetWeeklyLimit": "Sonnet weekly limit",
   "connected": "Connected",
+  "cachedData": "Cached",
   "disconnected": "Disconnected",
   "resetsInHoursMinutes": "Resets in {hours}h {minutes}m",
   "@resetsInHoursMinutes": {

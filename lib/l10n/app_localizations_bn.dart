@@ -43,6 +43,9 @@ class AppLocalizationsBn extends AppLocalizations {
   String get connected => 'সংযুক্ত';
 
   @override
+  String get cachedData => 'সংরক্ষিত';
+
+  @override
   String get disconnected => 'সংযোগ নেই';
 
   @override

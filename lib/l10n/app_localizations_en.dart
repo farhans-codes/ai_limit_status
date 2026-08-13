@@ -43,6 +43,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get connected => 'Connected';
 
   @override
+  String get cachedData => 'Cached';
+
+  @override
   String get disconnected => 'Disconnected';
 
   @override

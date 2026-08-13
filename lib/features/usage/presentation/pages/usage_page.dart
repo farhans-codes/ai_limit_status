@@ -75,12 +75,18 @@ class UsagePage extends GetView<UsageController> {
                       );
                     }
 
+                    final hasStaleData = controller.usages.any(
+                      (usage) => usage.isStale,
+                    );
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         _Header(
                           title: l10n.appTitle,
-                          liveLabel: l10n.liveData,
+                          liveLabel: hasStaleData
+                              ? l10n.cachedData
+                              : l10n.liveData,
+                          isLive: !hasStaleData,
                           warningsTooltip: l10n.warningThresholdsTooltip,
                           refreshTooltip: l10n.refresh,
                           isRefreshing: controller.isLoading.value,
@@ -135,6 +141,7 @@ class _Header extends StatelessWidget {
   const _Header({
     required this.title,
     required this.liveLabel,
+    required this.isLive,
     required this.warningsTooltip,
     required this.refreshTooltip,
     required this.isRefreshing,
@@ -143,6 +150,7 @@ class _Header extends StatelessWidget {
 
   final String title;
   final String liveLabel;
+  final bool isLive;
   final String warningsTooltip;
   final String refreshTooltip;
   final bool isRefreshing;
@@ -150,6 +158,9 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final statusColor = isLive
+        ? const Color(0xFF2B8A57)
+        : const Color(0xFFC06B16);
     return Row(
       children: [
         Expanded(
@@ -165,13 +176,13 @@ class _Header extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
-            color: const Color(0xFF2B8A57).withValues(alpha: 0.14),
+            color: statusColor.withValues(alpha: 0.14),
             borderRadius: BorderRadius.circular(999),
           ),
           child: Text(
             liveLabel,
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: const Color(0xFF2B8A57),
+              color: statusColor,
               fontWeight: FontWeight.w600,
             ),
           ),
