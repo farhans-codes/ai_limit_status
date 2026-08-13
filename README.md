@@ -11,6 +11,10 @@ and Claude subscription usage.
 - Sends reset reminders when 5 hours and 1 hour remain.
 - Detects CLIs installed through WinGet, native installers, Homebrew, or npm.
 - Offers guided Install, Sign in, and Check again actions inside the app.
+- Prevents duplicate app instances from polling the same provider account.
+- Refreshes Claude usage at a rate-limit-safe five-minute interval.
+- Keeps the last successful usage snapshot for up to 24 hours during temporary
+  provider or network failures.
 
 ## First-time setup
 
@@ -29,6 +33,9 @@ or **Check again** from the provider card afterward.
 
 No API key needs to be pasted into AI Limit Status. Authentication remains in
 the provider's own CLI credential storage.
+
+The local usage cache contains only percentages, reset timestamps, and the last
+successful update time. It does not store provider access or refresh tokens.
 
 ## Warning thresholds
 
