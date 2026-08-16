@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:ai_limit_status/core/constants/app_strings.dart';
 import 'package:ai_limit_status/features/settings/presentation/controllers/desktop_settings_controller.dart';
-import 'package:ai_limit_status/l10n/app_localizations.dart';
 
 class DesktopSettingsDialog extends StatelessWidget {
   const DesktopSettingsDialog({
@@ -15,11 +15,13 @@ class DesktopSettingsDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
+    final strings = AppStrings.instance;
     return PopScope(
       canPop: !firstRun,
       child: AlertDialog(
-        title: Text(firstRun ? l10n.firstRunSetupTitle : l10n.settingsTitle),
+        title: Text(
+          firstRun ? strings.firstRunSetupTitle : strings.settingsTitle,
+        ),
         content: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 330),
           child: SingleChildScrollView(
@@ -29,8 +31,8 @@ class DesktopSettingsDialog extends StatelessWidget {
               children: [
                 Text(
                   firstRun
-                      ? l10n.firstRunSetupDescription
-                      : l10n.settingsDescription,
+                      ? strings.firstRunSetupDescription
+                      : strings.settingsDescription,
                 ),
                 const SizedBox(height: 14),
                 Obx(
@@ -39,8 +41,8 @@ class DesktopSettingsDialog extends StatelessWidget {
                     dense: true,
                     visualDensity: VisualDensity.compact,
                     secondary: const Icon(Icons.notifications_active_outlined),
-                    title: Text(l10n.notificationAlertsTitle),
-                    subtitle: Text(l10n.notificationAlertsDescription),
+                    title: Text(strings.notificationAlertsTitle),
+                    subtitle: Text(strings.notificationAlertsDescription),
                     value: controller.notificationsEnabled.value,
                     onChanged: controller.isUpdating.value
                         ? null
@@ -53,8 +55,8 @@ class DesktopSettingsDialog extends StatelessWidget {
                     dense: true,
                     visualDensity: VisualDensity.compact,
                     secondary: const Icon(Icons.power_settings_new_rounded),
-                    title: Text(l10n.launchAtStartupTitle),
-                    subtitle: Text(l10n.launchAtStartupDescription),
+                    title: Text(strings.launchAtStartupTitle),
+                    subtitle: Text(strings.launchAtStartupDescription),
                     value: controller.launchAtStartupEnabled.value,
                     onChanged: controller.isUpdating.value
                         ? null
@@ -69,7 +71,7 @@ class DesktopSettingsDialog extends StatelessWidget {
           Obx(
             () => FilledButton(
               onPressed: controller.isUpdating.value ? null : controller.finish,
-              child: Text(l10n.done),
+              child: Text(strings.done),
             ),
           ),
         ],

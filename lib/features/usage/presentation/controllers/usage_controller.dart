@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:get/get.dart';
+import 'package:ai_limit_status/core/constants/app_strings.dart';
 import 'package:ai_limit_status/core/platform/tray_service.dart';
 import 'package:ai_limit_status/features/usage/domain/entities/provider_setup_result.dart';
 import 'package:ai_limit_status/features/usage/domain/entities/provider_usage.dart';
@@ -11,7 +12,6 @@ import 'package:ai_limit_status/features/usage/domain/usecases/install_provider.
 import 'package:ai_limit_status/features/usage/domain/usecases/open_provider_setup_guide.dart';
 import 'package:ai_limit_status/features/usage/domain/usecases/show_usage_warning.dart';
 import 'package:ai_limit_status/features/usage/domain/usecases/sign_in_provider.dart';
-import 'package:ai_limit_status/l10n/app_localizations.dart';
 
 class UsageController extends GetxController {
   UsageController(
@@ -56,11 +56,7 @@ class UsageController extends GetxController {
   }
 
   Future<void> _initialize() async {
-    final context = Get.context;
-    if (context == null) {
-      return;
-    }
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppStrings.instance;
     await _trayService.initialize(
       copy: TrayMenuCopy(
         openDashboard: l10n.openDashboard,
@@ -168,9 +164,6 @@ class UsageController extends GetxController {
 
   void _showSignInStarted(UsageProvider provider) {
     final l10n = _localizations;
-    if (l10n == null) {
-      return;
-    }
     Get.snackbar(
       l10n.signInStartedTitle,
       l10n.signInStartedMessage(_providerName(l10n, provider)),
@@ -181,9 +174,6 @@ class UsageController extends GetxController {
 
   void _showSetupResult(UsageProvider provider, ProviderSetupResult result) {
     final l10n = _localizations;
-    if (l10n == null) {
-      return;
-    }
     final message = switch (result) {
       ProviderSetupResult.installerUnavailable => l10n.wingetUnavailable,
       ProviderSetupResult.unsupported => l10n.automaticSetupUnavailable,
@@ -228,9 +218,6 @@ class UsageController extends GetxController {
 
   Future<void> _notifyForThresholds(List<ProviderUsage> previousUsages) async {
     final l10n = _localizations;
-    if (l10n == null) {
-      return;
-    }
     for (final warning in _evaluateUsageWarnings(
       usages,
       previousUsages: previousUsages,
@@ -265,7 +252,7 @@ class UsageController extends GetxController {
   }
 
   String _remainingWarningBody(
-    AppLocalizations l10n,
+    AppStrings l10n,
     String limit,
     int currentRemainingPercent,
     int threshold,
@@ -278,7 +265,7 @@ class UsageController extends GetxController {
   }
 
   String _resetWarningBody(
-    AppLocalizations l10n,
+    AppStrings l10n,
     String limit,
     int thresholdMinutes,
   ) {
@@ -292,19 +279,16 @@ class UsageController extends GetxController {
     };
   }
 
-  AppLocalizations? get _localizations {
-    final context = Get.context;
-    return context == null ? null : AppLocalizations.of(context);
-  }
+  AppStrings get _localizations => AppStrings.instance;
 
-  String _providerName(AppLocalizations l10n, UsageProvider provider) {
+  String _providerName(AppStrings l10n, UsageProvider provider) {
     return switch (provider) {
       UsageProvider.codex => l10n.providerCodex,
       UsageProvider.claude => l10n.providerClaude,
     };
   }
 
-  String _limitName(AppLocalizations l10n, UsageLimitType type) {
+  String _limitName(AppStrings l10n, UsageLimitType type) {
     return switch (type) {
       UsageLimitType.session => l10n.fiveHourLimit,
       UsageLimitType.weekly => l10n.weeklyLimit,
@@ -314,11 +298,7 @@ class UsageController extends GetxController {
   }
 
   Future<void> _updateTray() async {
-    final context = Get.context;
-    if (context == null) {
-      return;
-    }
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppStrings.instance;
     final codex = _usageFor(UsageProvider.codex);
     final claude = _usageFor(UsageProvider.claude);
     final codexValue = codex == null ? null : _compactValue(l10n, codex);
@@ -357,7 +337,7 @@ class UsageController extends GetxController {
   }
 
   String _compactValue(
-    AppLocalizations l10n,
+    AppStrings l10n,
     ProviderUsage usage, {
     UsageLimitType? preferredType,
   }) {

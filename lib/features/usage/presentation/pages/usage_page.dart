@@ -2,18 +2,18 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:ai_limit_status/core/constants/app_strings.dart';
 import 'package:ai_limit_status/features/settings/presentation/controllers/desktop_settings_controller.dart';
 import 'package:ai_limit_status/features/usage/domain/entities/provider_usage.dart';
 import 'package:ai_limit_status/features/usage/presentation/controllers/usage_controller.dart';
 import 'package:ai_limit_status/features/usage/presentation/widgets/provider_details_card.dart';
-import 'package:ai_limit_status/l10n/app_localizations.dart';
 
 class UsagePage extends GetView<UsageController> {
   const UsagePage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppStrings.instance;
     final settingsController = Get.find<DesktopSettingsController>();
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;

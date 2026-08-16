@@ -2,12 +2,12 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:ai_limit_status/core/constants/app_strings.dart';
 import 'package:ai_limit_status/core/platform/app_window_service.dart';
 import 'package:ai_limit_status/core/platform/tray_service.dart';
 import 'package:ai_limit_status/features/settings/domain/entities/desktop_settings.dart';
 import 'package:ai_limit_status/features/settings/domain/repositories/desktop_settings_repository.dart';
 import 'package:ai_limit_status/features/settings/presentation/widgets/desktop_settings_dialog.dart';
-import 'package:ai_limit_status/l10n/app_localizations.dart';
 
 class DesktopSettingsController extends GetxController
     with WidgetsBindingObserver {
@@ -57,11 +57,7 @@ class DesktopSettingsController extends GetxController
   }
 
   Future<void> _initialize() async {
-    final l10n = _localizations;
-    if (l10n == null) {
-      return;
-    }
-    await _repository.initialize(l10n.appTitle);
+    await _repository.initialize(AppStrings.instance.appTitle);
     await _reload();
     _isInitialized = true;
 
@@ -77,11 +73,7 @@ class DesktopSettingsController extends GetxController
       return;
     }
     if (!_isInitialized) {
-      final l10n = _localizations;
-      if (l10n == null) {
-        return;
-      }
-      await _repository.initialize(l10n.appTitle);
+      await _repository.initialize(AppStrings.instance.appTitle);
       await _reload();
       _isInitialized = true;
     } else {
@@ -166,24 +158,21 @@ class DesktopSettingsController extends GetxController
     DesktopSettingUpdateResult result, {
     required bool isNotification,
   }) {
-    final l10n = _localizations;
-    if (l10n == null) {
-      return;
-    }
+    final strings = AppStrings.instance;
     final message = switch (result) {
       DesktopSettingUpdateResult.permissionDenied =>
-        l10n.notificationPermissionDenied,
+        strings.notificationPermissionDenied,
       DesktopSettingUpdateResult.requiresApproval =>
-        l10n.startupApprovalRequired,
-      DesktopSettingUpdateResult.unsupported => l10n.startupUnsupported,
-      DesktopSettingUpdateResult.failed => l10n.settingsUpdateFailed,
+        strings.startupApprovalRequired,
+      DesktopSettingUpdateResult.unsupported => strings.startupUnsupported,
+      DesktopSettingUpdateResult.failed => strings.settingsUpdateFailed,
       DesktopSettingUpdateResult.succeeded => null,
     };
     if (message == null) {
       return;
     }
     Get.snackbar(
-      l10n.settingsUpdateFailedTitle,
+      strings.settingsUpdateFailedTitle,
       message,
       snackPosition: SnackPosition.BOTTOM,
       duration: const Duration(seconds: 6),
@@ -192,14 +181,9 @@ class DesktopSettingsController extends GetxController
               result == DesktopSettingUpdateResult.permissionDenied
           ? TextButton(
               onPressed: openNotificationSettings,
-              child: Text(l10n.openSystemSettings),
+              child: Text(strings.openSystemSettings),
             )
           : null,
     );
-  }
-
-  AppLocalizations? get _localizations {
-    final context = Get.context;
-    return context == null ? null : AppLocalizations.of(context);
   }
 }

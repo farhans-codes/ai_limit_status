@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:ai_limit_status/core/constants/app_strings.dart';
 import 'package:ai_limit_status/features/usage/domain/entities/provider_usage.dart';
 import 'package:ai_limit_status/features/usage/presentation/widgets/provider_icon.dart';
-import 'package:ai_limit_status/l10n/app_localizations.dart';
 
 class ProviderDetailsCard extends StatelessWidget {
   const ProviderDetailsCard({
@@ -25,7 +25,7 @@ class ProviderDetailsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppStrings.instance;
     final providerName = usage.provider == UsageProvider.codex
         ? l10n.providerCodex
         : l10n.providerClaude;
@@ -146,7 +146,7 @@ class _LimitMetric extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppStrings.instance;
     final indicatorColor = _indicatorColor(context, limit.remainingPercent);
 
     return Column(
@@ -260,7 +260,7 @@ class _DisconnectedMessage extends StatelessWidget {
 }
 
 String? _primarySetupLabel(
-  AppLocalizations l10n,
+  AppStrings l10n,
   UsageConnectionIssue? issue,
   bool automaticSetupAvailable,
 ) {
@@ -311,7 +311,7 @@ Color _indicatorColor(BuildContext context, int percentage) {
   return Theme.of(context).colorScheme.primary;
 }
 
-String _resetLabel(AppLocalizations l10n, DateTime resetsAt) {
+String _resetLabel(AppStrings l10n, DateTime resetsAt) {
   final remaining = resetsAt.difference(DateTime.now());
   if (remaining.isNegative || remaining.inMinutes == 0) {
     return l10n.resettingSoon;
@@ -328,7 +328,7 @@ String _resetLabel(AppLocalizations l10n, DateTime resetsAt) {
   );
 }
 
-String _lastUpdatedLabel(AppLocalizations l10n, DateTime fetchedAt) {
+String _lastUpdatedLabel(AppStrings l10n, DateTime fetchedAt) {
   final elapsed = DateTime.now().difference(fetchedAt);
   if (elapsed.inMinutes < 1) {
     return l10n.lastUpdatedNow;
@@ -336,7 +336,7 @@ String _lastUpdatedLabel(AppLocalizations l10n, DateTime fetchedAt) {
   return l10n.lastUpdatedMinutes(elapsed.inMinutes);
 }
 
-String _limitLabel(AppLocalizations l10n, UsageLimitType type) {
+String _limitLabel(AppStrings l10n, UsageLimitType type) {
   return switch (type) {
     UsageLimitType.session => l10n.fiveHourLimit,
     UsageLimitType.weekly => l10n.weeklyLimit,
@@ -345,7 +345,7 @@ String _limitLabel(AppLocalizations l10n, UsageLimitType type) {
   };
 }
 
-String _connectionMessage(AppLocalizations l10n, UsageConnectionIssue? issue) {
+String _connectionMessage(AppStrings l10n, UsageConnectionIssue? issue) {
   return switch (issue) {
     UsageConnectionIssue.cliNotFound => l10n.cliNotFoundMessage,
     UsageConnectionIssue.notSignedIn => l10n.notSignedInMessage,

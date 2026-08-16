@@ -24,9 +24,6 @@ jobs:
       - name: Restore dependencies
         run: flutter pub get
 
-      - name: Generate localizations
-        run: flutter gen-l10n
-
       - name: Analyze source
         run: flutter analyze
 
