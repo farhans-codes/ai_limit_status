@@ -157,7 +157,7 @@ class AppLocalizationsBn extends AppLocalizations {
 
   @override
   String get warningThresholdsTooltip =>
-      '৫০% ও ২০% বাকি থাকলে এবং রিসেটের ৫ ঘণ্টা ও ১ ঘণ্টা আগে সতর্কতা';
+      'ব্যবহার ৫০%, ২০% ও ১০% বাকি থাকলে; ৫ ঘণ্টার লিমিটে ১ ঘণ্টা, ৩০ ও ১০ মিনিট আগে; উইকলি লিমিটে ১ দিন, ১২, ৫ ও ১ ঘণ্টা আগে; এবং লিমিট পুনরায় চালু হলে নোটিফিকেশন';
 
   @override
   String get settingsTooltip => 'নোটিফিকেশন ও স্টার্টআপ সেটিংস';
@@ -181,7 +181,7 @@ class AppLocalizationsBn extends AppLocalizations {
 
   @override
   String get notificationAlertsDescription =>
-      '৫০%, ২০% এবং রিসেটের ৫/১ ঘণ্টা আগে সতর্কতা পান।';
+      'ব্যবহার ৫০%, ২০% ও ১০% বাকি থাকলে; ৫ ঘণ্টার লিমিটে ১ ঘণ্টা, ৩০ ও ১০ মিনিট আগে; উইকলি লিমিটে ১ দিন, ১২, ৫ ও ১ ঘণ্টা আগে; এবং লিমিট পুনরায় চালু হলে নোটিফিকেশন পান।';
 
   @override
   String get launchAtStartupTitle => 'স্টার্টআপে চালু করুন';
@@ -226,13 +226,58 @@ class AppLocalizationsBn extends AppLocalizations {
   }
 
   @override
-  String remainingWarningBody(String limit, int percent, int threshold) {
-    return '$limit-এ $percent% বাকি আছে ($threshold% সতর্কতা)।';
+  String remainingFiftyWarningBody(String limit, int percent) {
+    return 'আপনার $limit-এ $percent% বাকি আছে। সতর্কভাবে ব্যবহার করুন।';
   }
 
   @override
-  String resetWarningBody(String limit, int hours) {
-    return '$limit আগামী $hours ঘণ্টার মধ্যে রিসেট হবে।';
+  String remainingTwentyWarningBody(String limit, int percent) {
+    return '⚠️ আপনার $limit-এ মাত্র $percent% বাকি আছে। আরও সতর্কভাবে ব্যবহার করুন।';
+  }
+
+  @override
+  String remainingTenWarningBody(String limit, int percent) {
+    return '⚠️ আপনার $limit-এ মাত্র $percent% বাকি আছে। ব্যবহার কমিয়ে দিন।';
+  }
+
+  @override
+  String resetOneDayWarningBody(String limit) {
+    return 'আপনার $limit রিসেট হতে আর ১ দিন বাকি।';
+  }
+
+  @override
+  String resetTwelveHoursWarningBody(String limit) {
+    return 'আপনার $limit রিসেট হতে আর ১২ ঘণ্টা বাকি।';
+  }
+
+  @override
+  String resetFiveHoursWarningBody(String limit) {
+    return 'আপনার $limit রিসেট হতে আর ৫ ঘণ্টা বাকি।';
+  }
+
+  @override
+  String resetOneHourWarningBody(String limit) {
+    return 'আপনার $limit রিসেট হতে আর ১ ঘণ্টা বাকি।';
+  }
+
+  @override
+  String resetThirtyMinutesWarningBody(String limit) {
+    return 'আপনার $limit রিসেট হতে আর ৩০ মিনিট বাকি।';
+  }
+
+  @override
+  String resetTenMinutesWarningBody(String limit) {
+    return 'আপনার $limit রিসেট হতে আর ১০ মিনিট বাকি।';
+  }
+
+  @override
+  String limitRestoredTitle(String provider) {
+    return '$provider লিমিট পুনরায় চালু হয়েছে';
+  }
+
+  @override
+  String limitRestoredBody(String limit) {
+    return '$limit আবার চালু হয়েছে।';
   }
 
   @override

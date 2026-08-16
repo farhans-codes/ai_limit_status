@@ -85,10 +85,11 @@ class UsageController extends GetxController {
     hasError.value = false;
 
     try {
+      final previousUsages = usages.toList(growable: false);
       usages.assignAll(await _getUsageSummary());
       _stopPollingForConnectedProviders();
       await _updateTray();
-      await _notifyForThresholds();
+      await _notifyForThresholds(previousUsages);
     } on Object {
       hasError.value = true;
     } finally {
@@ -225,30 +226,70 @@ class UsageController extends GetxController {
     }
   }
 
-  Future<void> _notifyForThresholds() async {
+  Future<void> _notifyForThresholds(List<ProviderUsage> previousUsages) async {
     final l10n = _localizations;
     if (l10n == null) {
       return;
     }
-    for (final warning in _evaluateUsageWarnings(usages)) {
+    for (final warning in _evaluateUsageWarnings(
+      usages,
+      previousUsages: previousUsages,
+    )) {
       final provider = _providerName(l10n, warning.provider);
       final limit = _limitName(l10n, warning.limitType);
-      final title = warning.kind == UsageWarningKind.remaining
-          ? l10n.usageWarningTitle(provider)
-          : l10n.resetWarningTitle(provider);
-      final body = warning.kind == UsageWarningKind.remaining
-          ? l10n.remainingWarningBody(
-              limit,
-              warning.currentRemainingPercent,
-              warning.threshold,
-            )
-          : l10n.resetWarningBody(limit, warning.threshold);
+      final title = switch (warning.kind) {
+        UsageWarningKind.remaining => l10n.usageWarningTitle(provider),
+        UsageWarningKind.resetSoon => l10n.resetWarningTitle(provider),
+        UsageWarningKind.restored => l10n.limitRestoredTitle(provider),
+      };
+      final body = switch (warning.kind) {
+        UsageWarningKind.remaining => _remainingWarningBody(
+          l10n,
+          limit,
+          warning.currentRemainingPercent,
+          warning.threshold,
+        ),
+        UsageWarningKind.resetSoon => _resetWarningBody(
+          l10n,
+          limit,
+          warning.threshold,
+        ),
+        UsageWarningKind.restored => l10n.limitRestoredBody(limit),
+      };
       await _showUsageWarning(
         identifier: warning.identifier,
         title: title,
         body: body,
       );
     }
+  }
+
+  String _remainingWarningBody(
+    AppLocalizations l10n,
+    String limit,
+    int currentRemainingPercent,
+    int threshold,
+  ) {
+    return switch (threshold) {
+      50 => l10n.remainingFiftyWarningBody(limit, currentRemainingPercent),
+      20 => l10n.remainingTwentyWarningBody(limit, currentRemainingPercent),
+      _ => l10n.remainingTenWarningBody(limit, currentRemainingPercent),
+    };
+  }
+
+  String _resetWarningBody(
+    AppLocalizations l10n,
+    String limit,
+    int thresholdMinutes,
+  ) {
+    return switch (thresholdMinutes) {
+      1440 => l10n.resetOneDayWarningBody(limit),
+      720 => l10n.resetTwelveHoursWarningBody(limit),
+      300 => l10n.resetFiveHoursWarningBody(limit),
+      60 => l10n.resetOneHourWarningBody(limit),
+      30 => l10n.resetThirtyMinutesWarningBody(limit),
+      _ => l10n.resetTenMinutesWarningBody(limit),
+    };
   }
 
   AppLocalizations? get _localizations {

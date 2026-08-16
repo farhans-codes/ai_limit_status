@@ -1,6 +1,6 @@
 import 'package:ai_limit_status/features/usage/domain/entities/provider_usage.dart';
 
-enum UsageWarningKind { remaining, reset }
+enum UsageWarningKind { remaining, resetSoon, restored }
 
 class UsageWarning {
   const UsageWarning({

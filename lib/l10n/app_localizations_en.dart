@@ -157,7 +157,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get warningThresholdsTooltip =>
-      'Alerts at 50% and 20% remaining, and 5h and 1h before reset';
+      'Usage alerts at 50%, 20%, and 10%; five-hour reminders at 1h, 30m, and 10m; weekly reminders at 1d, 12h, 5h, and 1h; plus restored notices';
 
   @override
   String get settingsTooltip => 'Notification and startup settings';
@@ -181,7 +181,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get notificationAlertsDescription =>
-      'Alerts at 50%, 20%, and 5h/1h before reset.';
+      'Usage alerts at 50%, 20%, and 10%; five-hour reminders at 1h, 30m, and 10m; weekly reminders at 1d, 12h, 5h, and 1h; plus restored notices.';
 
   @override
   String get launchAtStartupTitle => 'Launch at startup';
@@ -226,19 +226,58 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String remainingWarningBody(String limit, int percent, int threshold) {
-    return '$limit has $percent% remaining (the $threshold% alert).';
+  String remainingFiftyWarningBody(String limit, int percent) {
+    return '$percent% of your $limit remains. Use it carefully.';
   }
 
   @override
-  String resetWarningBody(String limit, int hours) {
-    String _temp0 = intl.Intl.pluralLogic(
-      hours,
-      locale: localeName,
-      other: '$limit will reset within $hours hours.',
-      one: '$limit will reset within 1 hour.',
-    );
-    return '$_temp0';
+  String remainingTwentyWarningBody(String limit, int percent) {
+    return '⚠️ Only $percent% of your $limit remains. Be extra cautious.';
+  }
+
+  @override
+  String remainingTenWarningBody(String limit, int percent) {
+    return '⚠️ Only $percent% of your $limit remains. Reduce your usage.';
+  }
+
+  @override
+  String resetOneDayWarningBody(String limit) {
+    return 'One day left until your $limit resets.';
+  }
+
+  @override
+  String resetTwelveHoursWarningBody(String limit) {
+    return '12 hours left until your $limit resets.';
+  }
+
+  @override
+  String resetFiveHoursWarningBody(String limit) {
+    return '5 hours left until your $limit resets.';
+  }
+
+  @override
+  String resetOneHourWarningBody(String limit) {
+    return 'One hour left until your $limit resets.';
+  }
+
+  @override
+  String resetThirtyMinutesWarningBody(String limit) {
+    return '30 minutes left until your $limit resets.';
+  }
+
+  @override
+  String resetTenMinutesWarningBody(String limit) {
+    return '10 minutes left until your $limit resets.';
+  }
+
+  @override
+  String limitRestoredTitle(String provider) {
+    return '$provider limit restored';
+  }
+
+  @override
+  String limitRestoredBody(String limit) {
+    return '$limit restored.';
   }
 
   @override

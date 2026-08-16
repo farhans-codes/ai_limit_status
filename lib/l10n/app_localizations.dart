@@ -347,7 +347,7 @@ abstract class AppLocalizations {
   /// No description provided for @warningThresholdsTooltip.
   ///
   /// In en, this message translates to:
-  /// **'Alerts at 50% and 20% remaining, and 5h and 1h before reset'**
+  /// **'Usage alerts at 50%, 20%, and 10%; five-hour reminders at 1h, 30m, and 10m; weekly reminders at 1d, 12h, 5h, and 1h; plus restored notices'**
   String get warningThresholdsTooltip;
 
   /// No description provided for @settingsTooltip.
@@ -389,7 +389,7 @@ abstract class AppLocalizations {
   /// No description provided for @notificationAlertsDescription.
   ///
   /// In en, this message translates to:
-  /// **'Alerts at 50%, 20%, and 5h/1h before reset.'**
+  /// **'Usage alerts at 50%, 20%, and 10%; five-hour reminders at 1h, 30m, and 10m; weekly reminders at 1d, 12h, 5h, and 1h; plus restored notices.'**
   String get notificationAlertsDescription;
 
   /// No description provided for @launchAtStartupTitle.
@@ -458,17 +458,71 @@ abstract class AppLocalizations {
   /// **'{provider} reset reminder'**
   String resetWarningTitle(String provider);
 
-  /// No description provided for @remainingWarningBody.
+  /// No description provided for @remainingFiftyWarningBody.
   ///
   /// In en, this message translates to:
-  /// **'{limit} has {percent}% remaining (the {threshold}% alert).'**
-  String remainingWarningBody(String limit, int percent, int threshold);
+  /// **'{percent}% of your {limit} remains. Use it carefully.'**
+  String remainingFiftyWarningBody(String limit, int percent);
 
-  /// No description provided for @resetWarningBody.
+  /// No description provided for @remainingTwentyWarningBody.
   ///
   /// In en, this message translates to:
-  /// **'{hours, plural, =1{{limit} will reset within 1 hour.} other{{limit} will reset within {hours} hours.}}'**
-  String resetWarningBody(String limit, int hours);
+  /// **'⚠️ Only {percent}% of your {limit} remains. Be extra cautious.'**
+  String remainingTwentyWarningBody(String limit, int percent);
+
+  /// No description provided for @remainingTenWarningBody.
+  ///
+  /// In en, this message translates to:
+  /// **'⚠️ Only {percent}% of your {limit} remains. Reduce your usage.'**
+  String remainingTenWarningBody(String limit, int percent);
+
+  /// No description provided for @resetOneDayWarningBody.
+  ///
+  /// In en, this message translates to:
+  /// **'One day left until your {limit} resets.'**
+  String resetOneDayWarningBody(String limit);
+
+  /// No description provided for @resetTwelveHoursWarningBody.
+  ///
+  /// In en, this message translates to:
+  /// **'12 hours left until your {limit} resets.'**
+  String resetTwelveHoursWarningBody(String limit);
+
+  /// No description provided for @resetFiveHoursWarningBody.
+  ///
+  /// In en, this message translates to:
+  /// **'5 hours left until your {limit} resets.'**
+  String resetFiveHoursWarningBody(String limit);
+
+  /// No description provided for @resetOneHourWarningBody.
+  ///
+  /// In en, this message translates to:
+  /// **'One hour left until your {limit} resets.'**
+  String resetOneHourWarningBody(String limit);
+
+  /// No description provided for @resetThirtyMinutesWarningBody.
+  ///
+  /// In en, this message translates to:
+  /// **'30 minutes left until your {limit} resets.'**
+  String resetThirtyMinutesWarningBody(String limit);
+
+  /// No description provided for @resetTenMinutesWarningBody.
+  ///
+  /// In en, this message translates to:
+  /// **'10 minutes left until your {limit} resets.'**
+  String resetTenMinutesWarningBody(String limit);
+
+  /// No description provided for @limitRestoredTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{provider} limit restored'**
+  String limitRestoredTitle(String provider);
+
+  /// No description provided for @limitRestoredBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{limit} restored.'**
+  String limitRestoredBody(String limit);
 
   /// No description provided for @openDashboard.
   ///

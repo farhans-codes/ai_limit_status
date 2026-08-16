@@ -88,14 +88,14 @@
       "provider": {"type": "String"}
     }
   },
-  "warningThresholdsTooltip": "Alerts at 50% and 20% remaining, and 5h and 1h before reset",
+  "warningThresholdsTooltip": "Usage alerts at 50%, 20%, and 10%; five-hour reminders at 1h, 30m, and 10m; weekly reminders at 1d, 12h, 5h, and 1h; plus restored notices",
   "settingsTooltip": "Notification and startup settings",
   "firstRunSetupTitle": "Finish app setup",
   "firstRunSetupDescription": "Allow alerts and choose whether the app opens automatically when you sign in.",
   "settingsTitle": "App settings",
   "settingsDescription": "You can change notification and startup preferences at any time.",
   "notificationAlertsTitle": "Usage notifications",
-  "notificationAlertsDescription": "Alerts at 50%, 20%, and 5h/1h before reset.",
+  "notificationAlertsDescription": "Usage alerts at 50%, 20%, and 10%; five-hour reminders at 1h, 30m, and 10m; weekly reminders at 1d, 12h, 5h, and 1h; plus restored notices.",
   "launchAtStartupTitle": "Launch at startup",
   "launchAtStartupDescription": "Open AI Limit Status automatically when you sign in.",
   "done": "Done",
@@ -117,19 +117,73 @@
       "provider": {"type": "String"}
     }
   },
-  "remainingWarningBody": "{limit} has {percent}% remaining (the {threshold}% alert).",
-  "@remainingWarningBody": {
+  "remainingFiftyWarningBody": "{percent}% of your {limit} remains. Use it carefully.",
+  "@remainingFiftyWarningBody": {
     "placeholders": {
       "limit": {"type": "String"},
-      "percent": {"type": "int"},
-      "threshold": {"type": "int"}
+      "percent": {"type": "int"}
     }
   },
-  "resetWarningBody": "{hours, plural, =1{{limit} will reset within 1 hour.} other{{limit} will reset within {hours} hours.}}",
-  "@resetWarningBody": {
+  "remainingTwentyWarningBody": "⚠️ Only {percent}% of your {limit} remains. Be extra cautious.",
+  "@remainingTwentyWarningBody": {
     "placeholders": {
       "limit": {"type": "String"},
-      "hours": {"type": "int"}
+      "percent": {"type": "int"}
+    }
+  },
+  "remainingTenWarningBody": "⚠️ Only {percent}% of your {limit} remains. Reduce your usage.",
+  "@remainingTenWarningBody": {
+    "placeholders": {
+      "limit": {"type": "String"},
+      "percent": {"type": "int"}
+    }
+  },
+  "resetOneDayWarningBody": "One day left until your {limit} resets.",
+  "@resetOneDayWarningBody": {
+    "placeholders": {
+      "limit": {"type": "String"}
+    }
+  },
+  "resetTwelveHoursWarningBody": "12 hours left until your {limit} resets.",
+  "@resetTwelveHoursWarningBody": {
+    "placeholders": {
+      "limit": {"type": "String"}
+    }
+  },
+  "resetFiveHoursWarningBody": "5 hours left until your {limit} resets.",
+  "@resetFiveHoursWarningBody": {
+    "placeholders": {
+      "limit": {"type": "String"}
+    }
+  },
+  "resetOneHourWarningBody": "One hour left until your {limit} resets.",
+  "@resetOneHourWarningBody": {
+    "placeholders": {
+      "limit": {"type": "String"}
+    }
+  },
+  "resetThirtyMinutesWarningBody": "30 minutes left until your {limit} resets.",
+  "@resetThirtyMinutesWarningBody": {
+    "placeholders": {
+      "limit": {"type": "String"}
+    }
+  },
+  "resetTenMinutesWarningBody": "10 minutes left until your {limit} resets.",
+  "@resetTenMinutesWarningBody": {
+    "placeholders": {
+      "limit": {"type": "String"}
+    }
+  },
+  "limitRestoredTitle": "{provider} limit restored",
+  "@limitRestoredTitle": {
+    "placeholders": {
+      "provider": {"type": "String"}
+    }
+  },
+  "limitRestoredBody": "{limit} restored.",
+  "@limitRestoredBody": {
+    "placeholders": {
+      "limit": {"type": "String"}
     }
   },
   "openDashboard": "Open details",
