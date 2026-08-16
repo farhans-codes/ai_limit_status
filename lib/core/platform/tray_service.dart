@@ -12,14 +12,12 @@ class TrayMenuCopy {
     required this.refresh,
     required this.quit,
     required this.initialTooltip,
-    required this.unavailableValue,
   });
 
   final String openDashboard;
   final String refresh;
   final String quit;
   final String initialTooltip;
-  final String unavailableValue;
 }
 
 class TrayService extends GetxService with TrayListener {
@@ -53,7 +51,6 @@ class TrayService extends GetxService with TrayListener {
         refreshLabel: copy.refresh,
         quitLabel: copy.quit,
         initialTooltip: copy.initialTooltip,
-        unavailableValue: copy.unavailableValue,
         onRefresh: onRefresh,
         onQuit: _quit,
         onWillShow: _windowService.prepareForNativeShow,
@@ -95,8 +92,8 @@ class TrayService extends GetxService with TrayListener {
   }
 
   Future<void> updateUsage({
-    required String codexValue,
-    required String claudeValue,
+    required String? codexValue,
+    required String? claudeValue,
     required String tooltip,
   }) async {
     if (!_isInitialized) {

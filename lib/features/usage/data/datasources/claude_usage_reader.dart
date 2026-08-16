@@ -22,6 +22,11 @@ class ClaudeUsageReader {
   ProviderUsageModel? _lastSuccessfulUsage;
 
   Future<ProviderUsageModel> read() async {
+    final executable = await _executableLocator.find(UsageProvider.claude);
+    if (executable == null) {
+      throw const UsageReadException(UsageConnectionIssue.cliNotFound);
+    }
+
     final cachedUsage = _lastSuccessfulUsage;
     if (cachedUsage != null &&
         DateTime.now().difference(cachedUsage.fetchedAt) <
@@ -31,12 +36,7 @@ class ClaudeUsageReader {
 
     final accessToken = await _readAccessToken();
     if (accessToken == null || accessToken.isEmpty) {
-      final executable = await _executableLocator.find(UsageProvider.claude);
-      throw UsageReadException(
-        executable == null
-            ? UsageConnectionIssue.cliNotFound
-            : UsageConnectionIssue.notSignedIn,
-      );
+      throw const UsageReadException(UsageConnectionIssue.notSignedIn);
     }
 
     final payload = await _fetchUsage(accessToken);
@@ -54,6 +54,7 @@ class ClaudeUsageReader {
       provider: UsageProvider.claude,
       limits: limits,
       isConnected: true,
+      isInstalled: true,
       fetchedAt: DateTime.now(),
     );
   }

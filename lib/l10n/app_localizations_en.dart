@@ -90,6 +90,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get unableToLoadUsage => 'Could not load usage information.';
 
   @override
+  String get noProvidersDetected => 'No providers detected';
+
+  @override
+  String get noProvidersDetectedDescription =>
+      'Install Codex or Claude to start monitoring usage.';
+
+  @override
+  String setUpProvider(String provider) {
+    return 'Set up $provider';
+  }
+
+  @override
   String get liveData => 'Live';
 
   @override
@@ -243,5 +255,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String trayTooltip(String codexValue, String claudeValue) {
     return 'Codex: $codexValue · Claude 5-hour: $claudeValue';
+  }
+
+  @override
+  String singleProviderTrayTooltip(String provider, String value) {
+    return '$provider: $value';
   }
 }

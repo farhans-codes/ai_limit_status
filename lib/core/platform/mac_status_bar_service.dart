@@ -12,7 +12,6 @@ class MacStatusBarService {
     required String refreshLabel,
     required String quitLabel,
     required String initialTooltip,
-    required String unavailableValue,
     required Future<void> Function() onRefresh,
     required Future<void> Function() onQuit,
     required void Function() onWillShow,
@@ -37,8 +36,6 @@ class MacStatusBarService {
     await _channel.invokeMethod<void>('initialize', {
       'codexSvg': codexSvg,
       'claudeSvg': claudeSvg,
-      'codexValue': unavailableValue,
-      'claudeValue': unavailableValue,
       'openLabel': openLabel,
       'refreshLabel': refreshLabel,
       'quitLabel': quitLabel,
@@ -47,8 +44,8 @@ class MacStatusBarService {
   }
 
   Future<void> update({
-    required String codexValue,
-    required String claudeValue,
+    required String? codexValue,
+    required String? claudeValue,
     required String tooltip,
   }) async {
     if (!Platform.isMacOS) {

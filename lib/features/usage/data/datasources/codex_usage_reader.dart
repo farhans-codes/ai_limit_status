@@ -62,6 +62,7 @@ class CodexUsageReader {
         provider: UsageProvider.codex,
         limits: limits,
         isConnected: true,
+        isInstalled: true,
         fetchedAt: DateTime.now(),
       );
     } on TimeoutException {

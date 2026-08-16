@@ -90,6 +90,18 @@ class AppLocalizationsBn extends AppLocalizations {
   String get unableToLoadUsage => 'ব্যবহারের তথ্য লোড করা যায়নি।';
 
   @override
+  String get noProvidersDetected => 'কোনো provider পাওয়া যায়নি';
+
+  @override
+  String get noProvidersDetectedDescription =>
+      'ব্যবহার পর্যবেক্ষণ করতে Codex বা Claude ইনস্টল করুন।';
+
+  @override
+  String setUpProvider(String provider) {
+    return '$provider সেটআপ করুন';
+  }
+
+  @override
   String get liveData => 'লাইভ';
 
   @override
@@ -237,5 +249,10 @@ class AppLocalizationsBn extends AppLocalizations {
   @override
   String trayTooltip(String codexValue, String claudeValue) {
     return 'Codex: $codexValue · Claude ৫ ঘণ্টা: $claudeValue';
+  }
+
+  @override
+  String singleProviderTrayTooltip(String provider, String value) {
+    return '$provider: $value';
   }
 }

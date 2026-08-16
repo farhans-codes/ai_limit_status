@@ -55,6 +55,14 @@
   "retry": "Retry",
   "loadingUsage": "Loading usage…",
   "unableToLoadUsage": "Could not load usage information.",
+  "noProvidersDetected": "No providers detected",
+  "noProvidersDetectedDescription": "Install Codex or Claude to start monitoring usage.",
+  "setUpProvider": "Set up {provider}",
+  "@setUpProvider": {
+    "placeholders": {
+      "provider": {"type": "String"}
+    }
+  },
   "liveData": "Live",
   "notAvailableCompact": "—",
   "cliNotFoundMessage": "Install the provider CLI to read live subscription usage.",
@@ -138,6 +146,13 @@
     "placeholders": {
       "codexValue": {"type": "String"},
       "claudeValue": {"type": "String"}
+    }
+  },
+  "singleProviderTrayTooltip": "{provider}: {value}",
+  "@singleProviderTrayTooltip": {
+    "placeholders": {
+      "provider": {"type": "String"},
+      "value": {"type": "String"}
     }
   }
 }

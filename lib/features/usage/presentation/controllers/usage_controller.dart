@@ -67,7 +67,6 @@ class UsageController extends GetxController {
         refresh: l10n.refresh,
         quit: l10n.quit,
         initialTooltip: l10n.appTitle,
-        unavailableValue: l10n.notAvailableCompact,
       ),
       onRefresh: refreshUsage,
     );
@@ -275,27 +274,45 @@ class UsageController extends GetxController {
 
   Future<void> _updateTray() async {
     final context = Get.context;
-    if (context == null || usages.length < 2) {
+    if (context == null) {
       return;
     }
     final l10n = AppLocalizations.of(context);
-    final codex = usages.firstWhere(
-      (usage) => usage.provider == UsageProvider.codex,
-    );
-    final claude = usages.firstWhere(
-      (usage) => usage.provider == UsageProvider.claude,
-    );
-    final codexValue = _compactValue(l10n, codex);
-    final claudeValue = _compactValue(
-      l10n,
-      claude,
-      preferredType: UsageLimitType.session,
-    );
+    final codex = _usageFor(UsageProvider.codex);
+    final claude = _usageFor(UsageProvider.claude);
+    final codexValue = codex == null ? null : _compactValue(l10n, codex);
+    final claudeValue = claude == null
+        ? null
+        : _compactValue(l10n, claude, preferredType: UsageLimitType.session);
+    final tooltip = switch ((codexValue, claudeValue)) {
+      (final String codexValue, final String claudeValue) => l10n.trayTooltip(
+        codexValue,
+        claudeValue,
+      ),
+      (final String codexValue, null) => l10n.singleProviderTrayTooltip(
+        l10n.providerCodex,
+        codexValue,
+      ),
+      (null, final String claudeValue) => l10n.singleProviderTrayTooltip(
+        l10n.providerClaude,
+        claudeValue,
+      ),
+      _ => l10n.noProvidersDetected,
+    };
     await _trayService.updateUsage(
       codexValue: codexValue,
       claudeValue: claudeValue,
-      tooltip: l10n.trayTooltip(codexValue, claudeValue),
+      tooltip: tooltip,
     );
+  }
+
+  ProviderUsage? _usageFor(UsageProvider provider) {
+    for (final usage in usages) {
+      if (usage.provider == provider) {
+        return usage;
+      }
+    }
+    return null;
   }
 
   String _compactValue(

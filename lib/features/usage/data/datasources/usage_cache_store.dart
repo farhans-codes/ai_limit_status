@@ -36,6 +36,7 @@ class UsageCacheStore {
         provider: provider,
         limits: limits,
         isConnected: true,
+        isInstalled: true,
         isStale: true,
         fetchedAt: fetchedAt.toLocal(),
       );

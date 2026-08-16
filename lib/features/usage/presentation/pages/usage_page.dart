@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:ai_limit_status/features/settings/presentation/controllers/desktop_settings_controller.dart';
+import 'package:ai_limit_status/features/usage/domain/entities/provider_usage.dart';
 import 'package:ai_limit_status/features/usage/presentation/controllers/usage_controller.dart';
 import 'package:ai_limit_status/features/usage/presentation/widgets/provider_details_card.dart';
 import 'package:ai_limit_status/l10n/app_localizations.dart';
@@ -70,10 +71,21 @@ class UsagePage extends GetView<UsageController> {
                     }
 
                     if (controller.usages.isEmpty) {
-                      return _ErrorState(
-                        message: l10n.unableToLoadUsage,
-                        retryLabel: l10n.retry,
-                        onRetry: controller.refreshUsage,
+                      return _NoProvidersState(
+                        title: l10n.noProvidersDetected,
+                        message: l10n.noProvidersDetectedDescription,
+                        codexLabel: l10n.setUpProvider(l10n.providerCodex),
+                        claudeLabel: l10n.setUpProvider(l10n.providerClaude),
+                        isCodexLoading: controller.isSettingUp(
+                          UsageProvider.codex,
+                        ),
+                        isClaudeLoading: controller.isSettingUp(
+                          UsageProvider.claude,
+                        ),
+                        onSetupCodex: () =>
+                            controller.installProvider(UsageProvider.codex),
+                        onSetupClaude: () =>
+                            controller.installProvider(UsageProvider.claude),
                       );
                     }
 
@@ -136,6 +148,97 @@ class UsagePage extends GetView<UsageController> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _NoProvidersState extends StatelessWidget {
+  const _NoProvidersState({
+    required this.title,
+    required this.message,
+    required this.codexLabel,
+    required this.claudeLabel,
+    required this.isCodexLoading,
+    required this.isClaudeLoading,
+    required this.onSetupCodex,
+    required this.onSetupClaude,
+  });
+
+  final String title;
+  final String message;
+  final String codexLabel;
+  final String claudeLabel;
+  final bool isCodexLoading;
+  final bool isClaudeLoading;
+  final VoidCallback onSetupCodex;
+  final VoidCallback onSetupClaude;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.extension_off_outlined, size: 32),
+          const SizedBox(height: 10),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: Theme.of(
+              context,
+            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 6),
+          Text(message, textAlign: TextAlign.center),
+          const SizedBox(height: 16),
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              OutlinedButton(
+                onPressed: isCodexLoading ? null : onSetupCodex,
+                child: _SetupButtonLabel(
+                  label: codexLabel,
+                  isLoading: isCodexLoading,
+                ),
+              ),
+              OutlinedButton(
+                onPressed: isClaudeLoading ? null : onSetupClaude,
+                child: _SetupButtonLabel(
+                  label: claudeLabel,
+                  isLoading: isClaudeLoading,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SetupButtonLabel extends StatelessWidget {
+  const _SetupButtonLabel({required this.label, required this.isLoading});
+
+  final String label;
+  final bool isLoading;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!isLoading) {
+      return Text(label);
+    }
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const SizedBox.square(
+          dimension: 14,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+        const SizedBox(width: 8),
+        Text(label),
+      ],
     );
   }
 }

@@ -236,6 +236,24 @@ abstract class AppLocalizations {
   /// **'Could not load usage information.'**
   String get unableToLoadUsage;
 
+  /// No description provided for @noProvidersDetected.
+  ///
+  /// In en, this message translates to:
+  /// **'No providers detected'**
+  String get noProvidersDetected;
+
+  /// No description provided for @noProvidersDetectedDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Install Codex or Claude to start monitoring usage.'**
+  String get noProvidersDetectedDescription;
+
+  /// No description provided for @setUpProvider.
+  ///
+  /// In en, this message translates to:
+  /// **'Set up {provider}'**
+  String setUpProvider(String provider);
+
   /// No description provided for @liveData.
   ///
   /// In en, this message translates to:
@@ -475,6 +493,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Codex: {codexValue} · Claude 5-hour: {claudeValue}'**
   String trayTooltip(String codexValue, String claudeValue);
+
+  /// No description provided for @singleProviderTrayTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'{provider}: {value}'**
+  String singleProviderTrayTooltip(String provider, String value);
 }
 
 class _AppLocalizationsDelegate

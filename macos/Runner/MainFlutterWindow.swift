@@ -137,6 +137,7 @@ private final class MacStatusBarController: NSObject {
   private var anchorPoint: NSPoint?
   private var codexImage: NSImage?
   private var claudeImage: NSImage?
+  private var appImage: NSImage?
   private let contextMenu = NSMenu()
 
   private init(panel: NSPanel, messenger: FlutterBinaryMessenger) {
@@ -160,6 +161,7 @@ private final class MacStatusBarController: NSObject {
       }
       codexImage = templateImage(from: arguments["codexSvg"] as? String)
       claudeImage = templateImage(from: arguments["claudeSvg"] as? String)
+      appImage = NSImage(named: NSImage.applicationIconName)
       configureMenu(arguments)
       createStatusItemIfNeeded()
       updateStatusItem(arguments)
@@ -225,8 +227,8 @@ private final class MacStatusBarController: NSObject {
 
   private func updateStatusItem(_ arguments: [String: Any]) {
     guard let button = statusItem?.button else { return }
-    let codexValue = arguments["codexValue"] as? String ?? ""
-    let claudeValue = arguments["claudeValue"] as? String ?? ""
+    let codexValue = arguments["codexValue"] as? String
+    let claudeValue = arguments["claudeValue"] as? String
     button.attributedTitle = statusTitle(
       codexValue: codexValue,
       claudeValue: claudeValue
@@ -236,16 +238,22 @@ private final class MacStatusBarController: NSObject {
     }
   }
 
-  private func statusTitle(codexValue: String, claudeValue: String) -> NSAttributedString {
+  private func statusTitle(codexValue: String?, claudeValue: String?) -> NSAttributedString {
     let title = NSMutableAttributedString()
-    if let codexImage {
+    if let codexValue, let codexImage {
       title.append(attachment(for: codexImage))
+      title.append(statusText(" \(codexValue)"))
     }
-    title.append(statusText(" \(codexValue)   "))
-    if let claudeImage {
+    if codexValue != nil, claudeValue != nil {
+      title.append(statusText("   "))
+    }
+    if let claudeValue, let claudeImage {
       title.append(attachment(for: claudeImage))
+      title.append(statusText(" \(claudeValue)"))
     }
-    title.append(statusText(" \(claudeValue)"))
+    if codexValue == nil, claudeValue == nil, let appImage {
+      title.append(attachment(for: appImage))
+    }
     return title
   }
 

@@ -5,6 +5,7 @@ class ProviderUsageModel extends ProviderUsage {
     required super.provider,
     required super.limits,
     required super.isConnected,
+    required super.isInstalled,
     required super.fetchedAt,
     super.isStale,
     super.connectionIssue,
@@ -15,6 +16,7 @@ class ProviderUsageModel extends ProviderUsage {
       provider: provider,
       limits: limits,
       isConnected: isConnected,
+      isInstalled: isInstalled,
       fetchedAt: fetchedAt,
       isStale: true,
       connectionIssue: connectionIssue,
@@ -29,6 +31,7 @@ class ProviderUsageModel extends ProviderUsage {
       provider: provider,
       limits: const [],
       isConnected: false,
+      isInstalled: issue != UsageConnectionIssue.cliNotFound,
       fetchedAt: DateTime.now(),
       connectionIssue: issue,
     );
