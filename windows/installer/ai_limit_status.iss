@@ -3,7 +3,7 @@
 #endif
 
 #define MyAppName "AI Limit Status"
-#define MyAppPublisher "AI Limit Status"
+#define MyAppPublisher "farhans-codes"
 #define MyAppExeName "ai_limit_status.exe"
 
 [Setup]
@@ -11,6 +11,9 @@ AppId=com.ailimitstatus.aiLimitStatus
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
+AppPublisherURL=https://github.com/farhans-codes/ai_limit_status
+AppSupportURL=https://github.com/farhans-codes/ai_limit_status/issues
+AppUpdatesURL=https://github.com/farhans-codes/ai_limit_status/releases/latest
 DefaultDirName={localappdata}\Programs\{#MyAppName}
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
