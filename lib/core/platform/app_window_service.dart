@@ -6,13 +6,27 @@ import 'package:screen_retriever/screen_retriever.dart';
 import 'package:window_manager/window_manager.dart';
 
 class AppWindowService extends GetxService with WindowListener {
+  final Completer<void> _ready = Completer<void>();
   bool _isQuitting = false;
   bool _isShowing = false;
+  bool _isModalOpen = false;
   Timer? _nativeShowGuard;
+
+  Future<void> get whenReady => _ready.future;
 
   Future<void> initialize() async {
     windowManager.addListener(this);
     await windowManager.setPreventClose(true);
+  }
+
+  void markReady() {
+    if (!_ready.isCompleted) {
+      _ready.complete();
+    }
+  }
+
+  void setModalOpen(bool isOpen) {
+    _isModalOpen = isOpen;
   }
 
   Future<void> showPopover() async {
@@ -81,7 +95,10 @@ class AppWindowService extends GetxService with WindowListener {
 
   @override
   Future<void> onWindowBlur() async {
-    if (!_isQuitting && !_isShowing && await windowManager.isVisible()) {
+    if (!_isQuitting &&
+        !_isShowing &&
+        !_isModalOpen &&
+        await windowManager.isVisible()) {
       await windowManager.hide();
     }
   }

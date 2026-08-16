@@ -1,22 +1,44 @@
 import 'package:flutter/material.dart';
+import 'package:ai_limit_status/core/constants/app_strings.dart';
 import 'package:ai_limit_status/features/usage/domain/entities/provider_usage.dart';
 import 'package:ai_limit_status/features/usage/presentation/widgets/provider_icon.dart';
-import 'package:ai_limit_status/l10n/app_localizations.dart';
 
 class ProviderDetailsCard extends StatelessWidget {
-  const ProviderDetailsCard({required this.usage, super.key});
+  const ProviderDetailsCard({
+    required this.usage,
+    required this.automaticSetupAvailable,
+    required this.isSetupInProgress,
+    required this.onInstall,
+    required this.onSignIn,
+    required this.onOpenSetupGuide,
+    required this.onCheckAgain,
+    super.key,
+  });
 
   final ProviderUsage usage;
+  final bool automaticSetupAvailable;
+  final bool isSetupInProgress;
+  final VoidCallback onInstall;
+  final VoidCallback onSignIn;
+  final VoidCallback onOpenSetupGuide;
+  final VoidCallback onCheckAgain;
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppStrings.instance;
     final providerName = usage.provider == UsageProvider.codex
         ? l10n.providerCodex
         : l10n.providerClaude;
-    final statusColor = usage.isConnected
+    final statusColor = usage.isStale
+        ? const Color(0xFFC06B16)
+        : usage.isConnected
         ? const Color(0xFF2B8A57)
         : Theme.of(context).colorScheme.error;
+    final statusLabel = usage.isStale
+        ? l10n.cachedData
+        : usage.isConnected
+        ? l10n.connected
+        : l10n.disconnected;
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -51,7 +73,7 @@ class ProviderDetailsCard extends StatelessWidget {
                 Icon(Icons.circle, size: 8, color: statusColor),
                 const SizedBox(width: 6),
                 Text(
-                  usage.isConnected ? l10n.connected : l10n.disconnected,
+                  statusLabel,
                   style: Theme.of(context).textTheme.labelMedium?.copyWith(
                     color: statusColor,
                     fontWeight: FontWeight.w600,
@@ -71,6 +93,25 @@ class ProviderDetailsCard extends StatelessWidget {
             else
               _DisconnectedMessage(
                 message: _connectionMessage(l10n, usage.connectionIssue),
+                primaryLabel: _primarySetupLabel(
+                  l10n,
+                  usage.connectionIssue,
+                  automaticSetupAvailable,
+                ),
+                primaryIcon: _primarySetupIcon(
+                  usage.connectionIssue,
+                  automaticSetupAvailable,
+                ),
+                onPrimary: _primarySetupAction(
+                  usage.connectionIssue,
+                  automaticSetupAvailable,
+                  onInstall: onInstall,
+                  onSignIn: onSignIn,
+                  onOpenSetupGuide: onOpenSetupGuide,
+                ),
+                checkAgainLabel: l10n.checkAgain,
+                onCheckAgain: onCheckAgain,
+                isSetupInProgress: isSetupInProgress,
               ),
             const SizedBox(height: 8),
             Divider(
@@ -82,7 +123,12 @@ class ProviderDetailsCard extends StatelessWidget {
             Row(
               children: [
                 Expanded(child: Text(_lastUpdatedLabel(l10n, usage.fetchedAt))),
-                Text(l10n.autoRefreshMinutes(1), textAlign: TextAlign.end),
+                Text(
+                  l10n.autoRefreshMinutes(
+                    usage.provider == UsageProvider.claude ? 5 : 1,
+                  ),
+                  textAlign: TextAlign.end,
+                ),
               ],
             ),
           ],
@@ -100,7 +146,7 @@ class _LimitMetric extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppStrings.instance;
     final indicatorColor = _indicatorColor(context, limit.remainingPercent);
 
     return Column(
@@ -151,25 +197,108 @@ class _LimitMetric extends StatelessWidget {
 }
 
 class _DisconnectedMessage extends StatelessWidget {
-  const _DisconnectedMessage({required this.message});
+  const _DisconnectedMessage({
+    required this.message,
+    required this.primaryLabel,
+    required this.primaryIcon,
+    required this.onPrimary,
+    required this.checkAgainLabel,
+    required this.onCheckAgain,
+    required this.isSetupInProgress,
+  });
 
   final String message;
+  final String? primaryLabel;
+  final IconData? primaryIcon;
+  final VoidCallback? onPrimary;
+  final String checkAgainLabel;
+  final VoidCallback onCheckAgain;
+  final bool isSetupInProgress;
 
   @override
   Widget build(BuildContext context) {
     return ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: 62),
-      child: Center(
-        child: Text(
-          message,
-          textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
+      constraints: const BoxConstraints(minHeight: 92),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
-        ),
+          const SizedBox(height: 12),
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              if (onPrimary != null && primaryLabel != null)
+                FilledButton.icon(
+                  onPressed: isSetupInProgress ? null : onPrimary,
+                  icon: isSetupInProgress
+                      ? const SizedBox.square(
+                          dimension: 15,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Icon(primaryIcon, size: 17),
+                  label: Text(primaryLabel!),
+                ),
+              OutlinedButton.icon(
+                onPressed: isSetupInProgress ? null : onCheckAgain,
+                icon: const Icon(Icons.refresh_rounded, size: 17),
+                label: Text(checkAgainLabel),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
+}
+
+String? _primarySetupLabel(
+  AppStrings l10n,
+  UsageConnectionIssue? issue,
+  bool automaticSetupAvailable,
+) {
+  return switch (issue) {
+    UsageConnectionIssue.cliNotFound =>
+      automaticSetupAvailable ? l10n.installAndSignIn : l10n.openSetupGuide,
+    UsageConnectionIssue.notSignedIn => l10n.signIn,
+    UsageConnectionIssue.unavailable || null => null,
+  };
+}
+
+IconData? _primarySetupIcon(
+  UsageConnectionIssue? issue,
+  bool automaticSetupAvailable,
+) {
+  return switch (issue) {
+    UsageConnectionIssue.cliNotFound =>
+      automaticSetupAvailable
+          ? Icons.download_rounded
+          : Icons.open_in_new_rounded,
+    UsageConnectionIssue.notSignedIn => Icons.login_rounded,
+    UsageConnectionIssue.unavailable || null => null,
+  };
+}
+
+VoidCallback? _primarySetupAction(
+  UsageConnectionIssue? issue,
+  bool automaticSetupAvailable, {
+  required VoidCallback onInstall,
+  required VoidCallback onSignIn,
+  required VoidCallback onOpenSetupGuide,
+}) {
+  return switch (issue) {
+    UsageConnectionIssue.cliNotFound =>
+      automaticSetupAvailable ? onInstall : onOpenSetupGuide,
+    UsageConnectionIssue.notSignedIn => onSignIn,
+    UsageConnectionIssue.unavailable || null => null,
+  };
 }
 
 Color _indicatorColor(BuildContext context, int percentage) {
@@ -182,7 +311,7 @@ Color _indicatorColor(BuildContext context, int percentage) {
   return Theme.of(context).colorScheme.primary;
 }
 
-String _resetLabel(AppLocalizations l10n, DateTime resetsAt) {
+String _resetLabel(AppStrings l10n, DateTime resetsAt) {
   final remaining = resetsAt.difference(DateTime.now());
   if (remaining.isNegative || remaining.inMinutes == 0) {
     return l10n.resettingSoon;
@@ -199,7 +328,7 @@ String _resetLabel(AppLocalizations l10n, DateTime resetsAt) {
   );
 }
 
-String _lastUpdatedLabel(AppLocalizations l10n, DateTime fetchedAt) {
+String _lastUpdatedLabel(AppStrings l10n, DateTime fetchedAt) {
   final elapsed = DateTime.now().difference(fetchedAt);
   if (elapsed.inMinutes < 1) {
     return l10n.lastUpdatedNow;
@@ -207,7 +336,7 @@ String _lastUpdatedLabel(AppLocalizations l10n, DateTime fetchedAt) {
   return l10n.lastUpdatedMinutes(elapsed.inMinutes);
 }
 
-String _limitLabel(AppLocalizations l10n, UsageLimitType type) {
+String _limitLabel(AppStrings l10n, UsageLimitType type) {
   return switch (type) {
     UsageLimitType.session => l10n.fiveHourLimit,
     UsageLimitType.weekly => l10n.weeklyLimit,
@@ -216,7 +345,7 @@ String _limitLabel(AppLocalizations l10n, UsageLimitType type) {
   };
 }
 
-String _connectionMessage(AppLocalizations l10n, UsageConnectionIssue? issue) {
+String _connectionMessage(AppStrings l10n, UsageConnectionIssue? issue) {
   return switch (issue) {
     UsageConnectionIssue.cliNotFound => l10n.cliNotFoundMessage,
     UsageConnectionIssue.notSignedIn => l10n.notSignedInMessage,

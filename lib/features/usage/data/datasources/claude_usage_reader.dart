@@ -1,24 +1,42 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:ai_limit_status/features/usage/data/datasources/provider_executable_locator.dart';
 import 'package:ai_limit_status/features/usage/data/datasources/usage_read_exception.dart';
 import 'package:ai_limit_status/features/usage/data/models/provider_usage_model.dart';
 import 'package:ai_limit_status/features/usage/domain/entities/provider_usage.dart';
 
 class ClaudeUsageReader {
-  const ClaudeUsageReader();
+  ClaudeUsageReader(this._executableLocator);
 
   static const _requestTimeout = Duration(seconds: 8);
+  static const _versionTimeout = Duration(seconds: 3);
+  static const _rateLimitCooldown = Duration(minutes: 5);
+  static const _minimumFetchInterval = Duration(minutes: 5);
+  static const _fallbackUserAgent = 'claude-code/2.1.0';
+
+  final ProviderExecutableLocator _executableLocator;
+  DateTime? _rateLimitedUntil;
+  String? _cachedUserAgent;
+  ProviderUsageModel? _lastSuccessfulUsage;
 
   Future<ProviderUsageModel> read() async {
+    final executable = await _executableLocator.find(UsageProvider.claude);
+    if (executable == null) {
+      throw const UsageReadException(UsageConnectionIssue.cliNotFound);
+    }
+
+    final cachedUsage = _lastSuccessfulUsage;
+    if (cachedUsage != null &&
+        DateTime.now().difference(cachedUsage.fetchedAt) <
+            _minimumFetchInterval) {
+      return cachedUsage;
+    }
+
     final accessToken = await _readAccessToken();
     if (accessToken == null || accessToken.isEmpty) {
-      final executable = await _findExecutable();
-      throw UsageReadException(
-        executable == null
-            ? UsageConnectionIssue.cliNotFound
-            : UsageConnectionIssue.notSignedIn,
-      );
+      throw const UsageReadException(UsageConnectionIssue.notSignedIn);
     }
 
     final payload = await _fetchUsage(accessToken);
@@ -32,37 +50,13 @@ class ClaudeUsageReader {
       throw const UsageReadException(UsageConnectionIssue.unavailable);
     }
 
-    return ProviderUsageModel(
+    return _lastSuccessfulUsage = ProviderUsageModel(
       provider: UsageProvider.claude,
       limits: limits,
       isConnected: true,
+      isInstalled: true,
       fetchedAt: DateTime.now(),
     );
-  }
-
-  Future<String?> _findExecutable() async {
-    final home = Platform.environment['HOME'];
-    final candidates = <String>[
-      if (Platform.isMacOS) '/opt/homebrew/bin/claude',
-      if (Platform.isMacOS) '/usr/local/bin/claude',
-      if (Platform.isMacOS && home != null) '$home/.local/bin/claude',
-      if (Platform.isWindows) 'claude.exe' else 'claude',
-    ];
-
-    for (final candidate in candidates) {
-      try {
-        final result = await Process.run(candidate, const [
-          '--version',
-        ]).timeout(_requestTimeout);
-        if (result.exitCode == 0) {
-          return candidate;
-        }
-      } on Object {
-        continue;
-      }
-    }
-
-    return null;
   }
 
   Future<String?> _readAccessToken() async {
@@ -98,6 +92,12 @@ class ClaudeUsageReader {
   }
 
   Future<Map<String, dynamic>> _fetchUsage(String accessToken) async {
+    final now = DateTime.now();
+    final rateLimitedUntil = _rateLimitedUntil;
+    if (rateLimitedUntil != null && now.isBefore(rateLimitedUntil)) {
+      throw const UsageReadException(UsageConnectionIssue.unavailable);
+    }
+
     final client = HttpClient()..connectionTimeout = _requestTimeout;
     try {
       final request = await client
@@ -105,14 +105,22 @@ class ClaudeUsageReader {
           .timeout(_requestTimeout);
       request.headers
         ..set(HttpHeaders.authorizationHeader, 'Bearer $accessToken')
+        ..set(HttpHeaders.acceptHeader, 'application/json')
         ..set(HttpHeaders.contentTypeHeader, 'application/json')
-        ..set(HttpHeaders.userAgentHeader, 'limit-status/0.1.0')
+        ..set(HttpHeaders.userAgentHeader, await _claudeCodeUserAgent())
         ..set('anthropic-beta', 'oauth-2025-04-20');
       final response = await request.close().timeout(_requestTimeout);
       if (response.statusCode == HttpStatus.unauthorized ||
           response.statusCode == HttpStatus.forbidden) {
         await response.drain<void>();
         throw const UsageReadException(UsageConnectionIssue.notSignedIn);
+      }
+      if (response.statusCode == HttpStatus.tooManyRequests) {
+        _rateLimitedUntil =
+            _parseRetryAfter(response.headers.value('retry-after')) ??
+            now.add(_rateLimitCooldown);
+        await response.drain<void>();
+        throw const UsageReadException(UsageConnectionIssue.unavailable);
       }
       if (response.statusCode != HttpStatus.ok) {
         await response.drain<void>();
@@ -124,9 +132,62 @@ class ClaudeUsageReader {
       if (payload == null) {
         throw const UsageReadException(UsageConnectionIssue.unavailable);
       }
+      _rateLimitedUntil = null;
       return payload;
     } finally {
       client.close(force: true);
+    }
+  }
+
+  Future<String> _claudeCodeUserAgent() async {
+    final cachedUserAgent = _cachedUserAgent;
+    if (cachedUserAgent != null) {
+      return cachedUserAgent;
+    }
+
+    try {
+      final executable = await _executableLocator.find(UsageProvider.claude);
+      if (executable == null) {
+        return _cachedUserAgent = _fallbackUserAgent;
+      }
+      final process = await executable.start(const ['--version']);
+      final outputFuture = process.stdout.transform(utf8.decoder).join();
+      unawaited(process.stderr.drain<void>());
+      final exitCode = await process.exitCode.timeout(
+        _versionTimeout,
+        onTimeout: () {
+          process.kill();
+          return -1;
+        },
+      );
+      final output = await outputFuture.timeout(_versionTimeout);
+      if (exitCode == 0) {
+        final version = RegExp(
+          r'\b\d+\.\d+\.\d+\b',
+        ).firstMatch(output)?.group(0);
+        if (version != null) {
+          return _cachedUserAgent = 'claude-code/$version';
+        }
+      }
+    } on Object {
+      return _cachedUserAgent = _fallbackUserAgent;
+    }
+
+    return _cachedUserAgent = _fallbackUserAgent;
+  }
+
+  DateTime? _parseRetryAfter(String? value) {
+    if (value == null) {
+      return null;
+    }
+    final seconds = int.tryParse(value.trim());
+    if (seconds != null && seconds >= 0) {
+      return DateTime.now().add(Duration(seconds: seconds));
+    }
+    try {
+      return HttpDate.parse(value).toLocal();
+    } on FormatException {
+      return null;
     }
   }
 

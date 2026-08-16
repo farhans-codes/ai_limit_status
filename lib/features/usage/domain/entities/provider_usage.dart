@@ -21,14 +21,18 @@ class ProviderUsage {
     required this.provider,
     required this.limits,
     required this.isConnected,
+    required this.isInstalled,
     required this.fetchedAt,
+    this.isStale = false,
     this.connectionIssue,
   });
 
   final UsageProvider provider;
   final List<UsageLimit> limits;
   final bool isConnected;
+  final bool isInstalled;
   final DateTime fetchedAt;
+  final bool isStale;
   final UsageConnectionIssue? connectionIssue;
 
   int? remainingFor(UsageLimitType type) {

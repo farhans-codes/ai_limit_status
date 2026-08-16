@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:get/get.dart';
@@ -11,14 +12,12 @@ class TrayMenuCopy {
     required this.refresh,
     required this.quit,
     required this.initialTooltip,
-    required this.unavailableValue,
   });
 
   final String openDashboard;
   final String refresh;
   final String quit;
   final String initialTooltip;
-  final String unavailableValue;
 }
 
 class TrayService extends GetxService with TrayListener {
@@ -32,6 +31,9 @@ class TrayService extends GetxService with TrayListener {
   final MacStatusBarService _macStatusBarService;
   Future<void> Function()? _onRefresh;
   bool _isInitialized = false;
+  final Completer<void> _ready = Completer<void>();
+
+  Future<void> get whenReady => _ready.future;
 
   Future<void> initialize({
     required TrayMenuCopy copy,
@@ -49,12 +51,12 @@ class TrayService extends GetxService with TrayListener {
         refreshLabel: copy.refresh,
         quitLabel: copy.quit,
         initialTooltip: copy.initialTooltip,
-        unavailableValue: copy.unavailableValue,
         onRefresh: onRefresh,
         onQuit: _quit,
         onWillShow: _windowService.prepareForNativeShow,
       );
       _isInitialized = true;
+      _ready.complete();
       return;
     }
 
@@ -77,11 +79,21 @@ class TrayService extends GetxService with TrayListener {
     );
 
     _isInitialized = true;
+    _ready.complete();
+  }
+
+  Future<void> showDashboard() async {
+    await whenReady;
+    if (Platform.isMacOS) {
+      await _macStatusBarService.show();
+      return;
+    }
+    await _windowService.showPopover();
   }
 
   Future<void> updateUsage({
-    required String codexValue,
-    required String claudeValue,
+    required String? codexValue,
+    required String? claudeValue,
     required String tooltip,
   }) async {
     if (!_isInitialized) {

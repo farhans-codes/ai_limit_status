@@ -1,17 +1,20 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:get/get.dart';
+import 'package:ai_limit_status/core/constants/app_strings.dart';
+import 'package:ai_limit_status/core/platform/app_instance_guard.dart';
 import 'package:ai_limit_status/core/platform/app_window_service.dart';
 import 'package:ai_limit_status/core/theme/app_theme.dart';
 import 'package:ai_limit_status/features/usage/presentation/bindings/usage_binding.dart';
 import 'package:ai_limit_status/features/usage/presentation/pages/usage_page.dart';
-import 'package:ai_limit_status/l10n/app_localizations.dart';
 import 'package:window_manager/window_manager.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  if (!await AppInstanceGuard.acquire()) {
+    exit(0);
+  }
   await windowManager.ensureInitialized();
 
   final windowService = AppWindowService();
@@ -47,6 +50,7 @@ Future<void> main() async {
       );
     }
     await windowManager.hide();
+    windowService.markReady();
   });
 }
 
@@ -57,17 +61,10 @@ class LimitStatusApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return GetMaterialApp(
       debugShowCheckedModeBanner: false,
-      onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
+      title: AppStrings.instance.appTitle,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       themeMode: ThemeMode.system,
-      localizationsDelegates: const [
-        AppLocalizations.delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: AppLocalizations.supportedLocales,
       initialBinding: UsageBinding(),
       home: const UsagePage(),
     );

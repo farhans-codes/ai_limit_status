@@ -8,5 +8,8 @@ class UsageRepositoryImpl implements UsageRepository {
   final UsageDataSource _dataSource;
 
   @override
-  Future<List<ProviderUsage>> fetchUsage() => _dataSource.fetchUsage();
+  Future<List<ProviderUsage>> fetchUsage() async {
+    final usages = await _dataSource.fetchUsage();
+    return usages.where((usage) => usage.isInstalled).toList();
+  }
 }
