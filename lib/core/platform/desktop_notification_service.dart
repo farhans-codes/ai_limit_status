@@ -46,7 +46,7 @@ class DesktopNotificationService {
           ),
         ),
       );
-      _isInitialized = initialized ?? false;
+      _isInitialized = Platform.isMacOS || initialized == true;
       return _isInitialized;
     } on Object {
       return false;
@@ -61,15 +61,17 @@ class DesktopNotificationService {
       return Platform.isWindows;
     }
     try {
+      if (await isPermissionGranted()) {
+        return true;
+      }
       final implementation = _notifications
           .resolvePlatformSpecificImplementation<
             MacOSFlutterLocalNotificationsPlugin
           >();
-      return await implementation?.requestPermissions(
-            alert: true,
-            sound: true,
-          ) ??
+      final granted =
+          await implementation?.requestPermissions(alert: true, sound: true) ??
           false;
+      return granted || await isPermissionGranted();
     } on Object {
       return false;
     }

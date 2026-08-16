@@ -4,28 +4,36 @@ import 'dart:io';
 class StoredDesktopSettings {
   const StoredDesktopSettings({
     required this.notificationsEnabled,
+    required this.notificationPreferenceConfigured,
     required this.onboardingCompleted,
   });
 
   const StoredDesktopSettings.defaults()
     : notificationsEnabled = false,
+      notificationPreferenceConfigured = false,
       onboardingCompleted = false;
 
   final bool notificationsEnabled;
+  final bool notificationPreferenceConfigured;
   final bool onboardingCompleted;
 
   StoredDesktopSettings copyWith({
     bool? notificationsEnabled,
+    bool? notificationPreferenceConfigured,
     bool? onboardingCompleted,
   }) {
     return StoredDesktopSettings(
       notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
+      notificationPreferenceConfigured:
+          notificationPreferenceConfigured ??
+          this.notificationPreferenceConfigured,
       onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
     );
   }
 
   Map<String, bool> toJson() => {
     'notificationsEnabled': notificationsEnabled,
+    'notificationPreferenceConfigured': notificationPreferenceConfigured,
     'onboardingCompleted': onboardingCompleted,
   };
 }
@@ -43,6 +51,8 @@ class DesktopSettingsStore {
       }
       return StoredDesktopSettings(
         notificationsEnabled: decoded['notificationsEnabled'] == true,
+        notificationPreferenceConfigured:
+            decoded['notificationPreferenceConfigured'] == true,
         onboardingCompleted: decoded['onboardingCompleted'] == true,
       );
     } on Object {

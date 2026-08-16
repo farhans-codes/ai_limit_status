@@ -9,7 +9,8 @@ import 'package:ai_limit_status/features/settings/domain/repositories/desktop_se
 import 'package:ai_limit_status/features/settings/presentation/widgets/desktop_settings_dialog.dart';
 import 'package:ai_limit_status/l10n/app_localizations.dart';
 
-class DesktopSettingsController extends GetxController {
+class DesktopSettingsController extends GetxController
+    with WidgetsBindingObserver {
   DesktopSettingsController(
     this._repository,
     this._windowService,
@@ -29,9 +30,30 @@ class DesktopSettingsController extends GetxController {
   bool _onboardingCompleted = false;
 
   @override
+  void onInit() {
+    super.onInit();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
   void onReady() {
     super.onReady();
     unawaited(_initialize());
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed &&
+        _isInitialized &&
+        !isUpdating.value) {
+      unawaited(_reload());
+    }
+  }
+
+  @override
+  void onClose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.onClose();
   }
 
   Future<void> _initialize() async {

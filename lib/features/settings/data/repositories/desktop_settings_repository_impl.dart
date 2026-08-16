@@ -30,9 +30,7 @@ class DesktopSettingsRepositoryImpl implements DesktopSettingsRepository {
   @override
   Future<DesktopSettings> load() async {
     final stored = await _store.read();
-    final notificationsEnabled =
-        stored.notificationsEnabled &&
-        await _notificationService.isPermissionGranted();
+    final notificationsEnabled = await _notificationsEnabled(stored);
     return DesktopSettings(
       notificationsEnabled: notificationsEnabled,
       launchAtStartupEnabled: await _startupService.isEnabled(),
@@ -46,12 +44,24 @@ class DesktopSettingsRepositoryImpl implements DesktopSettingsRepository {
   ) async {
     final stored = await _store.read();
     if (!enabled) {
-      await _store.write(stored.copyWith(notificationsEnabled: false));
+      await _store.write(
+        stored.copyWith(
+          notificationsEnabled: false,
+          notificationPreferenceConfigured: true,
+        ),
+      );
       return DesktopSettingUpdateResult.succeeded;
     }
 
-    final granted = await _notificationService.requestPermission();
-    await _store.write(stored.copyWith(notificationsEnabled: granted));
+    final granted =
+        await _notificationService.isPermissionGranted() ||
+        await _notificationService.requestPermission();
+    await _store.write(
+      stored.copyWith(
+        notificationsEnabled: granted,
+        notificationPreferenceConfigured: granted,
+      ),
+    );
     return granted
         ? DesktopSettingUpdateResult.succeeded
         : DesktopSettingUpdateResult.permissionDenied;
@@ -76,8 +86,7 @@ class DesktopSettingsRepositoryImpl implements DesktopSettingsRepository {
   @override
   Future<bool> canSendUsageWarnings() async {
     final stored = await _store.read();
-    return stored.notificationsEnabled &&
-        await _notificationService.isPermissionGranted();
+    return _notificationsEnabled(stored);
   }
 
   @override
@@ -89,5 +98,19 @@ class DesktopSettingsRepositoryImpl implements DesktopSettingsRepository {
   @override
   Future<void> openNotificationSettings() {
     return _notificationService.openPermissionSettings();
+  }
+
+  Future<bool> _notificationsEnabled(StoredDesktopSettings stored) async {
+    final permissionGranted = await _notificationService.isPermissionGranted();
+    if (permissionGranted && !stored.notificationPreferenceConfigured) {
+      await _store.write(
+        stored.copyWith(
+          notificationsEnabled: true,
+          notificationPreferenceConfigured: true,
+        ),
+      );
+      return true;
+    }
+    return stored.notificationsEnabled && permissionGranted;
   }
 }
