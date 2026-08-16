@@ -1,0 +1,4 @@
+5caf56571cf8b2cab02de4ebff47b8526d802464d6bdae14cecde6870a0e2756  AI-Limit-Status-0.2.2-macOS.dmg
+c7f6570d5dbd1d7d5aef19a436da81ee295133d3c7815586e4ec763033fc85d3  AI-Limit-Status-0.2.2-macOS.zip
+012989ebef7cfeba2d2488633964fb07e982cbf8a5aba42b70243fbf74518f35  AI-Limit-Status-0.2.2-Windows-x64-Setup.exe
+69514deb25579abb3b239a02aca2a20069fee1431e6ece5bcda474f24088398e  AI-Limit-Status-0.2.2-Windows-x64-portable.zip
