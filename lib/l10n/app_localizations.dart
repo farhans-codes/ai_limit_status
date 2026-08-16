@@ -332,6 +332,102 @@ abstract class AppLocalizations {
   /// **'Alerts at 50% and 20% remaining, and 5h and 1h before reset'**
   String get warningThresholdsTooltip;
 
+  /// No description provided for @settingsTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Notification and startup settings'**
+  String get settingsTooltip;
+
+  /// No description provided for @firstRunSetupTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Finish app setup'**
+  String get firstRunSetupTitle;
+
+  /// No description provided for @firstRunSetupDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow alerts and choose whether the app opens automatically when you sign in.'**
+  String get firstRunSetupDescription;
+
+  /// No description provided for @settingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'App settings'**
+  String get settingsTitle;
+
+  /// No description provided for @settingsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'You can change notification and startup preferences at any time.'**
+  String get settingsDescription;
+
+  /// No description provided for @notificationAlertsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Usage notifications'**
+  String get notificationAlertsTitle;
+
+  /// No description provided for @notificationAlertsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Alerts at 50%, 20%, and 5h/1h before reset.'**
+  String get notificationAlertsDescription;
+
+  /// No description provided for @launchAtStartupTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Launch at startup'**
+  String get launchAtStartupTitle;
+
+  /// No description provided for @launchAtStartupDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Open AI Limit Status automatically when you sign in.'**
+  String get launchAtStartupDescription;
+
+  /// No description provided for @done.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get done;
+
+  /// No description provided for @settingsUpdateFailedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Setting not changed'**
+  String get settingsUpdateFailedTitle;
+
+  /// No description provided for @settingsUpdateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The setting could not be changed. Please try again.'**
+  String get settingsUpdateFailed;
+
+  /// No description provided for @notificationPermissionDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Notification permission is off. Allow AI Limit Status in system notification settings.'**
+  String get notificationPermissionDenied;
+
+  /// No description provided for @startupApprovalRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Approve AI Limit Status in the system Login Items or Startup Apps settings.'**
+  String get startupApprovalRequired;
+
+  /// No description provided for @startupUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic startup is not supported on this operating system version.'**
+  String get startupUnsupported;
+
+  /// No description provided for @openSystemSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open settings'**
+  String get openSystemSettings;
+
   /// No description provided for @usageWarningTitle.
   ///
   /// In en, this message translates to:

@@ -61,6 +61,13 @@ class MacStatusBarService {
     });
   }
 
+  Future<void> show() async {
+    if (!Platform.isMacOS) {
+      return;
+    }
+    await _channel.invokeMethod<void>('show');
+  }
+
   Future<void> destroy() async {
     if (!Platform.isMacOS) {
       return;

@@ -1,8 +1,13 @@
 import 'package:get/get.dart';
 import 'package:ai_limit_status/core/platform/app_window_service.dart';
 import 'package:ai_limit_status/core/platform/desktop_notification_service.dart';
+import 'package:ai_limit_status/core/platform/desktop_startup_service.dart';
 import 'package:ai_limit_status/core/platform/mac_status_bar_service.dart';
 import 'package:ai_limit_status/core/platform/tray_service.dart';
+import 'package:ai_limit_status/features/settings/data/datasources/desktop_settings_store.dart';
+import 'package:ai_limit_status/features/settings/data/repositories/desktop_settings_repository_impl.dart';
+import 'package:ai_limit_status/features/settings/domain/repositories/desktop_settings_repository.dart';
+import 'package:ai_limit_status/features/settings/presentation/controllers/desktop_settings_controller.dart';
 import 'package:ai_limit_status/features/usage/data/datasources/provider_executable_locator.dart';
 import 'package:ai_limit_status/features/usage/data/datasources/usage_data_source.dart';
 import 'package:ai_limit_status/features/usage/data/datasources/usage_cache_store.dart';
@@ -64,11 +69,28 @@ class UsageBinding extends Bindings {
       () => OpenProviderSetupGuide(Get.find<ProviderSetupRepository>()),
     );
     Get.lazyPut<DesktopNotificationService>(DesktopNotificationService.new);
+    Get.lazyPut<DesktopStartupService>(DesktopStartupService.new);
+    Get.lazyPut<DesktopSettingsStore>(DesktopSettingsStore.new);
+    Get.lazyPut<DesktopSettingsRepository>(
+      () => DesktopSettingsRepositoryImpl(
+        Get.find<DesktopSettingsStore>(),
+        Get.find<DesktopNotificationService>(),
+        Get.find<DesktopStartupService>(),
+      ),
+    );
+    Get.lazyPut<DesktopSettingsController>(
+      () => DesktopSettingsController(
+        Get.find<DesktopSettingsRepository>(),
+        Get.find<AppWindowService>(),
+        Get.find<TrayService>(),
+      ),
+    );
     Get.lazyPut<UsageWarningStateStore>(UsageWarningStateStore.new);
     Get.lazyPut<UsageWarningRepository>(
       () => UsageWarningRepositoryImpl(
         Get.find<DesktopNotificationService>(),
         Get.find<UsageWarningStateStore>(),
+        Get.find<DesktopSettingsRepository>(),
       ),
     );
     Get.lazyPut<EvaluateUsageWarnings>(EvaluateUsageWarnings.new);

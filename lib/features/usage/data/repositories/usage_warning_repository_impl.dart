@@ -1,14 +1,20 @@
 import 'dart:collection';
 
 import 'package:ai_limit_status/core/platform/desktop_notification_service.dart';
+import 'package:ai_limit_status/features/settings/domain/repositories/desktop_settings_repository.dart';
 import 'package:ai_limit_status/features/usage/data/datasources/usage_warning_state_store.dart';
 import 'package:ai_limit_status/features/usage/domain/repositories/usage_warning_repository.dart';
 
 class UsageWarningRepositoryImpl implements UsageWarningRepository {
-  UsageWarningRepositoryImpl(this._notificationService, this._stateStore);
+  UsageWarningRepositoryImpl(
+    this._notificationService,
+    this._stateStore,
+    this._settingsRepository,
+  );
 
   final DesktopNotificationService _notificationService;
   final UsageWarningStateStore _stateStore;
+  final DesktopSettingsRepository _settingsRepository;
 
   LinkedHashSet<String>? _shownIdentifiers;
 
@@ -24,6 +30,9 @@ class UsageWarningRepositoryImpl implements UsageWarningRepository {
     required String title,
     required String body,
   }) async {
+    if (!await _settingsRepository.canSendUsageWarnings()) {
+      return false;
+    }
     final identifiers = _shownIdentifiers ??= await _stateStore
         .readIdentifiers();
     if (identifiers.contains(identifier)) {

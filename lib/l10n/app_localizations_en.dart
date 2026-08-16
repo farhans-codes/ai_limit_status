@@ -148,6 +148,62 @@ class AppLocalizationsEn extends AppLocalizations {
       'Alerts at 50% and 20% remaining, and 5h and 1h before reset';
 
   @override
+  String get settingsTooltip => 'Notification and startup settings';
+
+  @override
+  String get firstRunSetupTitle => 'Finish app setup';
+
+  @override
+  String get firstRunSetupDescription =>
+      'Allow alerts and choose whether the app opens automatically when you sign in.';
+
+  @override
+  String get settingsTitle => 'App settings';
+
+  @override
+  String get settingsDescription =>
+      'You can change notification and startup preferences at any time.';
+
+  @override
+  String get notificationAlertsTitle => 'Usage notifications';
+
+  @override
+  String get notificationAlertsDescription =>
+      'Alerts at 50%, 20%, and 5h/1h before reset.';
+
+  @override
+  String get launchAtStartupTitle => 'Launch at startup';
+
+  @override
+  String get launchAtStartupDescription =>
+      'Open AI Limit Status automatically when you sign in.';
+
+  @override
+  String get done => 'Done';
+
+  @override
+  String get settingsUpdateFailedTitle => 'Setting not changed';
+
+  @override
+  String get settingsUpdateFailed =>
+      'The setting could not be changed. Please try again.';
+
+  @override
+  String get notificationPermissionDenied =>
+      'Notification permission is off. Allow AI Limit Status in system notification settings.';
+
+  @override
+  String get startupApprovalRequired =>
+      'Approve AI Limit Status in the system Login Items or Startup Apps settings.';
+
+  @override
+  String get startupUnsupported =>
+      'Automatic startup is not supported on this operating system version.';
+
+  @override
+  String get openSystemSettings => 'Open settings';
+
+  @override
   String usageWarningTitle(String provider) {
     return '$provider usage warning';
   }

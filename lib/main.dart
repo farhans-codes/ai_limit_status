@@ -51,6 +51,7 @@ Future<void> main() async {
       );
     }
     await windowManager.hide();
+    windowService.markReady();
   });
 }
 

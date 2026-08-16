@@ -1,5 +1,6 @@
 import Cocoa
 import FlutterMacOS
+import ServiceManagement
 
 class MainFlutterWindow: NSPanel {
   override func awakeFromNib() {
@@ -24,8 +25,102 @@ class MainFlutterWindow: NSPanel {
       panel: self,
       messenger: flutterViewController.engine.binaryMessenger
     )
+    MacStartupController.install(
+      messenger: flutterViewController.engine.binaryMessenger
+    )
 
     super.awakeFromNib()
+  }
+}
+
+private final class MacStartupController {
+  private static var shared: MacStartupController?
+
+  static func install(messenger: FlutterBinaryMessenger) {
+    shared = MacStartupController(messenger: messenger)
+  }
+
+  private let channel: FlutterMethodChannel
+
+  private init(messenger: FlutterBinaryMessenger) {
+    channel = FlutterMethodChannel(
+      name: "com.ailimitstatus/startup",
+      binaryMessenger: messenger
+    )
+    channel.setMethodCallHandler { [weak self] call, result in
+      self?.handle(call, result: result)
+    }
+  }
+
+  private func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    guard #available(macOS 13.0, *) else {
+      if call.method == "isEnabled" {
+        result(false)
+      } else {
+        result("unsupported")
+      }
+      return
+    }
+
+    switch call.method {
+    case "isEnabled":
+      result(SMAppService.mainApp.status == .enabled)
+    case "setEnabled":
+      guard
+        let arguments = call.arguments as? [String: Any],
+        let shouldEnable = arguments["enabled"] as? Bool
+      else {
+        result(FlutterError(code: "invalid_arguments", message: nil, details: nil))
+        return
+      }
+      updateStartupRegistration(shouldEnable, result: result)
+    default:
+      result(FlutterMethodNotImplemented)
+    }
+  }
+
+  @available(macOS 13.0, *)
+  private func updateStartupRegistration(
+    _ shouldEnable: Bool,
+    result: @escaping FlutterResult
+  ) {
+    let service = SMAppService.mainApp
+    do {
+      if shouldEnable {
+        if service.status == .requiresApproval {
+          SMAppService.openSystemSettingsLoginItems()
+          result("requiresApproval")
+          return
+        }
+        if service.status != .enabled {
+          try service.register()
+        }
+      } else if service.status != .notRegistered {
+        try service.unregister()
+      }
+
+      switch service.status {
+      case .enabled:
+        result("enabled")
+      case .requiresApproval:
+        SMAppService.openSystemSettingsLoginItems()
+        result("requiresApproval")
+      case .notRegistered:
+        result("disabled")
+      case .notFound:
+        result("failed")
+      @unknown default:
+        result("failed")
+      }
+    } catch {
+      result(
+        FlutterError(
+          code: "startup_registration_failed",
+          message: error.localizedDescription,
+          details: nil
+        )
+      )
+    }
   }
 }
 
@@ -76,6 +171,11 @@ private final class MacStatusBarController: NSObject {
       }
       updateStatusItem(arguments)
       result(nil)
+    case "show":
+      result(nil)
+      DispatchQueue.main.async { [weak self] in
+        self?.showPanelWithGuard()
+      }
     case "destroy":
       if let statusItem {
         NSStatusBar.system.removeStatusItem(statusItem)

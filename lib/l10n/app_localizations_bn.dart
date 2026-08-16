@@ -148,6 +148,62 @@ class AppLocalizationsBn extends AppLocalizations {
       '৫০% ও ২০% বাকি থাকলে এবং রিসেটের ৫ ঘণ্টা ও ১ ঘণ্টা আগে সতর্কতা';
 
   @override
+  String get settingsTooltip => 'নোটিফিকেশন ও স্টার্টআপ সেটিংস';
+
+  @override
+  String get firstRunSetupTitle => 'অ্যাপ সেটআপ সম্পন্ন করুন';
+
+  @override
+  String get firstRunSetupDescription =>
+      'সতর্কতা এবং সাইন ইন করার পর অ্যাপটি স্বয়ংক্রিয়ভাবে খুলবে কি না, তা বেছে নিন।';
+
+  @override
+  String get settingsTitle => 'অ্যাপ সেটিংস';
+
+  @override
+  String get settingsDescription =>
+      'নোটিফিকেশন ও স্টার্টআপের পছন্দ যেকোনো সময় পরিবর্তন করতে পারবেন।';
+
+  @override
+  String get notificationAlertsTitle => 'ব্যবহারের নোটিফিকেশন';
+
+  @override
+  String get notificationAlertsDescription =>
+      '৫০%, ২০% এবং রিসেটের ৫/১ ঘণ্টা আগে সতর্কতা পান।';
+
+  @override
+  String get launchAtStartupTitle => 'স্টার্টআপে চালু করুন';
+
+  @override
+  String get launchAtStartupDescription =>
+      'সাইন ইন করার পর AI Limit Status স্বয়ংক্রিয়ভাবে খুলুন।';
+
+  @override
+  String get done => 'সম্পন্ন';
+
+  @override
+  String get settingsUpdateFailedTitle => 'সেটিং পরিবর্তন হয়নি';
+
+  @override
+  String get settingsUpdateFailed =>
+      'সেটিংটি পরিবর্তন করা যায়নি। আবার চেষ্টা করুন।';
+
+  @override
+  String get notificationPermissionDenied =>
+      'নোটিফিকেশন পারমিশন বন্ধ আছে। সিস্টেমের নোটিফিকেশন সেটিংসে AI Limit Status-কে অনুমতি দিন।';
+
+  @override
+  String get startupApprovalRequired =>
+      'সিস্টেমের Login Items বা Startup Apps সেটিংসে AI Limit Status-কে অনুমোদন দিন।';
+
+  @override
+  String get startupUnsupported =>
+      'এই অপারেটিং সিস্টেম ভার্সনে স্বয়ংক্রিয় স্টার্টআপ সমর্থিত নয়।';
+
+  @override
+  String get openSystemSettings => 'সেটিংস খুলুন';
+
+  @override
   String usageWarningTitle(String provider) {
     return '$provider ব্যবহারের সতর্কতা';
   }

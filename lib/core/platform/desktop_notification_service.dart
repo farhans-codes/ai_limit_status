@@ -10,18 +10,33 @@ class DesktopNotificationService {
       FlutterLocalNotificationsPlugin();
 
   bool _isInitialized = false;
+  Future<bool>? _initialization;
   int _nextNotificationId = 1;
 
   Future<bool> initialize(String appName) async {
     if (_isInitialized) {
       return true;
     }
+    final initialization = _initialization;
+    if (initialization != null) {
+      return initialization;
+    }
+    final pendingInitialization = _initialize(appName);
+    _initialization = pendingInitialization;
+    final initialized = await pendingInitialization;
+    if (!initialized) {
+      _initialization = null;
+    }
+    return initialized;
+  }
+
+  Future<bool> _initialize(String appName) async {
     try {
       final initialized = await _notifications.initialize(
         settings: InitializationSettings(
           macOS: const DarwinInitializationSettings(
-            requestAlertPermission: true,
-            requestSoundPermission: true,
+            requestAlertPermission: false,
+            requestSoundPermission: false,
             requestBadgePermission: false,
           ),
           windows: WindowsInitializationSettings(
@@ -38,8 +53,64 @@ class DesktopNotificationService {
     }
   }
 
-  Future<bool> show({required String title, required String body}) async {
+  Future<bool> requestPermission() async {
     if (!_isInitialized) {
+      return false;
+    }
+    if (!Platform.isMacOS) {
+      return Platform.isWindows;
+    }
+    try {
+      final implementation = _notifications
+          .resolvePlatformSpecificImplementation<
+            MacOSFlutterLocalNotificationsPlugin
+          >();
+      return await implementation?.requestPermissions(
+            alert: true,
+            sound: true,
+          ) ??
+          false;
+    } on Object {
+      return false;
+    }
+  }
+
+  Future<bool> isPermissionGranted() async {
+    if (!_isInitialized) {
+      return false;
+    }
+    if (!Platform.isMacOS) {
+      return Platform.isWindows;
+    }
+    try {
+      final implementation = _notifications
+          .resolvePlatformSpecificImplementation<
+            MacOSFlutterLocalNotificationsPlugin
+          >();
+      final permissions = await implementation?.checkPermissions();
+      return permissions?.isEnabled ?? false;
+    } on Object {
+      return false;
+    }
+  }
+
+  Future<void> openPermissionSettings() async {
+    if (!Platform.isMacOS) {
+      return;
+    }
+    try {
+      await _notifications
+          .resolvePlatformSpecificImplementation<
+            MacOSFlutterLocalNotificationsPlugin
+          >()
+          ?.openAppNotificationSettings();
+    } on Object {
+      // Opening System Settings is a best-effort recovery path.
+    }
+  }
+
+  Future<bool> show({required String title, required String body}) async {
+    if (!_isInitialized || !await isPermissionGranted()) {
       return false;
     }
     try {

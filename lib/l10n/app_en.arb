@@ -81,6 +81,22 @@
     }
   },
   "warningThresholdsTooltip": "Alerts at 50% and 20% remaining, and 5h and 1h before reset",
+  "settingsTooltip": "Notification and startup settings",
+  "firstRunSetupTitle": "Finish app setup",
+  "firstRunSetupDescription": "Allow alerts and choose whether the app opens automatically when you sign in.",
+  "settingsTitle": "App settings",
+  "settingsDescription": "You can change notification and startup preferences at any time.",
+  "notificationAlertsTitle": "Usage notifications",
+  "notificationAlertsDescription": "Alerts at 50%, 20%, and 5h/1h before reset.",
+  "launchAtStartupTitle": "Launch at startup",
+  "launchAtStartupDescription": "Open AI Limit Status automatically when you sign in.",
+  "done": "Done",
+  "settingsUpdateFailedTitle": "Setting not changed",
+  "settingsUpdateFailed": "The setting could not be changed. Please try again.",
+  "notificationPermissionDenied": "Notification permission is off. Allow AI Limit Status in system notification settings.",
+  "startupApprovalRequired": "Approve AI Limit Status in the system Login Items or Startup Apps settings.",
+  "startupUnsupported": "Automatic startup is not supported on this operating system version.",
+  "openSystemSettings": "Open settings",
   "usageWarningTitle": "{provider} usage warning",
   "@usageWarningTitle": {
     "placeholders": {

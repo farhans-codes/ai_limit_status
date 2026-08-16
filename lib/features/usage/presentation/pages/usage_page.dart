@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:ai_limit_status/features/settings/presentation/controllers/desktop_settings_controller.dart';
 import 'package:ai_limit_status/features/usage/presentation/controllers/usage_controller.dart';
 import 'package:ai_limit_status/features/usage/presentation/widgets/provider_details_card.dart';
 import 'package:ai_limit_status/l10n/app_localizations.dart';
@@ -12,6 +13,7 @@ class UsagePage extends GetView<UsageController> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final settingsController = Get.find<DesktopSettingsController>();
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -87,9 +89,10 @@ class UsagePage extends GetView<UsageController> {
                               ? l10n.cachedData
                               : l10n.liveData,
                           isLive: !hasStaleData,
-                          warningsTooltip: l10n.warningThresholdsTooltip,
+                          settingsTooltip: l10n.settingsTooltip,
                           refreshTooltip: l10n.refresh,
                           isRefreshing: controller.isLoading.value,
+                          onSettings: settingsController.openSettings,
                           onRefresh: controller.refreshUsage,
                         ),
                         Divider(
@@ -142,18 +145,20 @@ class _Header extends StatelessWidget {
     required this.title,
     required this.liveLabel,
     required this.isLive,
-    required this.warningsTooltip,
+    required this.settingsTooltip,
     required this.refreshTooltip,
     required this.isRefreshing,
+    required this.onSettings,
     required this.onRefresh,
   });
 
   final String title;
   final String liveLabel;
   final bool isLive;
-  final String warningsTooltip;
+  final String settingsTooltip;
   final String refreshTooltip;
   final bool isRefreshing;
+  final VoidCallback onSettings;
   final VoidCallback onRefresh;
 
   @override
@@ -187,14 +192,12 @@ class _Header extends StatelessWidget {
             ),
           ),
         ),
-        Tooltip(
-          message: warningsTooltip,
-          child: const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 5),
-            child: Icon(Icons.notifications_active_outlined, size: 17),
-          ),
+        IconButton(
+          visualDensity: VisualDensity.compact,
+          tooltip: settingsTooltip,
+          onPressed: onSettings,
+          icon: const Icon(Icons.settings_outlined, size: 18),
         ),
-        const SizedBox(width: 4),
         IconButton(
           visualDensity: VisualDensity.compact,
           tooltip: refreshTooltip,
