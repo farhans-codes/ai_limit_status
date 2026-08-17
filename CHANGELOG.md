@@ -6,6 +6,20 @@ The project follows Semantic Versioning for public releases.
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-08-17
+
+### Added
+
+- Added a branded macOS DMG layout with installation guidance and concise
+  project information.
+
+### Changed
+
+- Made macOS DMG creation deterministic in the release workflow using a pinned
+  packaging dependency.
+- Documented the custom DMG background limitation in macOS Tahoe while keeping
+  drag-to-Applications installation fully supported.
+
 ## [0.3.1] - 2026-08-17
 
 ### Added
@@ -52,7 +66,8 @@ The project follows Semantic Versioning for public releases.
 - Guided Codex and Claude setup.
 - Local usage caching and duplicate-instance protection.
 
-[Unreleased]: https://github.com/farhans-codes/ai_limit_status/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/farhans-codes/ai_limit_status/compare/v0.3.2...HEAD
+[0.3.2]: https://github.com/farhans-codes/ai_limit_status/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/farhans-codes/ai_limit_status/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/farhans-codes/ai_limit_status/releases/tag/v0.3.0
 [0.2.2]: https://github.com/farhans-codes/ai_limit_status/releases/tag/v0.2.2
