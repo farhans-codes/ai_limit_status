@@ -108,10 +108,10 @@ class AppStrings {
       '$percent% of your $limit remains. Use it carefully.';
 
   String remainingTwentyWarningBody(String limit, int percent) =>
-      '⚠️ Only $percent% of your $limit remains. Be extra cautious.';
+      'Only $percent% of your $limit remains. Be extra cautious.';
 
   String remainingTenWarningBody(String limit, int percent) =>
-      '⚠️ Only $percent% of your $limit remains. Reduce your usage.';
+      'Only $percent% of your $limit remains. Reduce your usage.';
 
   String resetOneDayWarningBody(String limit) =>
       'One day left until your $limit resets.';
