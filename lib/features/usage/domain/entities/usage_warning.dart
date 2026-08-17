@@ -20,7 +20,17 @@ class UsageWarning {
   final DateTime? resetsAt;
 
   String get identifier {
-    final window = resetsAt?.toUtc().millisecondsSinceEpoch ?? 'unknown';
+    final resetTime = resetsAt?.toUtc();
+    final window = resetTime == null
+        ? 'unknown'
+        : resetTime.millisecondsSinceEpoch ~/ _windowDuration.inMilliseconds;
     return '${provider.name}:${limitType.name}:$window:${kind.name}:$threshold';
   }
+
+  Duration get _windowDuration => switch (limitType) {
+    UsageLimitType.session => const Duration(hours: 5),
+    UsageLimitType.weekly ||
+    UsageLimitType.opusWeekly ||
+    UsageLimitType.sonnetWeekly => const Duration(days: 7),
+  };
 }

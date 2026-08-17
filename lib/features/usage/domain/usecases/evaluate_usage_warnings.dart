@@ -7,6 +7,7 @@ class EvaluateUsageWarnings {
   static const remainingThresholds = [10, 20, 50];
   static const fiveHourResetThresholdMinutes = [10, 30, 60];
   static const weeklyResetThresholdMinutes = [60, 300, 720, 1440];
+  static const _minimumRestoredIncrease = 5;
 
   List<UsageWarning> call(
     List<ProviderUsage> usages, {
@@ -24,11 +25,13 @@ class EvaluateUsageWarnings {
     )) {
       final previousUsage = previousByProvider[usage.provider];
       for (final limit in usage.limits) {
+        final previousLimit = _findLimit(previousUsage, limit.type);
         final remainingThreshold = _firstMatchingThreshold(
           remainingThresholds,
           limit.remainingPercent,
         );
-        if (remainingThreshold != null) {
+        if (remainingThreshold != null &&
+            _enteredRemainingThreshold(previousLimit, remainingThreshold)) {
           warnings.add(
             UsageWarning(
               provider: usage.provider,
@@ -42,7 +45,6 @@ class EvaluateUsageWarnings {
         }
 
         final resetThresholds = _resetThresholdsFor(usage.provider, limit.type);
-        final previousLimit = _findLimit(previousUsage, limit.type);
         if (resetThresholds.isNotEmpty && _wasRestored(previousLimit, limit)) {
           warnings.add(
             UsageWarning(
@@ -68,7 +70,12 @@ class EvaluateUsageWarnings {
           resetThresholds,
           timeUntilReset,
         );
-        if (resetThreshold != null) {
+        if (resetThreshold != null &&
+            _enteredResetThreshold(
+              previousUsage,
+              previousLimit,
+              resetThreshold,
+            )) {
           warnings.add(
             UsageWarning(
               provider: usage.provider,
@@ -97,19 +104,31 @@ class EvaluateUsageWarnings {
     return null;
   }
 
+  bool _enteredRemainingThreshold(UsageLimit? previous, int threshold) {
+    return previous == null || previous.remainingPercent > threshold;
+  }
+
   bool _wasRestored(UsageLimit? previous, UsageLimit current) {
     if (previous == null) {
       return false;
     }
-    final previousReset = previous.resetsAt;
-    final currentReset = current.resetsAt;
-    final resetWindowAdvanced =
-        previousReset != null &&
-        currentReset != null &&
-        currentReset.isAfter(previousReset);
-    final refilledToFull =
-        previous.remainingPercent < 100 && current.remainingPercent == 100;
-    return resetWindowAdvanced || refilledToFull;
+    final restoredIncrease =
+        current.remainingPercent - previous.remainingPercent;
+    return current.remainingPercent == 100 &&
+        restoredIncrease >= _minimumRestoredIncrease;
+  }
+
+  bool _enteredResetThreshold(
+    ProviderUsage? previousUsage,
+    UsageLimit? previousLimit,
+    int thresholdMinutes,
+  ) {
+    final previousReset = previousLimit?.resetsAt;
+    if (previousUsage == null || previousReset == null) {
+      return true;
+    }
+    return previousReset.difference(previousUsage.fetchedAt) >
+        Duration(minutes: thresholdMinutes);
   }
 
   List<int> _resetThresholdsFor(

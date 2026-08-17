@@ -20,6 +20,13 @@ The project follows Semantic Versioning for public releases.
   `develop` branch.
 - Updated pinned GitHub Actions used to build and publish releases.
 
+### Fixed
+
+- Prevented small upstream reset-time changes from producing repeated false
+  restored notifications for Claude five-hour and weekly limits.
+- Limited remaining-usage and reset countdown alerts to actual threshold
+  entries instead of reevaluating them on every refresh.
+
 ## [0.3.0] - 2026-08-16
 
 ### Added
