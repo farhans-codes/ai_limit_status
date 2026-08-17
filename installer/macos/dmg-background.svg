@@ -17,17 +17,13 @@
       <stop stop-color="#38d9c6" stop-opacity="0.19"/>
       <stop offset="1" stop-color="#38d9c6" stop-opacity="0"/>
     </radialGradient>
-    <linearGradient id="card" x1="110" y1="176" x2="610" y2="338" gradientUnits="userSpaceOnUse">
+    <linearGradient id="card" x1="110" y1="96" x2="610" y2="258" gradientUnits="userSpaceOnUse">
       <stop stop-color="#ffffff" stop-opacity="0.105"/>
       <stop offset="1" stop-color="#ffffff" stop-opacity="0.045"/>
     </linearGradient>
     <linearGradient id="arrow" x1="286" y1="247" x2="434" y2="247" gradientUnits="userSpaceOnUse">
       <stop stop-color="#9d91ff"/>
       <stop offset="1" stop-color="#5de2d2"/>
-    </linearGradient>
-    <linearGradient id="brandTile" x1="42" y1="30" x2="100" y2="88" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#e9edf4"/>
-      <stop offset="1" stop-color="#aeb7c6"/>
     </linearGradient>
     <filter id="shadow" x="-40%" y="-40%" width="180%" height="180%">
       <feDropShadow dx="0" dy="12" stdDeviation="18" flood-color="#000000" flood-opacity="0.34"/>
@@ -44,55 +40,38 @@
     <circle cx="42" cy="374" r="92" fill="none" stroke="#7c6cff" stroke-opacity="0.20"/>
   </g>
 
-  <g filter="url(#shadow)">
-    <rect x="42" y="30" width="58" height="58" rx="14" fill="url(#brandTile)"/>
-    <rect x="51" y="44" width="40" height="29" rx="7" fill="#26303b" stroke="#ffffff" stroke-opacity="0.35"/>
-    <circle cx="63" cy="58.5" r="6.5" fill="#ff8f52"/>
-    <path d="M63 54.5V62.5M59 58.5H67M60.2 55.7L65.8 61.3M65.8 55.7L60.2 61.3" stroke="#fff6ec" stroke-width="1.1" stroke-linecap="round"/>
-    <rect x="72" y="51.5" width="13" height="14" rx="3" fill="#55dec9"/>
-    <path d="M76.5 55H74.8V62H76.5M80.5 55H82.2V62H80.5" fill="none" stroke="#073b36" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/>
-  </g>
-  <text x="116" y="54" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="24" font-weight="700">
-    AI Limit Status
-  </text>
-  <text x="116" y="78" fill="#aeb8cb" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="13.5" font-weight="500">
-    Codex and Claude usage, always visible from your menu bar
-  </text>
-
-  <line x1="42" y1="108" x2="678" y2="108" stroke="#ffffff" stroke-opacity="0.12"/>
-
-  <text x="360" y="141" text-anchor="middle" fill="#dfe5f1" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="14" font-weight="600">
+  <text x="360" y="60" text-anchor="middle" fill="#dfe5f1" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="14" font-weight="600">
     Drag AI Limit Status into Applications to install
   </text>
 
   <g filter="url(#shadow)">
-    <rect x="88" y="168" width="190" height="166" rx="24" fill="url(#card)" stroke="#ffffff" stroke-opacity="0.13"/>
-    <rect x="442" y="168" width="190" height="166" rx="24" fill="url(#card)" stroke="#ffffff" stroke-opacity="0.13"/>
+    <rect x="88" y="88" width="190" height="166" rx="24" fill="url(#card)" stroke="#ffffff" stroke-opacity="0.13"/>
+    <rect x="442" y="88" width="190" height="166" rx="24" fill="url(#card)" stroke="#ffffff" stroke-opacity="0.13"/>
   </g>
 
   <g>
-    <line x1="292" y1="247" x2="421" y2="247" stroke="url(#arrow)" stroke-width="4" stroke-linecap="round"/>
-    <path d="M407 232 L424 247 L407 262" fill="none" stroke="#5de2d2" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-    <text x="358" y="225" text-anchor="middle" fill="#a9b4c8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="10" font-weight="700" letter-spacing="1.8">
+    <line x1="292" y1="171" x2="421" y2="171" stroke="url(#arrow)" stroke-width="4" stroke-linecap="round"/>
+    <path d="M407 156 L424 171 L407 186" fill="none" stroke="#5de2d2" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="358" y="149" text-anchor="middle" fill="#a9b4c8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="10" font-weight="700" letter-spacing="1.8">
       DRAG TO INSTALL
     </text>
   </g>
 
   <g font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="11.5" font-weight="600">
-    <rect x="126" y="365" width="122" height="28" rx="14" fill="#ffffff" fill-opacity="0.07" stroke="#ffffff" stroke-opacity="0.10"/>
-    <circle cx="144" cy="379" r="4" fill="#5de2d2"/>
-    <text x="155" y="383" fill="#c9d2e2">Open source</text>
+    <rect x="126" y="284" width="122" height="28" rx="14" fill="#ffffff" fill-opacity="0.07" stroke="#ffffff" stroke-opacity="0.10"/>
+    <circle cx="144" cy="298" r="4" fill="#5de2d2"/>
+    <text x="155" y="302" fill="#c9d2e2">Open source</text>
 
-    <rect x="260" y="365" width="126" height="28" rx="14" fill="#ffffff" fill-opacity="0.07" stroke="#ffffff" stroke-opacity="0.10"/>
-    <circle cx="278" cy="379" r="4" fill="#9d91ff"/>
-    <text x="289" y="383" fill="#c9d2e2">No analytics</text>
+    <rect x="260" y="284" width="126" height="28" rx="14" fill="#ffffff" fill-opacity="0.07" stroke="#ffffff" stroke-opacity="0.10"/>
+    <circle cx="278" cy="298" r="4" fill="#9d91ff"/>
+    <text x="289" y="302" fill="#c9d2e2">No analytics</text>
 
-    <rect x="398" y="365" width="196" height="28" rx="14" fill="#ffffff" fill-opacity="0.07" stroke="#ffffff" stroke-opacity="0.10"/>
-    <circle cx="416" cy="379" r="4" fill="#ffad66"/>
-    <text x="427" y="383" fill="#c9d2e2">No API keys to paste</text>
+    <rect x="398" y="284" width="196" height="28" rx="14" fill="#ffffff" fill-opacity="0.07" stroke="#ffffff" stroke-opacity="0.10"/>
+    <circle cx="416" cy="298" r="4" fill="#ffad66"/>
+    <text x="427" y="302" fill="#c9d2e2">No API keys to paste</text>
   </g>
 
-  <text x="360" y="420" text-anchor="middle" fill="#77839a" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="11">
+  <text x="360" y="350" text-anchor="middle" fill="#77839a" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="11">
     github.com/farhans-codes/ai_limit_status
   </text>
 </svg>

@@ -118,8 +118,6 @@ Read the complete [privacy statement](PRIVACY.md) and
 - Provider CLIs and usage endpoints can change without notice and temporarily
   break usage detection.
 - Claude usage currently depends on an OAuth usage endpoint used by Claude Code.
-- macOS Tahoe 26 can ignore custom Finder backgrounds in mounted DMG windows;
-  the drag-to-Applications installation still works normally.
 - Code signing and notarization status can differ between releases; always read
   the release notes.
 - Windows release builds currently target x64-compatible systems.
