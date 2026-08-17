@@ -7,6 +7,16 @@ Claude subscription usage in the macOS menu bar and Windows system tray.
 > AI Limit Status is an independent community project. It is not affiliated
 > with, endorsed by, or sponsored by OpenAI or Anthropic.
 
+## Download
+
+| Platform | Recommended | Alternative |
+| --- | --- | --- |
+| macOS | [Download DMG](https://github.com/farhans-codes/ai_limit_status/releases/latest/download/AI-Limit-Status-macOS.dmg) | [Download ZIP](https://github.com/farhans-codes/ai_limit_status/releases/latest/download/AI-Limit-Status-macOS.zip) |
+| Windows x64 | [Download Setup EXE](https://github.com/farhans-codes/ai_limit_status/releases/latest/download/AI-Limit-Status-Windows-x64-Setup.exe) | [Download portable ZIP](https://github.com/farhans-codes/ai_limit_status/releases/latest/download/AI-Limit-Status-Windows-x64-portable.zip) |
+
+[View the latest release notes](https://github.com/farhans-codes/ai_limit_status/releases/latest)
+or [download SHA-256 checksums](https://github.com/farhans-codes/ai_limit_status/releases/latest/download/AI-Limit-Status-SHA256SUMS.txt).
+
 ## Features
 
 - Shows only the providers installed on the current computer.
@@ -48,10 +58,7 @@ Claude and Codex weekly notifications:
 Codex does not receive five-hour restored or countdown notifications. Each
 notification is shown only once for a specific reset window.
 
-## Installation
-
-Download the latest installers from
-[GitHub Releases](https://github.com/farhans-codes/ai_limit_status/releases/latest).
+## Install and first launch
 
 ### macOS
 
