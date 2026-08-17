@@ -1,0 +1,2 @@
+# Pinned so local builds and GitHub Releases use the same DMG metadata writer.
+dmgbuild==1.6.1
