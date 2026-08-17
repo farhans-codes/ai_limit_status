@@ -48,19 +48,14 @@ jobs:
         run: |
           app_path="build/macos/Build/Products/Release/AI Limit Status.app"
           codesign --verify --deep --strict --verbose=2 "$app_path"
-          mkdir -p dist build/dmg-stage
-          ditto "$app_path" "build/dmg-stage/AI Limit Status.app"
-          ln -s /Applications "build/dmg-stage/Applications"
+          mkdir -p dist
           ditto -c -k --sequesterRsrc --keepParent \
             "$app_path" \
             "dist/AI-Limit-Status-macOS.zip"
-          hdiutil create \
-            -volname "AI Limit Status" \
-            -srcfolder build/dmg-stage \
-            -ov \
-            -format UDZO \
-            "dist/AI-Limit-Status-macOS.dmg"
-          hdiutil verify "dist/AI-Limit-Status-macOS.dmg"
+          bash scripts/create_macos_dmg.sh \
+            "$app_path" \
+            "dist/AI-Limit-Status-macOS.dmg" \
+            "installer/macos/dmg-background.png"
           unzip -t "dist/AI-Limit-Status-macOS.zip"
 
       - name: Upload macOS artifacts
