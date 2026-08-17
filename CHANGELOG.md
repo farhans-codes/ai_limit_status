@@ -6,7 +6,26 @@ The project follows Semantic Versioning for public releases.
 
 ## [Unreleased]
 
-- Prepare the project for its first public open-source release.
+## [0.3.1] - 2026-08-17
+
+### Added
+
+- Direct macOS and Windows download links in the project README.
+
+### Changed
+
+- Adopted version-independent filenames for release downloads and the Windows
+  installer.
+- Extended CI coverage and the documented contribution flow to the protected
+  `develop` branch.
+- Updated pinned GitHub Actions used to build and publish releases.
+
+### Fixed
+
+- Prevented small upstream reset-time changes from producing repeated false
+  restored notifications for Claude five-hour and weekly limits.
+- Limited remaining-usage and reset countdown alerts to actual threshold
+  entries instead of reevaluating them on every refresh.
 
 ## [0.3.0] - 2026-08-16
 
@@ -33,6 +52,7 @@ The project follows Semantic Versioning for public releases.
 - Guided Codex and Claude setup.
 - Local usage caching and duplicate-instance protection.
 
-[Unreleased]: https://github.com/farhans-codes/ai_limit_status/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/farhans-codes/ai_limit_status/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/farhans-codes/ai_limit_status/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/farhans-codes/ai_limit_status/releases/tag/v0.3.0
 [0.2.2]: https://github.com/farhans-codes/ai_limit_status/releases/tag/v0.2.2
