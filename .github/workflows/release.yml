@@ -53,15 +53,15 @@ jobs:
           ln -s /Applications "build/dmg-stage/Applications"
           ditto -c -k --sequesterRsrc --keepParent \
             "$app_path" \
-            "dist/AI-Limit-Status-${APP_VERSION}-macOS.zip"
+            "dist/AI-Limit-Status-macOS.zip"
           hdiutil create \
             -volname "AI Limit Status" \
             -srcfolder build/dmg-stage \
             -ov \
             -format UDZO \
-            "dist/AI-Limit-Status-${APP_VERSION}-macOS.dmg"
-          hdiutil verify "dist/AI-Limit-Status-${APP_VERSION}-macOS.dmg"
-          unzip -t "dist/AI-Limit-Status-${APP_VERSION}-macOS.zip"
+            "dist/AI-Limit-Status-macOS.dmg"
+          hdiutil verify "dist/AI-Limit-Status-macOS.dmg"
+          unzip -t "dist/AI-Limit-Status-macOS.zip"
 
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -113,7 +113,7 @@ jobs:
           New-Item -ItemType Directory -Force -Path dist | Out-Null
           Compress-Archive `
             -Path 'build\windows\x64\runner\Release\*' `
-            -DestinationPath "dist\AI-Limit-Status-$env:APP_VERSION-Windows-x64-portable.zip" `
+            -DestinationPath "dist\AI-Limit-Status-Windows-x64-portable.zip" `
             -CompressionLevel Optimal
           $compiler = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
           & $compiler "/DMyAppVersion=$env:APP_VERSION" 'windows\installer\ai_limit_status.iss'
@@ -141,8 +141,8 @@ jobs:
         shell: bash
         run: |
           cd release-assets
-          sha256sum AI-Limit-Status-* > "AI-Limit-Status-${GITHUB_REF_NAME#v}-SHA256SUMS.txt"
-          sha256sum --check "AI-Limit-Status-${GITHUB_REF_NAME#v}-SHA256SUMS.txt"
+          sha256sum AI-Limit-Status-* > "AI-Limit-Status-SHA256SUMS.txt"
+          sha256sum --check "AI-Limit-Status-SHA256SUMS.txt"
 
       - name: Publish GitHub release
         env:
