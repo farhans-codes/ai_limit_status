@@ -6,6 +6,21 @@ The project follows Semantic Versioning for public releases.
 
 ## [Unreleased]
 
+## [0.3.3] - 2026-08-17
+
+### Changed
+
+- Upgraded and fully pinned the macOS DMG metadata toolchain.
+- Made the DMG build script select a compatible Python 3.10+ interpreter and
+  report an actionable error when one is unavailable.
+- Simplified the DMG artwork so the installation controls and project privacy
+  details fit within the visible Finder area.
+- Removed redundant warning emoji from low-remaining usage notifications.
+
+### Fixed
+
+- Restored the branded Finder background in macOS Tahoe DMG windows.
+
 ## [0.3.2] - 2026-08-17
 
 ### Added
@@ -66,7 +81,8 @@ The project follows Semantic Versioning for public releases.
 - Guided Codex and Claude setup.
 - Local usage caching and duplicate-instance protection.
 
-[Unreleased]: https://github.com/farhans-codes/ai_limit_status/compare/v0.3.2...HEAD
+[Unreleased]: https://github.com/farhans-codes/ai_limit_status/compare/v0.3.3...HEAD
+[0.3.3]: https://github.com/farhans-codes/ai_limit_status/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/farhans-codes/ai_limit_status/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/farhans-codes/ai_limit_status/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/farhans-codes/ai_limit_status/releases/tag/v0.3.0
