@@ -6,6 +6,15 @@ The project follows Semantic Versioning for public releases.
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-08-18
+
+### Changed
+
+- Changed the Codex Windows tray badge from teal to blue while retaining the
+  separate orange Claude badge.
+- Increased the macOS menu-bar provider icon and percentage sizes and aligned
+  them vertically with neighboring status items.
+
 ## [0.4.1] - 2026-08-18
 
 ### Fixed
@@ -108,7 +117,8 @@ The project follows Semantic Versioning for public releases.
 - Guided Codex and Claude setup.
 - Local usage caching and duplicate-instance protection.
 
-[Unreleased]: https://github.com/farhans-codes/ai_limit_status/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/farhans-codes/ai_limit_status/compare/v0.4.2...HEAD
+[0.4.2]: https://github.com/farhans-codes/ai_limit_status/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/farhans-codes/ai_limit_status/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/farhans-codes/ai_limit_status/compare/v0.3.3...v0.4.0
 [0.3.3]: https://github.com/farhans-codes/ai_limit_status/compare/v0.3.2...v0.3.3
