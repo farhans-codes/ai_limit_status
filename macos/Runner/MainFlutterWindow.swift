@@ -26,11 +26,61 @@ class MainFlutterWindow: NSPanel {
       panel: self,
       messenger: flutterViewController.engine.binaryMessenger
     )
+    MacNotificationSoundController.install(
+      messenger: flutterViewController.engine.binaryMessenger
+    )
     MacStartupController.install(
       messenger: flutterViewController.engine.binaryMessenger
     )
 
     super.awakeFromNib()
+  }
+}
+
+private final class MacNotificationSoundController {
+  private static var shared: MacNotificationSoundController?
+
+  static func install(messenger: FlutterBinaryMessenger) {
+    shared = MacNotificationSoundController(messenger: messenger)
+  }
+
+  private let channel: FlutterMethodChannel
+  private var sound: NSSound?
+
+  private init(messenger: FlutterBinaryMessenger) {
+    channel = FlutterMethodChannel(
+      name: "com.ailimitstatus/notification_sound",
+      binaryMessenger: messenger
+    )
+    channel.setMethodCallHandler { [weak self] call, result in
+      guard call.method == "play" else {
+        result(FlutterMethodNotImplemented)
+        return
+      }
+      _ = self?.play()
+      result(nil)
+    }
+  }
+
+  private func play() -> Bool {
+    if sound == nil {
+      let assetKey = FlutterDartProject.lookupKey(
+        forAsset: "assets/sounds/limit_warning.wav"
+      )
+      let assetURL = URL(fileURLWithPath: Bundle.main.bundlePath)
+        .appendingPathComponent(assetKey)
+      guard FileManager.default.fileExists(atPath: assetURL.path) else {
+        NSSound.beep()
+        return false
+      }
+      sound = NSSound(contentsOf: assetURL, byReference: true)
+    }
+    guard let sound else {
+      NSSound.beep()
+      return false
+    }
+    sound.stop()
+    return sound.play()
   }
 }
 

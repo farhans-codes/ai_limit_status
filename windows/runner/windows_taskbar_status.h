@@ -1,20 +1,19 @@
-#ifndef RUNNER_WINDOWS_STATUS_TRAY_H_
-#define RUNNER_WINDOWS_STATUS_TRAY_H_
+#ifndef RUNNER_WINDOWS_TASKBAR_STATUS_H_
+#define RUNNER_WINDOWS_TASKBAR_STATUS_H_
 
 #include <flutter/binary_messenger.h>
 #include <flutter/encodable_value.h>
 #include <flutter/method_channel.h>
 #include <windows.h>
 
-#include <array>
 #include <memory>
 #include <optional>
 #include <string>
 
-class WindowsStatusTray {
+class WindowsTaskbarStatus {
  public:
-  WindowsStatusTray(flutter::BinaryMessenger* messenger, HWND window);
-  ~WindowsStatusTray();
+  WindowsTaskbarStatus(flutter::BinaryMessenger* messenger, HWND host_window);
+  ~WindowsTaskbarStatus();
 
   std::optional<LRESULT> HandleMessage(UINT message,
                                        WPARAM wparam,
@@ -22,38 +21,40 @@ class WindowsStatusTray {
   void Destroy();
 
  private:
-  struct IconState {
-    bool visible = false;
-    HICON icon = nullptr;
-  };
+  static constexpr wchar_t kOverlayClassName[] =
+      L"AI_LIMIT_STATUS_TASKBAR_OVERLAY";
 
-  static constexpr UINT kCodexIconId = 1;
-  static constexpr UINT kClaudeIconId = 2;
-  static constexpr UINT kGenericIconId = 3;
-  static constexpr UINT kCallbackMessage = WM_APP + 41;
+  static LRESULT CALLBACK OverlayWindowProc(HWND window,
+                                             UINT message,
+                                             WPARAM wparam,
+                                             LPARAM lparam);
 
   void HandleMethodCall(
       const flutter::MethodCall<flutter::EncodableValue>& method_call,
       std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
-  void UpdateIcons();
-  void ApplyIcon(UINT id,
-                 const std::wstring& value,
-                 COLORREF background,
-                 const std::wstring& tooltip);
-  void RemoveIcon(UINT id);
+  void CreateOverlayIfNeeded();
+  void UpdateOverlay();
+  void PositionOverlay();
+  void PaintOverlay();
+  void PaintProvider(HDC dc,
+                     const RECT& bounds,
+                     const std::wstring& value,
+                     COLORREF background,
+                     bool is_claude) const;
+  void PaintProviderMark(HDC dc,
+                         const RECT& bounds,
+                         bool is_claude) const;
   void ShowContextMenu();
   void InvokeDart(const std::string& method);
-  HICON CreateStatusIcon(const std::wstring& value, COLORREF background) const;
 
-  IconState& StateFor(UINT id);
   std::optional<std::wstring> ReadOptionalValue(
       const flutter::EncodableMap& arguments,
       const char* key) const;
 
-  HWND window_;
+  HWND host_window_;
+  HWND overlay_window_ = nullptr;
   UINT taskbar_created_message_;
   std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>> channel_;
-  std::array<IconState, 3> icon_states_{};
   std::optional<std::wstring> codex_value_;
   std::optional<std::wstring> claude_value_;
   std::wstring tooltip_;
@@ -63,4 +64,4 @@ class WindowsStatusTray {
   bool initialized_ = false;
 };
 
-#endif  // RUNNER_WINDOWS_STATUS_TRAY_H_
+#endif  // RUNNER_WINDOWS_TASKBAR_STATUS_H_

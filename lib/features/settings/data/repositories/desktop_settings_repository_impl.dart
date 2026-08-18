@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:ai_limit_status/core/platform/desktop_notification_service.dart';
 import 'package:ai_limit_status/core/platform/desktop_startup_service.dart';
 import 'package:ai_limit_status/features/settings/data/datasources/desktop_settings_store.dart';
@@ -14,8 +16,14 @@ class DesktopSettingsRepositoryImpl implements DesktopSettingsRepository {
   final DesktopSettingsStore _store;
   final DesktopNotificationService _notificationService;
   final DesktopStartupService _startupService;
+  final StreamController<ClaudeStatusLimitPreference>
+  _claudeStatusLimitChanges = StreamController.broadcast();
 
   bool _isInitialized = false;
+
+  @override
+  Stream<ClaudeStatusLimitPreference> get claudeStatusLimitChanges =>
+      _claudeStatusLimitChanges.stream;
 
   @override
   Future<void> initialize(String appName) async {
@@ -35,6 +43,7 @@ class DesktopSettingsRepositoryImpl implements DesktopSettingsRepository {
       notificationsEnabled: notificationsEnabled,
       launchAtStartupEnabled: await _startupService.isEnabled(),
       onboardingCompleted: stored.onboardingCompleted,
+      claudeStatusLimitPreference: stored.claudeStatusLimitPreference,
     );
   }
 
@@ -87,6 +96,27 @@ class DesktopSettingsRepositoryImpl implements DesktopSettingsRepository {
   Future<bool> canSendUsageWarnings() async {
     final stored = await _store.read();
     return _notificationsEnabled(stored);
+  }
+
+  @override
+  Future<ClaudeStatusLimitPreference> loadClaudeStatusLimitPreference() async {
+    return (await _store.read()).claudeStatusLimitPreference;
+  }
+
+  @override
+  Future<DesktopSettingUpdateResult> setClaudeStatusLimitPreference(
+    ClaudeStatusLimitPreference preference,
+  ) async {
+    try {
+      final stored = await _store.read();
+      await _store.write(
+        stored.copyWith(claudeStatusLimitPreference: preference),
+      );
+      _claudeStatusLimitChanges.add(preference);
+      return DesktopSettingUpdateResult.succeeded;
+    } on Object {
+      return DesktopSettingUpdateResult.failed;
+    }
   }
 
   @override

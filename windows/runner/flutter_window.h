@@ -8,7 +8,8 @@
 
 #include "win32_window.h"
 
-class WindowsStatusTray;
+class WindowsTaskbarStatus;
+class WindowsNotificationSound;
 
 // A window that does nothing but host a Flutter view.
 class FlutterWindow : public Win32Window {
@@ -31,8 +32,11 @@ class FlutterWindow : public Win32Window {
   // The Flutter instance hosted by this window.
   std::unique_ptr<flutter::FlutterViewController> flutter_controller_;
 
-  // Native Windows tray badges that display the live provider percentages.
-  std::unique_ptr<WindowsStatusTray> windows_status_tray_;
+  // Experimental taskbar overlay that displays live provider percentages.
+  std::unique_ptr<WindowsTaskbarStatus> windows_taskbar_status_;
+
+  // Plays the bundled warning chime for desktop notifications.
+  std::unique_ptr<WindowsNotificationSound> windows_notification_sound_;
 };
 
 #endif  // RUNNER_FLUTTER_WINDOW_H_

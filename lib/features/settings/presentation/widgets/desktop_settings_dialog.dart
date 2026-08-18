@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:ai_limit_status/core/constants/app_strings.dart';
+import 'package:ai_limit_status/features/settings/domain/entities/desktop_settings.dart';
 import 'package:ai_limit_status/features/settings/presentation/controllers/desktop_settings_controller.dart';
 
 class DesktopSettingsDialog extends StatelessWidget {
@@ -61,6 +62,37 @@ class DesktopSettingsDialog extends StatelessWidget {
                     onChanged: controller.isUpdating.value
                         ? null
                         : controller.setLaunchAtStartupEnabled,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Obx(
+                  () => DropdownButtonFormField<ClaudeStatusLimitPreference>(
+                    initialValue: controller.claudeStatusLimitPreference.value,
+                    decoration: InputDecoration(
+                      prefixIcon: const Icon(Icons.speed_rounded),
+                      labelText: strings.claudeShortcutLimitTitle,
+                      helperText: strings.claudeShortcutLimitDescription,
+                      helperMaxLines: 2,
+                    ),
+                    items: [
+                      DropdownMenuItem(
+                        value: ClaudeStatusLimitPreference.fiveHour,
+                        child: Text(strings.claudeFiveHourShortcut),
+                      ),
+                      DropdownMenuItem(
+                        value: ClaudeStatusLimitPreference.fableWeekly,
+                        child: Text(strings.claudeFableShortcut),
+                      ),
+                    ],
+                    onChanged: controller.isUpdating.value
+                        ? null
+                        : (preference) {
+                            if (preference != null) {
+                              controller.setClaudeStatusLimitPreference(
+                                preference,
+                              );
+                            }
+                          },
                   ),
                 ),
               ],

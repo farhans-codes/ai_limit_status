@@ -1,7 +1,8 @@
 # AI Limit Status
 
 AI Limit Status is an open-source Flutter desktop app that shows Codex and
-Claude subscription usage in the macOS menu bar and Windows system tray.
+Claude subscription usage in the macOS menu bar and an experimental Windows
+taskbar status overlay.
 
 > [!IMPORTANT]
 > AI Limit Status is an independent community project. It is not affiliated
@@ -21,11 +22,16 @@ or [download SHA-256 checksums](https://github.com/farhans-codes/ai_limit_status
 
 - Shows only the providers installed on the current computer.
 - Displays available five-hour, weekly, Fable, Opus, and Sonnet usage windows.
-- Keeps Codex and Claude percentages visible from the macOS menu bar or native
-  provider-colored Windows tray badges.
+- Lets users choose whether the Claude shortcut shows the five-hour or Fable
+  weekly limit.
+- Keeps Codex and the selected Claude percentages visible in the macOS menu bar
+  or side by side in the Windows taskbar.
+- Uses a blue Codex indicator and an orange Claude indicator on Windows.
 - Refreshes every connected provider automatically every two minutes.
-- Opens a compact glass-style details window from the tray.
-- Sends one notification per threshold and reset window.
+- Opens a compact glass-style details window from the menu-bar or taskbar
+  shortcut.
+- Plays a bundled custom chime for usage warnings and reset notifications.
+- Sends each notification only once per threshold and reset window.
 - Offers guided installation and sign-in actions where the platform supports
   them.
 - Can launch automatically when the user signs in.
@@ -34,9 +40,22 @@ or [download SHA-256 checksums](https://github.com/farhans-codes/ai_limit_status
 - Uses a single English interface across supported platforms.
 - Does not include analytics, advertising, or telemetry.
 
+## Status shortcut preference
+
+Open **App settings** to choose the Claude value shown in the macOS menu bar or
+Windows taskbar:
+
+- **5-hour limit** shows the normal rolling Claude usage window.
+- **Fable weekly limit** shows the scoped Fable allowance reported by Claude.
+
+The Codex indicator remains visible beside the selected Claude value. If Claude
+does not report the selected limit, the shortcut shows `—` instead of silently
+substituting a different limit.
+
 ## Notification rules
 
-Usage notifications apply to both providers:
+Usage notifications play the bundled AI Limit Status chime and apply to both
+providers:
 
 - 50% remaining: use the remaining allowance carefully.
 - 20% remaining: an extra-caution warning.
@@ -77,6 +96,12 @@ run a copy downloaded from an untrusted source.
 1. Download the Windows x64 Setup EXE.
 2. Run the installer and follow the setup wizard.
 3. Open AI Limit Status from the Start menu.
+
+The live Codex and Claude indicators appear together in the taskbar immediately
+to the left of the Windows notification area. Left-click the indicators to open
+the details window, or right-click them to open the app menu. The Claude value
+can be changed between the five-hour and Fable weekly limits from **App
+settings**.
 
 Unsigned public beta builds can trigger Microsoft Defender SmartScreen. Verify
 the release checksum and GitHub source before continuing. The installer bundles
@@ -126,6 +151,10 @@ Read the complete [privacy statement](PRIVACY.md) and
 - Provider CLIs and usage endpoints can change without notice and temporarily
   break usage detection.
 - Claude usage currently depends on an OAuth usage endpoint used by Claude Code.
+- The Windows taskbar status is an experimental overlay because Windows 11 does
+  not provide a supported API for embedding two live custom indicators in the
+  taskbar. It currently targets the primary taskbar; Windows Shell updates or
+  third-party taskbar replacements can affect its position.
 - Code signing and notarization status can differ between releases; always read
   the release notes.
 - Windows release builds currently target x64-compatible systems.

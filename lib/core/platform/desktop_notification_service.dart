@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 class DesktopNotificationService {
@@ -8,6 +9,9 @@ class DesktopNotificationService {
 
   final FlutterLocalNotificationsPlugin _notifications =
       FlutterLocalNotificationsPlugin();
+  static const _soundChannel = MethodChannel(
+    'com.ailimitstatus/notification_sound',
+  );
 
   bool _isInitialized = false;
   Future<bool>? _initialization;
@@ -123,18 +127,31 @@ class DesktopNotificationService {
         notificationDetails: NotificationDetails(
           macOS: const DarwinNotificationDetails(
             presentAlert: true,
-            presentSound: true,
+            presentSound: false,
             presentBanner: true,
             presentList: true,
           ),
           windows: Platform.isWindows
-              ? const WindowsNotificationDetails()
+              ? WindowsNotificationDetails(
+                  audio: WindowsNotificationAudio.silent(),
+                )
               : null,
         ),
       );
+      if (Platform.isMacOS || Platform.isWindows) {
+        await _playCustomSound();
+      }
       return true;
     } on Object {
       return false;
+    }
+  }
+
+  Future<void> _playCustomSound() async {
+    try {
+      await _soundChannel.invokeMethod<void>('play');
+    } on Object {
+      // The notification still succeeds if the optional custom sound fails.
     }
   }
 }
