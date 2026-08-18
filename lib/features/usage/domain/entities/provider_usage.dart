@@ -1,6 +1,6 @@
 enum UsageProvider { codex, claude }
 
-enum UsageLimitType { session, weekly, opusWeekly, sonnetWeekly }
+enum UsageLimitType { session, weekly, fableWeekly, opusWeekly, sonnetWeekly }
 
 enum UsageConnectionIssue { cliNotFound, notSignedIn, unavailable }
 

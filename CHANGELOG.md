@@ -6,6 +6,23 @@ The project follows Semantic Versioning for public releases.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-08-18
+
+### Added
+
+- Added native Windows tray badges that show the live Codex and Claude
+  remaining percentages directly in the notification area.
+- Added dynamic Claude Fable weekly usage when Anthropic reports a scoped Fable
+  limit through either the current or legacy usage response schema.
+
+### Changed
+
+- Replaced the single static Windows tray icon with separate provider-colored
+  status badges while keeping the combined usage details in the hover tooltip.
+- Unified Codex and Claude background usage refreshes on a two-minute cadence.
+- Upgraded the details window with layered glass surfaces and removed redundant
+  live-state and automatic-refresh labels.
+
 ## [0.3.3] - 2026-08-17
 
 ### Changed
@@ -81,7 +98,8 @@ The project follows Semantic Versioning for public releases.
 - Guided Codex and Claude setup.
 - Local usage caching and duplicate-instance protection.
 
-[Unreleased]: https://github.com/farhans-codes/ai_limit_status/compare/v0.3.3...HEAD
+[Unreleased]: https://github.com/farhans-codes/ai_limit_status/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/farhans-codes/ai_limit_status/compare/v0.3.3...v0.4.0
 [0.3.3]: https://github.com/farhans-codes/ai_limit_status/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/farhans-codes/ai_limit_status/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/farhans-codes/ai_limit_status/compare/v0.3.0...v0.3.1

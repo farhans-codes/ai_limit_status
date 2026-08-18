@@ -13,7 +13,7 @@ class ClaudeUsageReader {
   static const _requestTimeout = Duration(seconds: 8);
   static const _versionTimeout = Duration(seconds: 3);
   static const _rateLimitCooldown = Duration(minutes: 5);
-  static const _minimumFetchInterval = Duration(minutes: 5);
+  static const _minimumFetchInterval = Duration(minutes: 2);
   static const _fallbackUserAgent = 'claude-code/2.1.0';
 
   final ProviderExecutableLocator _executableLocator;
@@ -40,12 +40,7 @@ class ClaudeUsageReader {
     }
 
     final payload = await _fetchUsage(accessToken);
-    final limits = <UsageLimit?>[
-      _parseLimit(payload, 'five_hour', UsageLimitType.session),
-      _parseLimit(payload, 'seven_day', UsageLimitType.weekly),
-      _parseLimit(payload, 'seven_day_opus', UsageLimitType.opusWeekly),
-      _parseLimit(payload, 'seven_day_sonnet', UsageLimitType.sonnetWeekly),
-    ].nonNulls.toList();
+    final limits = _parseLimits(payload);
     if (limits.isEmpty) {
       throw const UsageReadException(UsageConnectionIssue.unavailable);
     }
@@ -200,7 +195,60 @@ class ClaudeUsageReader {
     if (rawLimit is! Map<String, dynamic>) {
       return null;
     }
-    final utilization = (rawLimit['utilization'] as num?)?.toDouble();
+    return _parseRawLimit(rawLimit, type);
+  }
+
+  List<UsageLimit> _parseLimits(Map<String, dynamic> payload) {
+    final parsed = <UsageLimitType, UsageLimit>{};
+
+    void add(UsageLimit? limit) {
+      if (limit != null) {
+        parsed[limit.type] = limit;
+      }
+    }
+
+    add(_parseLimit(payload, 'five_hour', UsageLimitType.session));
+    add(_parseLimit(payload, 'seven_day', UsageLimitType.weekly));
+    add(_parseLimit(payload, 'seven_day_opus', UsageLimitType.opusWeekly));
+    add(_parseLimit(payload, 'seven_day_sonnet', UsageLimitType.sonnetWeekly));
+    add(
+      _parseLimit(payload, 'seven_day_fable', UsageLimitType.fableWeekly) ??
+          _parseLimit(
+            payload,
+            'seven_day_overage_included',
+            UsageLimitType.fableWeekly,
+          ),
+    );
+
+    final rawLimits = payload['limits'];
+    if (rawLimits is List) {
+      for (final rawLimit in rawLimits) {
+        if (rawLimit is! Map<String, dynamic>) {
+          continue;
+        }
+        final type = _genericLimitType(rawLimit);
+        if (type != null) {
+          add(_parseRawLimit(rawLimit, type));
+        }
+      }
+    }
+
+    return const [
+      UsageLimitType.session,
+      UsageLimitType.weekly,
+      UsageLimitType.fableWeekly,
+      UsageLimitType.opusWeekly,
+      UsageLimitType.sonnetWeekly,
+    ].map((type) => parsed[type]).nonNulls.toList();
+  }
+
+  UsageLimit? _parseRawLimit(
+    Map<String, dynamic> rawLimit,
+    UsageLimitType type,
+  ) {
+    final utilization =
+        (rawLimit['utilization'] as num?)?.toDouble() ??
+        (rawLimit['percent'] as num?)?.toDouble();
     if (utilization == null) {
       return null;
     }
@@ -210,6 +258,39 @@ class ClaudeUsageReader {
       remainingPercent: (100 - utilization).round().clamp(0, 100),
       resetsAt: _parseResetTime(rawLimit['resets_at']),
     );
+  }
+
+  UsageLimitType? _genericLimitType(Map<String, dynamic> rawLimit) {
+    final kind = rawLimit['kind']?.toString().toLowerCase();
+    if (kind == 'session' || kind == 'five_hour') {
+      return UsageLimitType.session;
+    }
+    if (kind == 'weekly_all' || kind == 'seven_day') {
+      return UsageLimitType.weekly;
+    }
+
+    final scope = rawLimit['scope'];
+    final model = scope is Map<String, dynamic> ? scope['model'] : null;
+    final modelName = model is Map<String, dynamic>
+        ? (model['display_name'] ?? model['id'])?.toString().toLowerCase()
+        : null;
+    final isScopedWeekly =
+        kind == 'weekly_scoped' ||
+        (rawLimit['group']?.toString().toLowerCase() == 'weekly' &&
+            modelName != null);
+    if (!isScopedWeekly || modelName == null) {
+      return null;
+    }
+    if (modelName.contains('fable')) {
+      return UsageLimitType.fableWeekly;
+    }
+    if (modelName.contains('opus')) {
+      return UsageLimitType.opusWeekly;
+    }
+    if (modelName.contains('sonnet')) {
+      return UsageLimitType.sonnetWeekly;
+    }
+    return null;
   }
 
   DateTime? _parseResetTime(Object? value) {

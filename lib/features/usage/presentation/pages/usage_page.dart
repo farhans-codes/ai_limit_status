@@ -20,41 +20,51 @@ class UsagePage extends GetView<UsageController> {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: Padding(
-        padding: const EdgeInsets.all(6),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(18),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x66000000),
-                blurRadius: 24,
-                offset: Offset(0, 10),
+      body: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: isDark
+                    ? const [Color(0x621A1E28), Color(0x480C1018)]
+                    : const [Color(0x86F9FBFF), Color(0x6EE8EDF7)],
               ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(18),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: isDark
-                        ? const [Color(0xB81B1E24), Color(0xA614161B)]
-                        : const [Color(0xC7F6F8FC), Color(0xB5E7EBF3)],
-                  ),
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(
-                    color: isDark
-                        ? Colors.white.withValues(alpha: 0.18)
-                        : Colors.white.withValues(alpha: 0.72),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.20)
+                    : Colors.white.withValues(alpha: 0.88),
+              ),
+            ),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                Positioned(
+                  left: -90,
+                  top: -105,
+                  child: _AmbientGlow(
+                    color: colorScheme.primary.withValues(
+                      alpha: isDark ? 0.14 : 0.10,
+                    ),
+                    size: 260,
                   ),
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(13, 10, 13, 13),
+                Positioned(
+                  right: -100,
+                  bottom: -120,
+                  child: _AmbientGlow(
+                    color: const Color(
+                      0xFF2ECDB1,
+                    ).withValues(alpha: isDark ? 0.08 : 0.06),
+                    size: 250,
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 11, 6, 14),
                   child: Obx(() {
                     if (controller.isLoading.value &&
                         controller.usages.isEmpty) {
@@ -89,36 +99,32 @@ class UsagePage extends GetView<UsageController> {
                       );
                     }
 
-                    final hasStaleData = controller.usages.any(
-                      (usage) => usage.isStale,
-                    );
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        _Header(
-                          title: l10n.appTitle,
-                          liveLabel: hasStaleData
-                              ? l10n.cachedData
-                              : l10n.liveData,
-                          isLive: !hasStaleData,
-                          settingsTooltip: l10n.settingsTooltip,
-                          refreshTooltip: l10n.refresh,
-                          isRefreshing: controller.isLoading.value,
-                          onSettings: settingsController.openSettings,
-                          onRefresh: controller.refreshUsage,
-                        ),
-                        Divider(
-                          height: 15,
-                          color: colorScheme.outlineVariant.withValues(
-                            alpha: 0.5,
+                        Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: _Header(
+                            title: l10n.appTitle,
+                            settingsTooltip: l10n.settingsTooltip,
+                            refreshTooltip: l10n.refresh,
+                            isRefreshing: controller.isLoading.value,
+                            onSettings: settingsController.openSettings,
+                            onRefresh: controller.refreshUsage,
                           ),
                         ),
+                        const SizedBox(height: 10),
+                        const Padding(
+                          padding: EdgeInsets.only(right: 8),
+                          child: _GlassDivider(),
+                        ),
+                        const SizedBox(height: 10),
                         Expanded(
                           child: ListView.separated(
-                            padding: const EdgeInsets.only(top: 2),
+                            padding: const EdgeInsets.only(right: 8),
                             itemCount: controller.usages.length,
                             separatorBuilder: (_, _) =>
-                                const SizedBox(height: 10),
+                                const SizedBox(height: 11),
                             itemBuilder: (context, index) {
                               final usage = controller.usages[index];
                               return ProviderDetailsCard(
@@ -143,7 +149,7 @@ class UsagePage extends GetView<UsageController> {
                     );
                   }),
                 ),
-              ),
+              ],
             ),
           ),
         ),
@@ -246,8 +252,6 @@ class _SetupButtonLabel extends StatelessWidget {
 class _Header extends StatelessWidget {
   const _Header({
     required this.title,
-    required this.liveLabel,
-    required this.isLive,
     required this.settingsTooltip,
     required this.refreshTooltip,
     required this.isRefreshing,
@@ -256,8 +260,6 @@ class _Header extends StatelessWidget {
   });
 
   final String title;
-  final String liveLabel;
-  final bool isLive;
   final String settingsTooltip;
   final String refreshTooltip;
   final bool isRefreshing;
@@ -266,53 +268,151 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final statusColor = isLive
-        ? const Color(0xFF2B8A57)
-        : const Color(0xFFC06B16);
+    final colorScheme = Theme.of(context).colorScheme;
     return Row(
       children: [
+        Container(
+          width: 4,
+          height: 22,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [colorScheme.primary, const Color(0xFF2ECDB1)],
+            ),
+            borderRadius: BorderRadius.circular(999),
+            boxShadow: [
+              BoxShadow(
+                color: colorScheme.primary.withValues(alpha: 0.42),
+                blurRadius: 10,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 10),
         Expanded(
           child: Text(
             title,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-          ),
-        ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: statusColor.withValues(alpha: 0.14),
-            borderRadius: BorderRadius.circular(999),
-          ),
-          child: Text(
-            liveLabel,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: statusColor,
-              fontWeight: FontWeight.w600,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.25,
             ),
           ),
         ),
-        IconButton(
-          visualDensity: VisualDensity.compact,
+        _GlassHeaderButton(
           tooltip: settingsTooltip,
           onPressed: onSettings,
-          icon: const Icon(Icons.settings_outlined, size: 18),
+          child: const Icon(Icons.tune_rounded, size: 18),
         ),
-        IconButton(
-          visualDensity: VisualDensity.compact,
+        const SizedBox(width: 7),
+        _GlassHeaderButton(
           tooltip: refreshTooltip,
           onPressed: isRefreshing ? null : onRefresh,
-          icon: isRefreshing
+          child: isRefreshing
               ? const SizedBox.square(
-                  dimension: 16,
+                  dimension: 15,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Icon(Icons.refresh_rounded, size: 19),
+              : const Icon(Icons.refresh_rounded, size: 18),
         ),
       ],
+    );
+  }
+}
+
+class _GlassHeaderButton extends StatelessWidget {
+  const _GlassHeaderButton({
+    required this.tooltip,
+    required this.onPressed,
+    required this.child,
+  });
+
+  final String tooltip;
+  final VoidCallback? onPressed;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Tooltip(
+      message: tooltip,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: isDark
+                ? [
+                    Colors.white.withValues(alpha: 0.10),
+                    Colors.white.withValues(alpha: 0.035),
+                  ]
+                : [
+                    Colors.white.withValues(alpha: 0.80),
+                    Colors.white.withValues(alpha: 0.42),
+                  ],
+          ),
+          borderRadius: BorderRadius.circular(11),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: isDark ? 0.12 : 0.72),
+          ),
+        ),
+        child: SizedBox.square(
+          dimension: 34,
+          child: IconButton(
+            padding: EdgeInsets.zero,
+            visualDensity: VisualDensity.compact,
+            onPressed: onPressed,
+            icon: child,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GlassDivider extends StatelessWidget {
+  const _GlassDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      height: 1,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Colors.transparent,
+            Colors.white.withValues(alpha: isDark ? 0.18 : 0.75),
+            Colors.transparent,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AmbientGlow extends StatelessWidget {
+  const _AmbientGlow({required this.color, required this.size});
+
+  final Color color;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: SizedBox.square(
+        dimension: size,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: RadialGradient(
+              colors: [color, color.withValues(alpha: 0)],
+            ),
+            shape: BoxShape.circle,
+          ),
+        ),
+      ),
     );
   }
 }
