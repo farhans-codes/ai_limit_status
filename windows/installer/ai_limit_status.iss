@@ -1,5 +1,5 @@
 #ifndef MyAppVersion
-  #define MyAppVersion "0.3.3"
+  #define MyAppVersion "0.4.1"
 #endif
 
 #define MyAppName "AI Limit Status"
