@@ -58,6 +58,28 @@ std::wstring DisplayValue(const std::wstring& value) {
   return display;
 }
 
+void DrawStatusText(HDC device_context,
+                    const std::wstring& value,
+                    RECT bounds,
+                    int font_height,
+                    int font_width = 0) {
+  HFONT font = CreateFontW(-font_height, font_width, 0, 0, FW_BOLD, FALSE,
+                           FALSE, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS,
+                           CLIP_DEFAULT_PRECIS, ANTIALIASED_QUALITY,
+                           DEFAULT_PITCH, L"Segoe UI");
+  if (font == nullptr) {
+    return;
+  }
+
+  const HGDIOBJ old_font = SelectObject(device_context, font);
+  SetBkMode(device_context, TRANSPARENT);
+  SetTextColor(device_context, RGB(255, 255, 255));
+  DrawTextW(device_context, value.c_str(), -1, &bounds,
+            DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+  SelectObject(device_context, old_font);
+  DeleteObject(font);
+}
+
 }  // namespace
 
 WindowsStatusTray::WindowsStatusTray(flutter::BinaryMessenger* messenger,
@@ -124,7 +146,7 @@ std::optional<LRESULT> WindowsStatusTray::HandleMessage(UINT message,
   }
 
   const UINT icon_id = static_cast<UINT>(wparam);
-  if (icon_id < kCodexIconId || icon_id > kGenericIconId) {
+  if (icon_id != kStatusIconId) {
     return std::nullopt;
   }
   switch (static_cast<UINT>(lparam)) {
@@ -144,22 +166,17 @@ void WindowsStatusTray::UpdateIcons() {
     return;
   }
 
-  if (codex_value_.has_value()) {
-    ApplyIcon(kCodexIconId, DisplayValue(*codex_value_), kCodexColor, tooltip_);
-  } else {
-    RemoveIcon(kCodexIconId);
-  }
-  if (claude_value_.has_value()) {
-    ApplyIcon(kClaudeIconId, DisplayValue(*claude_value_), kClaudeColor,
+  if (claude_value_.has_value() && codex_value_.has_value()) {
+    ApplyCombinedIcon(kStatusIconId, DisplayValue(*claude_value_),
+                      DisplayValue(*codex_value_), tooltip_);
+  } else if (claude_value_.has_value()) {
+    ApplyIcon(kStatusIconId, DisplayValue(*claude_value_), kClaudeColor,
+              tooltip_);
+  } else if (codex_value_.has_value()) {
+    ApplyIcon(kStatusIconId, DisplayValue(*codex_value_), kCodexColor,
               tooltip_);
   } else {
-    RemoveIcon(kClaudeIconId);
-  }
-
-  if (!codex_value_.has_value() && !claude_value_.has_value()) {
-    ApplyIcon(kGenericIconId, L"AI", kGenericColor, tooltip_);
-  } else {
-    RemoveIcon(kGenericIconId);
+    ApplyIcon(kStatusIconId, L"AI", kGenericColor, tooltip_);
   }
 }
 
@@ -167,12 +184,31 @@ void WindowsStatusTray::ApplyIcon(UINT id,
                                   const std::wstring& value,
                                   COLORREF background,
                                   const std::wstring& tooltip) {
-  IconState& state = StateFor(id);
   HICON new_icon = CreateStatusIcon(value, background);
   if (new_icon == nullptr) {
     return;
   }
 
+  SetIcon(id, new_icon, tooltip);
+}
+
+void WindowsStatusTray::ApplyCombinedIcon(
+    UINT id,
+    const std::wstring& claude_value,
+    const std::wstring& codex_value,
+    const std::wstring& tooltip) {
+  HICON new_icon = CreateCombinedStatusIcon(claude_value, codex_value);
+  if (new_icon == nullptr) {
+    return;
+  }
+
+  SetIcon(id, new_icon, tooltip);
+}
+
+void WindowsStatusTray::SetIcon(UINT id,
+                                HICON new_icon,
+                                const std::wstring& tooltip) {
+  IconState& state = StateFor(id);
   NOTIFYICONDATAW data{};
   data.cbSize = sizeof(data);
   data.hWnd = window_;
@@ -285,23 +321,99 @@ HICON WindowsStatusTray::CreateStatusIcon(const std::wstring& value,
   const HGDIOBJ old_pen = SelectObject(color_dc, background_pen);
   RoundRect(color_dc, 1, 1, kIconSize - 1, kIconSize - 1, 9, 9);
 
-  const int font_height = value.size() >= 3 ? 16 : 20;
-  HFONT font = CreateFontW(-font_height, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE,
-                           DEFAULT_CHARSET, OUT_DEFAULT_PRECIS,
-                           CLIP_DEFAULT_PRECIS, ANTIALIASED_QUALITY,
-                           DEFAULT_PITCH, L"Segoe UI");
-  const HGDIOBJ old_font = SelectObject(color_dc, font);
-  SetBkMode(color_dc, TRANSPARENT);
-  SetTextColor(color_dc, RGB(255, 255, 255));
-  DrawTextW(color_dc, value.c_str(), -1, &bounds,
-            DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+  DrawStatusText(color_dc, value, bounds, value.size() >= 3 ? 16 : 20);
 
-  SelectObject(color_dc, old_font);
   SelectObject(color_dc, old_pen);
   SelectObject(color_dc, old_brush);
-  DeleteObject(font);
   DeleteObject(background_pen);
   DeleteObject(background_brush);
+
+  PatBlt(mask_dc, 0, 0, kIconSize, kIconSize, WHITENESS);
+  HGDIOBJ mask_brush = GetStockObject(BLACK_BRUSH);
+  HGDIOBJ mask_pen = GetStockObject(BLACK_PEN);
+  const HGDIOBJ old_mask_brush = SelectObject(mask_dc, mask_brush);
+  const HGDIOBJ old_mask_pen = SelectObject(mask_dc, mask_pen);
+  RoundRect(mask_dc, 1, 1, kIconSize - 1, kIconSize - 1, 9, 9);
+  SelectObject(mask_dc, old_mask_pen);
+  SelectObject(mask_dc, old_mask_brush);
+
+  SelectObject(color_dc, old_color_bitmap);
+  SelectObject(mask_dc, old_mask_bitmap);
+  DeleteDC(color_dc);
+  DeleteDC(mask_dc);
+
+  ICONINFO icon_info{};
+  icon_info.fIcon = TRUE;
+  icon_info.hbmColor = color_bitmap;
+  icon_info.hbmMask = mask_bitmap;
+  HICON icon = CreateIconIndirect(&icon_info);
+  DeleteObject(color_bitmap);
+  DeleteObject(mask_bitmap);
+  return icon;
+}
+
+HICON WindowsStatusTray::CreateCombinedStatusIcon(
+    const std::wstring& claude_value,
+    const std::wstring& codex_value) const {
+  HDC screen_dc = GetDC(nullptr);
+  if (screen_dc == nullptr) {
+    return nullptr;
+  }
+  HDC color_dc = CreateCompatibleDC(screen_dc);
+  HDC mask_dc = CreateCompatibleDC(screen_dc);
+  HBITMAP color_bitmap =
+      CreateCompatibleBitmap(screen_dc, kIconSize, kIconSize);
+  HBITMAP mask_bitmap = CreateBitmap(kIconSize, kIconSize, 1, 1, nullptr);
+  ReleaseDC(nullptr, screen_dc);
+
+  if (color_dc == nullptr || mask_dc == nullptr || color_bitmap == nullptr ||
+      mask_bitmap == nullptr) {
+    if (color_dc != nullptr) DeleteDC(color_dc);
+    if (mask_dc != nullptr) DeleteDC(mask_dc);
+    if (color_bitmap != nullptr) DeleteObject(color_bitmap);
+    if (mask_bitmap != nullptr) DeleteObject(mask_bitmap);
+    return nullptr;
+  }
+
+  const HGDIOBJ old_color_bitmap = SelectObject(color_dc, color_bitmap);
+  const HGDIOBJ old_mask_bitmap = SelectObject(mask_dc, mask_bitmap);
+  RECT bounds{0, 0, kIconSize, kIconSize};
+
+  HBRUSH transparent_brush = CreateSolidBrush(RGB(0, 0, 0));
+  FillRect(color_dc, &bounds, transparent_brush);
+  DeleteObject(transparent_brush);
+
+  HRGN clip_region =
+      CreateRoundRectRgn(1, 1, kIconSize - 1, kIconSize - 1, 9, 9);
+  SelectClipRgn(color_dc, clip_region);
+
+  RECT claude_bounds{1, 1, kIconSize / 2, kIconSize - 1};
+  RECT codex_bounds{kIconSize / 2, 1, kIconSize - 1, kIconSize - 1};
+  HBRUSH claude_brush = CreateSolidBrush(kClaudeColor);
+  HBRUSH codex_brush = CreateSolidBrush(kCodexColor);
+  FillRect(color_dc, &claude_bounds, claude_brush);
+  FillRect(color_dc, &codex_bounds, codex_brush);
+
+  HPEN divider_pen = CreatePen(PS_SOLID, 1, RGB(255, 255, 255));
+  const HGDIOBJ old_divider_pen = SelectObject(color_dc, divider_pen);
+  MoveToEx(color_dc, kIconSize / 2, 3, nullptr);
+  LineTo(color_dc, kIconSize / 2, kIconSize - 3);
+  SelectObject(color_dc, old_divider_pen);
+
+  RECT claude_text_bounds{0, 0, kIconSize / 2, kIconSize};
+  RECT codex_text_bounds{kIconSize / 2, 0, kIconSize, kIconSize};
+  DrawStatusText(color_dc, claude_value, claude_text_bounds,
+                 claude_value.size() >= 3 ? 10 : 13,
+                 claude_value.size() >= 3 ? 4 : 0);
+  DrawStatusText(color_dc, codex_value, codex_text_bounds,
+                 codex_value.size() >= 3 ? 10 : 13,
+                 codex_value.size() >= 3 ? 4 : 0);
+
+  SelectClipRgn(color_dc, nullptr);
+  DeleteObject(divider_pen);
+  DeleteObject(claude_brush);
+  DeleteObject(codex_brush);
+  DeleteObject(clip_region);
 
   PatBlt(mask_dc, 0, 0, kIconSize, kIconSize, WHITENESS);
   HGDIOBJ mask_brush = GetStockObject(BLACK_BRUSH);
@@ -344,8 +456,6 @@ std::optional<std::wstring> WindowsStatusTray::ReadOptionalValue(
 }
 
 void WindowsStatusTray::Destroy() {
-  RemoveIcon(kCodexIconId);
-  RemoveIcon(kClaudeIconId);
-  RemoveIcon(kGenericIconId);
+  RemoveIcon(kStatusIconId);
   initialized_ = false;
 }

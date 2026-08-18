@@ -27,9 +27,7 @@ class WindowsStatusTray {
     HICON icon = nullptr;
   };
 
-  static constexpr UINT kCodexIconId = 1;
-  static constexpr UINT kClaudeIconId = 2;
-  static constexpr UINT kGenericIconId = 3;
+  static constexpr UINT kStatusIconId = 1;
   static constexpr UINT kCallbackMessage = WM_APP + 41;
 
   void HandleMethodCall(
@@ -40,10 +38,17 @@ class WindowsStatusTray {
                  const std::wstring& value,
                  COLORREF background,
                  const std::wstring& tooltip);
+  void ApplyCombinedIcon(UINT id,
+                         const std::wstring& claude_value,
+                         const std::wstring& codex_value,
+                         const std::wstring& tooltip);
+  void SetIcon(UINT id, HICON icon, const std::wstring& tooltip);
   void RemoveIcon(UINT id);
   void ShowContextMenu();
   void InvokeDart(const std::string& method);
   HICON CreateStatusIcon(const std::wstring& value, COLORREF background) const;
+  HICON CreateCombinedStatusIcon(const std::wstring& claude_value,
+                                 const std::wstring& codex_value) const;
 
   IconState& StateFor(UINT id);
   std::optional<std::wstring> ReadOptionalValue(
@@ -53,7 +58,7 @@ class WindowsStatusTray {
   HWND window_;
   UINT taskbar_created_message_;
   std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>> channel_;
-  std::array<IconState, 3> icon_states_{};
+  std::array<IconState, 1> icon_states_{};
   std::optional<std::wstring> codex_value_;
   std::optional<std::wstring> claude_value_;
   std::wstring tooltip_;
