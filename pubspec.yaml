@@ -27,5 +27,6 @@ flutter:
   assets:
     - assets/icons/claude.svg
     - assets/icons/codex.svg
+    - assets/sounds/limit_warning.wav
     - macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_32.png
     - windows/runner/resources/app_icon.ico

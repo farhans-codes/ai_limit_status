@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:get/get.dart';
 import 'package:ai_limit_status/core/constants/app_strings.dart';
 import 'package:ai_limit_status/core/platform/tray_service.dart';
+import 'package:ai_limit_status/features/settings/domain/entities/desktop_settings.dart';
+import 'package:ai_limit_status/features/settings/domain/repositories/desktop_settings_repository.dart';
 import 'package:ai_limit_status/features/usage/domain/entities/provider_setup_result.dart';
 import 'package:ai_limit_status/features/usage/domain/entities/provider_usage.dart';
 import 'package:ai_limit_status/features/usage/domain/entities/usage_warning.dart';
@@ -22,6 +24,7 @@ class UsageController extends GetxController {
     this._openProviderSetupGuide,
     this._evaluateUsageWarnings,
     this._showUsageWarning,
+    this._settingsRepository,
   );
 
   static const refreshInterval = Duration(minutes: 2);
@@ -33,6 +36,7 @@ class UsageController extends GetxController {
   final OpenProviderSetupGuide _openProviderSetupGuide;
   final EvaluateUsageWarnings _evaluateUsageWarnings;
   final ShowUsageWarning _showUsageWarning;
+  final DesktopSettingsRepository _settingsRepository;
 
   final usages = <ProviderUsage>[].obs;
   final isLoading = true.obs;
@@ -41,6 +45,10 @@ class UsageController extends GetxController {
 
   Timer? _refreshTimer;
   final Map<UsageProvider, Timer> _connectionPollingTimers = {};
+  StreamSubscription<ClaudeStatusLimitPreference>?
+  _claudeStatusLimitSubscription;
+  ClaudeStatusLimitPreference _claudeStatusLimitPreference =
+      ClaudeStatusLimitPreference.fiveHour;
   bool _isRefreshing = false;
 
   bool get supportsAutomaticInstall => _installProvider.isSupported;
@@ -57,6 +65,14 @@ class UsageController extends GetxController {
 
   Future<void> _initialize() async {
     final l10n = AppStrings.instance;
+    _claudeStatusLimitSubscription = _settingsRepository
+        .claudeStatusLimitChanges
+        .listen((preference) {
+          _claudeStatusLimitPreference = preference;
+          unawaited(_updateTray());
+        });
+    _claudeStatusLimitPreference = await _settingsRepository
+        .loadClaudeStatusLimitPreference();
     await _trayService.initialize(
       copy: TrayMenuCopy(
         openDashboard: l10n.openDashboard,
@@ -303,20 +319,26 @@ class UsageController extends GetxController {
     final codex = _usageFor(UsageProvider.codex);
     final claude = _usageFor(UsageProvider.claude);
     final codexValue = codex == null ? null : _compactValue(l10n, codex);
+    final claudeLimitType = switch (_claudeStatusLimitPreference) {
+      ClaudeStatusLimitPreference.fiveHour => UsageLimitType.session,
+      ClaudeStatusLimitPreference.fableWeekly => UsageLimitType.fableWeekly,
+    };
+    final claudeLimitName = _limitName(l10n, claudeLimitType);
     final claudeValue = claude == null
         ? null
-        : _compactValue(l10n, claude, preferredType: UsageLimitType.session);
+        : _compactValue(l10n, claude, preferredType: claudeLimitType);
     final tooltip = switch ((codexValue, claudeValue)) {
       (final String codexValue, final String claudeValue) => l10n.trayTooltip(
         codexValue,
+        claudeLimitName,
         claudeValue,
       ),
       (final String codexValue, null) => l10n.singleProviderTrayTooltip(
         l10n.providerCodex,
         codexValue,
       ),
-      (null, final String claudeValue) => l10n.singleProviderTrayTooltip(
-        l10n.providerClaude,
+      (null, final String claudeValue) => l10n.singleClaudeTrayTooltip(
+        claudeLimitName,
         claudeValue,
       ),
       _ => l10n.noProvidersDetected,
@@ -344,7 +366,7 @@ class UsageController extends GetxController {
   }) {
     final remaining = preferredType == null
         ? usage.mostUrgentRemaining
-        : usage.remainingFor(preferredType) ?? usage.mostUrgentRemaining;
+        : usage.remainingFor(preferredType);
     return remaining == null
         ? l10n.notAvailableCompact
         : l10n.remainingCompact(remaining);
@@ -353,6 +375,7 @@ class UsageController extends GetxController {
   @override
   void onClose() {
     _refreshTimer?.cancel();
+    _claudeStatusLimitSubscription?.cancel();
     for (final timer in _connectionPollingTimers.values) {
       timer.cancel();
     }

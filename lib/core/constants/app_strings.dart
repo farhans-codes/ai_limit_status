@@ -70,14 +70,15 @@ class AppStrings {
       'Usage alerts at 50%, 20%, and 10%; five-hour reminders at 1h, '
       '30m, and 10m; weekly reminders at 1d, 12h, 5h, and 1h; '
       'plus restored notices';
-  String get settingsTooltip => 'Notification and startup settings';
+  String get settingsTooltip => 'Notification, shortcut, and startup settings';
   String get firstRunSetupTitle => 'Finish app setup';
   String get firstRunSetupDescription =>
-      'Allow alerts and choose whether the app opens automatically '
-      'when you sign in.';
+      'Allow alerts, choose your Claude shortcut limit, and decide whether '
+      'the app opens automatically when you sign in.';
   String get settingsTitle => 'App settings';
   String get settingsDescription =>
-      'You can change notification and startup preferences at any time.';
+      'You can change notification, shortcut, and startup preferences '
+      'at any time.';
   String get notificationAlertsTitle => 'Usage notifications';
   String get notificationAlertsDescription =>
       'Usage alerts at 50%, 20%, and 10%; five-hour reminders at 1h, '
@@ -86,6 +87,11 @@ class AppStrings {
   String get launchAtStartupTitle => 'Launch at startup';
   String get launchAtStartupDescription =>
       'Open AI Limit Status automatically when you sign in.';
+  String get claudeShortcutLimitTitle => 'Claude shortcut limit';
+  String get claudeShortcutLimitDescription =>
+      'Choose the Claude limit shown in the menu bar or Windows taskbar.';
+  String get claudeFiveHourShortcut => '5-hour limit';
+  String get claudeFableShortcut => 'Fable weekly limit';
   String get done => 'Done';
   String get settingsUpdateFailedTitle => 'Setting not changed';
   String get settingsUpdateFailed =>
@@ -138,8 +144,14 @@ class AppStrings {
   String trayTitle(String codexValue, String claudeValue) =>
       '$codexValue · $claudeValue';
 
-  String trayTooltip(String codexValue, String claudeValue) =>
-      'Codex: $codexValue · Claude 5-hour: $claudeValue';
+  String trayTooltip(
+    String codexValue,
+    String claudeLimit,
+    String claudeValue,
+  ) => 'Codex: $codexValue · Claude $claudeLimit: $claudeValue';
+
+  String singleClaudeTrayTooltip(String claudeLimit, String value) =>
+      'Claude $claudeLimit: $value';
 
   String singleProviderTrayTooltip(String provider, String value) =>
       '$provider: $value';

@@ -2,11 +2,11 @@ import 'dart:io';
 
 import 'package:flutter/services.dart';
 
-class WindowsStatusTrayService {
-  WindowsStatusTrayService();
+class WindowsTaskbarStatusService {
+  WindowsTaskbarStatusService();
 
   static const _channel = MethodChannel(
-    'com.ailimitstatus/windows_status_tray',
+    'com.ailimitstatus/windows_taskbar_status',
   );
 
   Future<void> initialize({

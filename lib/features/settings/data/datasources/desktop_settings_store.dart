@@ -1,26 +1,32 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:ai_limit_status/features/settings/domain/entities/desktop_settings.dart';
+
 class StoredDesktopSettings {
   const StoredDesktopSettings({
     required this.notificationsEnabled,
     required this.notificationPreferenceConfigured,
     required this.onboardingCompleted,
+    required this.claudeStatusLimitPreference,
   });
 
   const StoredDesktopSettings.defaults()
     : notificationsEnabled = false,
       notificationPreferenceConfigured = false,
-      onboardingCompleted = false;
+      onboardingCompleted = false,
+      claudeStatusLimitPreference = ClaudeStatusLimitPreference.fiveHour;
 
   final bool notificationsEnabled;
   final bool notificationPreferenceConfigured;
   final bool onboardingCompleted;
+  final ClaudeStatusLimitPreference claudeStatusLimitPreference;
 
   StoredDesktopSettings copyWith({
     bool? notificationsEnabled,
     bool? notificationPreferenceConfigured,
     bool? onboardingCompleted,
+    ClaudeStatusLimitPreference? claudeStatusLimitPreference,
   }) {
     return StoredDesktopSettings(
       notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
@@ -28,13 +34,16 @@ class StoredDesktopSettings {
           notificationPreferenceConfigured ??
           this.notificationPreferenceConfigured,
       onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
+      claudeStatusLimitPreference:
+          claudeStatusLimitPreference ?? this.claudeStatusLimitPreference,
     );
   }
 
-  Map<String, bool> toJson() => {
+  Map<String, Object> toJson() => {
     'notificationsEnabled': notificationsEnabled,
     'notificationPreferenceConfigured': notificationPreferenceConfigured,
     'onboardingCompleted': onboardingCompleted,
+    'claudeStatusLimitPreference': claudeStatusLimitPreference.name,
   };
 }
 
@@ -54,10 +63,20 @@ class DesktopSettingsStore {
         notificationPreferenceConfigured:
             decoded['notificationPreferenceConfigured'] == true,
         onboardingCompleted: decoded['onboardingCompleted'] == true,
+        claudeStatusLimitPreference: _parseClaudeStatusLimitPreference(
+          decoded['claudeStatusLimitPreference'],
+        ),
       );
     } on Object {
       return const StoredDesktopSettings.defaults();
     }
+  }
+
+  ClaudeStatusLimitPreference _parseClaudeStatusLimitPreference(Object? value) {
+    return ClaudeStatusLimitPreference.values.firstWhere(
+      (preference) => preference.name == value,
+      orElse: () => ClaudeStatusLimitPreference.fiveHour,
+    );
   }
 
   Future<void> write(StoredDesktopSettings settings) async {
