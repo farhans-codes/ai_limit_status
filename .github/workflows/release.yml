@@ -98,6 +98,12 @@ jobs:
           flutter analyze
           flutter build windows --release
 
+      - name: Bundle Visual C++ runtime
+        shell: pwsh
+        run: |
+          ./scripts/bundle_windows_runtime.ps1 `
+            -Destination 'build\windows\x64\runner\Release'
+
       - name: Install Inno Setup
         shell: pwsh
         run: choco install innosetup --no-progress --yes
