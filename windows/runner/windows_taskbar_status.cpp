@@ -235,7 +235,7 @@ void WindowsTaskbarStatus::PositionOverlay() {
                                  ? notification_bounds.left
                                  : taskbar_bounds.right -
                                        ScaleForDpi(210, dpi);
-    x = std::max(taskbar_bounds.left + padding,
+    x = std::max(static_cast<int>(taskbar_bounds.left) + padding,
                  right_anchor - width - padding);
     y = taskbar_bounds.top +
         ((taskbar_bounds.bottom - taskbar_bounds.top) - height) / 2;
@@ -246,7 +246,7 @@ void WindowsTaskbarStatus::PositionOverlay() {
                                         ScaleForDpi(210, dpi);
     x = taskbar_bounds.left +
         ((taskbar_bounds.right - taskbar_bounds.left) - width) / 2;
-    y = std::max(taskbar_bounds.top + padding,
+    y = std::max(static_cast<int>(taskbar_bounds.top) + padding,
                  bottom_anchor - height - padding);
   }
 
@@ -334,7 +334,8 @@ void WindowsTaskbarStatus::PaintProvider(HDC dc,
   HPEN pen = CreatePen(PS_SOLID, 1, background);
   const HGDIOBJ old_brush = SelectObject(dc, brush);
   const HGDIOBJ old_pen = SelectObject(dc, pen);
-  const int radius = std::max(8, (pill.bottom - pill.top) / 2);
+  const int radius = std::max(
+      8, static_cast<int>(pill.bottom - pill.top) / 2);
   RoundRect(dc, pill.left, pill.top, pill.right, pill.bottom, radius, radius);
   SelectObject(dc, old_pen);
   SelectObject(dc, old_brush);
@@ -369,7 +370,8 @@ void WindowsTaskbarStatus::PaintProviderMark(HDC dc,
                                              bool is_claude) const {
   const int center_x = (bounds.left + bounds.right) / 2;
   const int center_y = (bounds.top + bounds.bottom) / 2;
-  const int radius = std::max(4, (bounds.bottom - bounds.top) / 4);
+  const int radius = std::max(
+      4, static_cast<int>(bounds.bottom - bounds.top) / 4);
   HPEN pen = CreatePen(PS_SOLID, std::max(1, radius / 3),
                        RGB(255, 255, 255));
   const HGDIOBJ old_pen = SelectObject(dc, pen);

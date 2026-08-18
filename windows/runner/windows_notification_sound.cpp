@@ -1,8 +1,8 @@
 #include "windows_notification_sound.h"
 
 #include <flutter/standard_method_codec.h>
-#include <mmsystem.h>
 #include <windows.h>
+#include <mmsystem.h>
 
 #include <array>
 #include <filesystem>
