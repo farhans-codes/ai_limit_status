@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:get/get.dart';
 import 'package:ai_limit_status/core/platform/app_window_service.dart';
 import 'package:ai_limit_status/core/platform/mac_status_bar_service.dart';
+import 'package:ai_limit_status/core/platform/windows_status_tray_service.dart';
 import 'package:tray_manager/tray_manager.dart';
 
 class TrayMenuCopy {
@@ -21,7 +22,11 @@ class TrayMenuCopy {
 }
 
 class TrayService extends GetxService with TrayListener {
-  TrayService(this._windowService, this._macStatusBarService);
+  TrayService(
+    this._windowService,
+    this._macStatusBarService,
+    this._windowsStatusTrayService,
+  );
 
   static const _openKey = 'open_dashboard';
   static const _refreshKey = 'refresh_usage';
@@ -29,6 +34,7 @@ class TrayService extends GetxService with TrayListener {
 
   final AppWindowService _windowService;
   final MacStatusBarService _macStatusBarService;
+  final WindowsStatusTrayService _windowsStatusTrayService;
   Future<void> Function()? _onRefresh;
   bool _isInitialized = false;
   final Completer<void> _ready = Completer<void>();
@@ -54,6 +60,22 @@ class TrayService extends GetxService with TrayListener {
         onRefresh: onRefresh,
         onQuit: _quit,
         onWillShow: _windowService.prepareForNativeShow,
+      );
+      _isInitialized = true;
+      _ready.complete();
+      return;
+    }
+
+    if (Platform.isWindows) {
+      await _windowsStatusTrayService.initialize(
+        openLabel: copy.openDashboard,
+        refreshLabel: copy.refresh,
+        quitLabel: copy.quit,
+        initialTooltip: copy.initialTooltip,
+        onToggle: _windowService.togglePopover,
+        onShow: _windowService.showPopover,
+        onRefresh: onRefresh,
+        onQuit: _quit,
       );
       _isInitialized = true;
       _ready.complete();
@@ -88,6 +110,10 @@ class TrayService extends GetxService with TrayListener {
       await _macStatusBarService.show();
       return;
     }
+    if (Platform.isWindows) {
+      await _windowService.showPopover();
+      return;
+    }
     await _windowService.showPopover();
   }
 
@@ -101,6 +127,14 @@ class TrayService extends GetxService with TrayListener {
     }
     if (Platform.isMacOS) {
       await _macStatusBarService.update(
+        codexValue: codexValue,
+        claudeValue: claudeValue,
+        tooltip: tooltip,
+      );
+      return;
+    }
+    if (Platform.isWindows) {
+      await _windowsStatusTrayService.update(
         codexValue: codexValue,
         claudeValue: claudeValue,
         tooltip: tooltip,
@@ -130,6 +164,8 @@ class TrayService extends GetxService with TrayListener {
   Future<void> _quit() async {
     if (Platform.isMacOS) {
       await _macStatusBarService.destroy();
+    } else if (Platform.isWindows) {
+      await _windowsStatusTrayService.destroy();
     } else {
       await trayManager.destroy();
     }
@@ -138,7 +174,7 @@ class TrayService extends GetxService with TrayListener {
 
   @override
   void onClose() {
-    if (!Platform.isMacOS) {
+    if (!Platform.isMacOS && !Platform.isWindows) {
       trayManager.removeListener(this);
     }
     super.onClose();
