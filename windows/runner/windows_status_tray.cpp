@@ -13,7 +13,7 @@ constexpr UINT kRefreshCommand = 1002;
 constexpr UINT kQuitCommand = 1003;
 constexpr int kIconSize = 32;
 
-constexpr COLORREF kCodexColor = RGB(20, 112, 100);
+constexpr COLORREF kCodexColor = RGB(37, 99, 235);
 constexpr COLORREF kClaudeColor = RGB(198, 92, 59);
 constexpr COLORREF kGenericColor = RGB(75, 85, 99);
 
