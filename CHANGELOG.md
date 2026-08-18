@@ -6,6 +6,23 @@ The project follows Semantic Versioning for public releases.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-08-18
+
+### Added
+
+- Added a Claude shortcut preference for choosing between the normal five-hour
+  limit and the Fable weekly limit in the macOS menu bar or Windows taskbar.
+- Added a bundled custom chime for usage warnings, reset reminders, and restored
+  limit notifications on macOS and Windows.
+
+### Changed
+
+- Replaced the separate Windows notification-area badges with an experimental
+  taskbar overlay that shows blue Codex and orange Claude indicators side by
+  side and preserves the existing click and context-menu actions.
+- Increased the macOS menu-bar provider icon and percentage sizes and aligned
+  them vertically with neighboring status items.
+
 ## [0.4.1] - 2026-08-18
 
 ### Fixed
@@ -108,7 +125,8 @@ The project follows Semantic Versioning for public releases.
 - Guided Codex and Claude setup.
 - Local usage caching and duplicate-instance protection.
 
-[Unreleased]: https://github.com/farhans-codes/ai_limit_status/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/farhans-codes/ai_limit_status/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/farhans-codes/ai_limit_status/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/farhans-codes/ai_limit_status/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/farhans-codes/ai_limit_status/compare/v0.3.3...v0.4.0
 [0.3.3]: https://github.com/farhans-codes/ai_limit_status/compare/v0.3.2...v0.3.3

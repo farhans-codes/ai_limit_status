@@ -23,6 +23,7 @@ class DesktopSettingsController extends GetxController
 
   final notificationsEnabled = false.obs;
   final launchAtStartupEnabled = false.obs;
+  final claudeStatusLimitPreference = ClaudeStatusLimitPreference.fiveHour.obs;
   final isUpdating = false.obs;
 
   bool _isInitialized = false;
@@ -128,6 +129,27 @@ class DesktopSettingsController extends GetxController
     }
   }
 
+  Future<void> setClaudeStatusLimitPreference(
+    ClaudeStatusLimitPreference preference,
+  ) async {
+    if (isUpdating.value || preference == claudeStatusLimitPreference.value) {
+      return;
+    }
+    isUpdating.value = true;
+    try {
+      final result = await _repository.setClaudeStatusLimitPreference(
+        preference,
+      );
+      if (result == DesktopSettingUpdateResult.succeeded) {
+        claudeStatusLimitPreference.value = preference;
+      } else {
+        _showUpdateFailure(result, isNotification: false);
+      }
+    } finally {
+      isUpdating.value = false;
+    }
+  }
+
   Future<void> finish() async {
     if (!_onboardingCompleted) {
       await _repository.completeOnboarding();
@@ -146,6 +168,7 @@ class DesktopSettingsController extends GetxController
     final settings = await _repository.load();
     notificationsEnabled.value = settings.notificationsEnabled;
     launchAtStartupEnabled.value = settings.launchAtStartupEnabled;
+    claudeStatusLimitPreference.value = settings.claudeStatusLimitPreference;
     _onboardingCompleted = settings.onboardingCompleted;
   }
 

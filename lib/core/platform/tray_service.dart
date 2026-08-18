@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:get/get.dart';
 import 'package:ai_limit_status/core/platform/app_window_service.dart';
 import 'package:ai_limit_status/core/platform/mac_status_bar_service.dart';
-import 'package:ai_limit_status/core/platform/windows_status_tray_service.dart';
+import 'package:ai_limit_status/core/platform/windows_taskbar_status_service.dart';
 import 'package:tray_manager/tray_manager.dart';
 
 class TrayMenuCopy {
@@ -25,7 +25,7 @@ class TrayService extends GetxService with TrayListener {
   TrayService(
     this._windowService,
     this._macStatusBarService,
-    this._windowsStatusTrayService,
+    this._windowsTaskbarStatusService,
   );
 
   static const _openKey = 'open_dashboard';
@@ -34,7 +34,7 @@ class TrayService extends GetxService with TrayListener {
 
   final AppWindowService _windowService;
   final MacStatusBarService _macStatusBarService;
-  final WindowsStatusTrayService _windowsStatusTrayService;
+  final WindowsTaskbarStatusService _windowsTaskbarStatusService;
   Future<void> Function()? _onRefresh;
   bool _isInitialized = false;
   final Completer<void> _ready = Completer<void>();
@@ -67,7 +67,7 @@ class TrayService extends GetxService with TrayListener {
     }
 
     if (Platform.isWindows) {
-      await _windowsStatusTrayService.initialize(
+      await _windowsTaskbarStatusService.initialize(
         openLabel: copy.openDashboard,
         refreshLabel: copy.refresh,
         quitLabel: copy.quit,
@@ -134,7 +134,7 @@ class TrayService extends GetxService with TrayListener {
       return;
     }
     if (Platform.isWindows) {
-      await _windowsStatusTrayService.update(
+      await _windowsTaskbarStatusService.update(
         codexValue: codexValue,
         claudeValue: claudeValue,
         tooltip: tooltip,
@@ -165,7 +165,7 @@ class TrayService extends GetxService with TrayListener {
     if (Platform.isMacOS) {
       await _macStatusBarService.destroy();
     } else if (Platform.isWindows) {
-      await _windowsStatusTrayService.destroy();
+      await _windowsTaskbarStatusService.destroy();
     } else {
       await trayManager.destroy();
     }
