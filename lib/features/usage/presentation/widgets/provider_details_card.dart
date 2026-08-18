@@ -340,6 +340,7 @@ String _limitLabel(AppStrings l10n, UsageLimitType type) {
   return switch (type) {
     UsageLimitType.session => l10n.fiveHourLimit,
     UsageLimitType.weekly => l10n.weeklyLimit,
+    UsageLimitType.fableWeekly => l10n.fableWeeklyLimit,
     UsageLimitType.opusWeekly => l10n.opusWeeklyLimit,
     UsageLimitType.sonnetWeekly => l10n.sonnetWeeklyLimit,
   };

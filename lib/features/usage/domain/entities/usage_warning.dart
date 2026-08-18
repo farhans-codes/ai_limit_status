@@ -30,6 +30,7 @@ class UsageWarning {
   Duration get _windowDuration => switch (limitType) {
     UsageLimitType.session => const Duration(hours: 5),
     UsageLimitType.weekly ||
+    UsageLimitType.fableWeekly ||
     UsageLimitType.opusWeekly ||
     UsageLimitType.sonnetWeekly => const Duration(days: 7),
   };

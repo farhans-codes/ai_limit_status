@@ -140,6 +140,7 @@ class EvaluateUsageWarnings {
         fiveHourResetThresholdMinutes,
       UsageLimitType.session => const [],
       UsageLimitType.weekly ||
+      UsageLimitType.fableWeekly ||
       UsageLimitType.opusWeekly ||
       UsageLimitType.sonnetWeekly => weeklyResetThresholdMinutes,
     };

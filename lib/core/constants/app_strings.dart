@@ -12,6 +12,7 @@ class AppStrings {
 
   String get fiveHourLimit => '5-hour limit';
   String get weeklyLimit => 'Weekly limit';
+  String get fableWeeklyLimit => 'Fable weekly limit';
   String get opusWeeklyLimit => 'Opus weekly limit';
   String get sonnetWeeklyLimit => 'Sonnet weekly limit';
   String get connected => 'Connected';
