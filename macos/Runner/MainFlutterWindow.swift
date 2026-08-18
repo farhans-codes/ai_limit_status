@@ -262,9 +262,9 @@ private final class MacStatusBarController: NSObject {
     NSAttributedString(
       string: value,
       attributes: [
-        .font: NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .semibold),
+        .font: NSFont.monospacedDigitSystemFont(ofSize: 13.5, weight: .semibold),
         .foregroundColor: NSColor.labelColor,
-        .baselineOffset: 1,
+        .baselineOffset: -1,
       ]
     )
   }
@@ -272,12 +272,12 @@ private final class MacStatusBarController: NSObject {
   private func attachment(for image: NSImage) -> NSAttributedString {
     let attachment = NSTextAttachment()
     attachment.image = tintedStatusImage(image)
-    attachment.bounds = NSRect(x: 0, y: -2, width: 14, height: 14)
+    attachment.bounds = NSRect(x: 0, y: -5, width: 17, height: 17)
     return NSAttributedString(attachment: attachment)
   }
 
   private func tintedStatusImage(_ source: NSImage) -> NSImage {
-    let size = NSSize(width: 14, height: 14)
+    let size = NSSize(width: 17, height: 17)
     let image = NSImage(size: size)
     image.lockFocus()
     source.draw(in: NSRect(origin: .zero, size: size))
@@ -292,7 +292,7 @@ private final class MacStatusBarController: NSObject {
       return nil
     }
     image.isTemplate = true
-    image.size = NSSize(width: 14, height: 14)
+    image.size = NSSize(width: 17, height: 17)
     return image
   }
 
