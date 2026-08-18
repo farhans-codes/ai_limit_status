@@ -24,7 +24,7 @@ class UsageController extends GetxController {
     this._showUsageWarning,
   );
 
-  static const refreshInterval = Duration(minutes: 1);
+  static const refreshInterval = Duration(minutes: 2);
 
   final GetUsageSummary _getUsageSummary;
   final TrayService _trayService;
@@ -292,6 +292,7 @@ class UsageController extends GetxController {
     return switch (type) {
       UsageLimitType.session => l10n.fiveHourLimit,
       UsageLimitType.weekly => l10n.weeklyLimit,
+      UsageLimitType.fableWeekly => l10n.fableWeeklyLimit,
       UsageLimitType.opusWeekly => l10n.opusWeeklyLimit,
       UsageLimitType.sonnetWeekly => l10n.sonnetWeeklyLimit,
     };

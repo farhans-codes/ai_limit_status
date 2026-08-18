@@ -12,6 +12,7 @@ class AppStrings {
 
   String get fiveHourLimit => '5-hour limit';
   String get weeklyLimit => 'Weekly limit';
+  String get fableWeeklyLimit => 'Fable weekly limit';
   String get opusWeeklyLimit => 'Opus weekly limit';
   String get sonnetWeeklyLimit => 'Sonnet weekly limit';
   String get connected => 'Connected';
@@ -28,7 +29,6 @@ class AppStrings {
   String get resetTimeUnavailable => 'Reset time unavailable';
   String get lastUpdatedNow => 'Updated just now';
   String lastUpdatedMinutes(int minutes) => 'Updated ${minutes}m ago';
-  String autoRefreshMinutes(int minutes) => 'Auto-refresh: $minutes min';
   String get refresh => 'Refresh';
   String get retry => 'Retry';
   String get loadingUsage => 'Loading usage…';
@@ -37,7 +37,6 @@ class AppStrings {
   String get noProvidersDetectedDescription =>
       'Install Codex or Claude to start monitoring usage.';
   String setUpProvider(String provider) => 'Set up $provider';
-  String get liveData => 'Live';
   String get notAvailableCompact => '—';
   String get cliNotFoundMessage =>
       'Install the provider CLI to read live subscription usage.';

@@ -20,8 +20,10 @@ or [download SHA-256 checksums](https://github.com/farhans-codes/ai_limit_status
 ## Features
 
 - Shows only the providers installed on the current computer.
-- Displays available five-hour, weekly, Opus, and Sonnet usage windows.
-- Keeps Codex and Claude status visible from the menu bar or system tray.
+- Displays available five-hour, weekly, Fable, Opus, and Sonnet usage windows.
+- Keeps Codex and Claude percentages visible from the macOS menu bar or native
+  provider-colored Windows tray badges.
+- Refreshes every connected provider automatically every two minutes.
 - Opens a compact glass-style details window from the tray.
 - Sends one notification per threshold and reset window.
 - Offers guided installation and sign-in actions where the platform supports

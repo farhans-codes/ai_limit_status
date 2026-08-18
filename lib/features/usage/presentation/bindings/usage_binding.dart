@@ -4,6 +4,7 @@ import 'package:ai_limit_status/core/platform/desktop_notification_service.dart'
 import 'package:ai_limit_status/core/platform/desktop_startup_service.dart';
 import 'package:ai_limit_status/core/platform/mac_status_bar_service.dart';
 import 'package:ai_limit_status/core/platform/tray_service.dart';
+import 'package:ai_limit_status/core/platform/windows_status_tray_service.dart';
 import 'package:ai_limit_status/features/settings/data/datasources/desktop_settings_store.dart';
 import 'package:ai_limit_status/features/settings/data/repositories/desktop_settings_repository_impl.dart';
 import 'package:ai_limit_status/features/settings/domain/repositories/desktop_settings_repository.dart';
@@ -32,7 +33,11 @@ class UsageBinding extends Bindings {
   @override
   void dependencies() {
     Get.put<TrayService>(
-      TrayService(Get.find<AppWindowService>(), MacStatusBarService()),
+      TrayService(
+        Get.find<AppWindowService>(),
+        MacStatusBarService(),
+        WindowsStatusTrayService(),
+      ),
       permanent: true,
     );
     Get.lazyPut<ProviderExecutableLocator>(ProviderExecutableLocator.new);
