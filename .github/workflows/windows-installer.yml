@@ -30,6 +30,12 @@ jobs:
       - name: Build Windows release
         run: flutter build windows --release
 
+      - name: Bundle Visual C++ runtime
+        shell: pwsh
+        run: |
+          ./scripts/bundle_windows_runtime.ps1 `
+            -Destination 'build\windows\x64\runner\Release'
+
       - name: Read application version
         shell: pwsh
         run: |

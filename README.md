@@ -79,8 +79,14 @@ run a copy downloaded from an untrusted source.
 3. Open AI Limit Status from the Start menu.
 
 Unsigned public beta builds can trigger Microsoft Defender SmartScreen. Verify
-the release checksum and GitHub source before continuing. The portable ZIP is
-also available for users who do not want an installer.
+the release checksum and GitHub source before continuing. The installer bundles
+the Visual C++ runtime files required by Flutter, so users do not need to install
+them separately.
+
+The portable ZIP is also available for users who do not want an installer.
+Extract the entire ZIP into a normal folder before opening
+`ai_limit_status.exe`; running the executable from inside the compressed archive
+prevents Windows from loading the bundled Flutter and Visual C++ DLLs.
 
 ## Provider setup
 
