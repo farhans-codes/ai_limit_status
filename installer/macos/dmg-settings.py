@@ -11,6 +11,7 @@ compression_level = 9
 
 files = [(application, app_name)]
 symlinks = {"Applications": "/Applications"}
+hide = [".background.png"]
 
 background = background_image
 window_rect = ((120, 120), (720, 440))
@@ -35,4 +36,5 @@ icon_size = 96
 icon_locations = {
     app_name: (183, 171),
     "Applications": (537, 171),
+    ".background.png": (0, 0),
 }
