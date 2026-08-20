@@ -1,5 +1,7 @@
 #include "windows_taskbar_status.h"
 
+#include "resource.h"
+
 #include <flutter/standard_method_codec.h>
 #include <strsafe.h>
 
@@ -353,6 +355,21 @@ void WindowsTaskbarStatus::PaintProviderMark(HDC dc,
                                              bool is_claude) const {
   const int center_x = (bounds.left + bounds.right) / 2;
   const int center_y = (bounds.top + bounds.bottom) / 2;
+  if (!is_claude) {
+    const int icon_size =
+        std::max(12, std::min(bounds.right - bounds.left,
+                              bounds.bottom - bounds.top));
+    HICON icon = static_cast<HICON>(LoadImageW(
+        GetModuleHandleW(nullptr), MAKEINTRESOURCEW(IDI_CODEX_STATUS_ICON),
+        IMAGE_ICON, icon_size, icon_size, LR_DEFAULTCOLOR));
+    if (icon != nullptr) {
+      DrawIconEx(dc, center_x - icon_size / 2, center_y - icon_size / 2, icon,
+                 icon_size, icon_size, 0, nullptr, DI_NORMAL);
+      DestroyIcon(icon);
+      return;
+    }
+  }
+
   const int radius = std::max(
       4, static_cast<int>(bounds.bottom - bounds.top) / 4);
   HPEN pen = CreatePen(PS_SOLID, std::max(1, radius / 3),
