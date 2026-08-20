@@ -6,6 +6,15 @@ The project follows Semantic Versioning for public releases.
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-08-20
+
+### Fixed
+
+- Removed the colored backgrounds from the Windows taskbar indicators so they
+  appear directly on the transparent taskbar surface.
+- Removed the retained native Windows frame that caused a second rounded border
+  around the glass-style details window.
+
 ## [0.5.0] - 2026-08-18
 
 ### Added
@@ -125,7 +134,8 @@ The project follows Semantic Versioning for public releases.
 - Guided Codex and Claude setup.
 - Local usage caching and duplicate-instance protection.
 
-[Unreleased]: https://github.com/farhans-codes/ai_limit_status/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/farhans-codes/ai_limit_status/compare/v0.5.1...HEAD
+[0.5.1]: https://github.com/farhans-codes/ai_limit_status/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/farhans-codes/ai_limit_status/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/farhans-codes/ai_limit_status/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/farhans-codes/ai_limit_status/compare/v0.3.3...v0.4.0
