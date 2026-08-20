@@ -17,9 +17,6 @@ constexpr int kOverlayHeight = 34;
 constexpr int kSegmentGap = 4;
 constexpr int kTaskbarPadding = 8;
 constexpr COLORREF kTransparentColor = RGB(1, 2, 3);
-constexpr COLORREF kCodexColor = RGB(37, 99, 235);
-constexpr COLORREF kClaudeColor = RGB(198, 92, 59);
-constexpr COLORREF kGenericColor = RGB(75, 85, 99);
 
 const flutter::EncodableValue* ValueOrNull(
     const flutter::EncodableMap& arguments,
@@ -291,7 +288,7 @@ void WindowsTaskbarStatus::PaintOverlay() {
   }
 
   if (provider_count == 0) {
-    PaintProvider(buffer_dc, client, L"AI", kGenericColor, false);
+    PaintProvider(buffer_dc, client, L"AI", false);
   } else {
     const int gap = provider_count == 2
                         ? ScaleForDpi(kSegmentGap,
@@ -307,7 +304,6 @@ void WindowsTaskbarStatus::PaintOverlay() {
           client.bottom,
       };
       PaintProvider(buffer_dc, segment, providers[index].first,
-                    providers[index].second ? kClaudeColor : kCodexColor,
                     providers[index].second);
     }
   }
@@ -323,31 +319,18 @@ void WindowsTaskbarStatus::PaintOverlay() {
 void WindowsTaskbarStatus::PaintProvider(HDC dc,
                                          const RECT& bounds,
                                          const std::wstring& value,
-                                         COLORREF background,
                                          bool is_claude) const {
   const int height = bounds.bottom - bounds.top;
-  RECT pill = bounds;
-  pill.top += std::max(1, height / 12);
-  pill.bottom -= std::max(1, height / 12);
+  RECT content_bounds = bounds;
+  content_bounds.top += std::max(1, height / 12);
+  content_bounds.bottom -= std::max(1, height / 12);
 
-  HBRUSH brush = CreateSolidBrush(background);
-  HPEN pen = CreatePen(PS_SOLID, 1, background);
-  const HGDIOBJ old_brush = SelectObject(dc, brush);
-  const HGDIOBJ old_pen = SelectObject(dc, pen);
-  const int radius = std::max(
-      8, static_cast<int>(pill.bottom - pill.top) / 2);
-  RoundRect(dc, pill.left, pill.top, pill.right, pill.bottom, radius, radius);
-  SelectObject(dc, old_pen);
-  SelectObject(dc, old_brush);
-  DeleteObject(pen);
-  DeleteObject(brush);
-
-  RECT mark_bounds = pill;
+  RECT mark_bounds = content_bounds;
   mark_bounds.left += std::max(5, height / 7);
   mark_bounds.right = mark_bounds.left + std::max(14, height / 2);
   PaintProviderMark(dc, mark_bounds, is_claude);
 
-  RECT text_bounds = pill;
+  RECT text_bounds = content_bounds;
   text_bounds.left = mark_bounds.right + std::max(2, height / 16);
   text_bounds.right -= std::max(4, height / 8);
   const int font_height = value.size() >= 3 ? height * 38 / 100

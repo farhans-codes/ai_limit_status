@@ -39,7 +39,6 @@ class WindowsTaskbarStatus {
   void PaintProvider(HDC dc,
                      const RECT& bounds,
                      const std::wstring& value,
-                     COLORREF background,
                      bool is_claude) const;
   void PaintProviderMark(HDC dc,
                          const RECT& bounds,
