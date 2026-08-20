@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
@@ -6,11 +7,14 @@ import 'package:screen_retriever/screen_retriever.dart';
 import 'package:window_manager/window_manager.dart';
 
 class AppWindowService extends GetxService with WindowListener {
+  static const _windowsBlurGracePeriod = Duration(milliseconds: 150);
+
   final Completer<void> _ready = Completer<void>();
   bool _isQuitting = false;
   bool _isShowing = false;
   bool _isModalOpen = false;
   Timer? _nativeShowGuard;
+  Timer? _blurHideTimer;
 
   Future<void> get whenReady => _ready.future;
 
@@ -27,9 +31,13 @@ class AppWindowService extends GetxService with WindowListener {
 
   void setModalOpen(bool isOpen) {
     _isModalOpen = isOpen;
+    if (isOpen) {
+      _cancelPendingBlurHide();
+    }
   }
 
   Future<void> showPopover() async {
+    _cancelPendingBlurHide();
     final cursor = await screenRetriever.getCursorScreenPoint();
     final windowSize = await windowManager.getSize();
     final displays = await screenRetriever.getAllDisplays();
@@ -62,6 +70,7 @@ class AppWindowService extends GetxService with WindowListener {
   }
 
   Future<void> togglePopover() async {
+    _cancelPendingBlurHide();
     if (await windowManager.isVisible()) {
       await windowManager.hide();
       return;
@@ -79,6 +88,7 @@ class AppWindowService extends GetxService with WindowListener {
 
   Future<void> quit() async {
     _isQuitting = true;
+    _cancelPendingBlurHide();
     await windowManager.setPreventClose(false);
     await windowManager.close();
   }
@@ -95,17 +105,45 @@ class AppWindowService extends GetxService with WindowListener {
 
   @override
   Future<void> onWindowBlur() async {
-    if (!_isQuitting &&
-        !_isShowing &&
-        !_isModalOpen &&
-        await windowManager.isVisible()) {
+    if (_isQuitting || _isShowing || _isModalOpen) {
+      return;
+    }
+    if (Platform.isWindows) {
+      _scheduleWindowsBlurHide();
+      return;
+    }
+    if (await windowManager.isVisible()) {
       await windowManager.hide();
     }
   }
 
   @override
+  void onWindowFocus() {
+    _cancelPendingBlurHide();
+  }
+
+  void _scheduleWindowsBlurHide() {
+    _cancelPendingBlurHide();
+    _blurHideTimer = Timer(_windowsBlurGracePeriod, () async {
+      _blurHideTimer = null;
+      if (!_isQuitting &&
+          !_isShowing &&
+          !_isModalOpen &&
+          await windowManager.isVisible()) {
+        await windowManager.hide();
+      }
+    });
+  }
+
+  void _cancelPendingBlurHide() {
+    _blurHideTimer?.cancel();
+    _blurHideTimer = null;
+  }
+
+  @override
   void onClose() {
     _nativeShowGuard?.cancel();
+    _cancelPendingBlurHide();
     windowManager.removeListener(this);
     super.onClose();
   }
