@@ -61,7 +61,10 @@ or [download SHA-256 checksums](https://github.com/farhans-codes/ai_limit_status
   weekly limit.
 - Keeps Codex and the selected Claude percentages visible in the macOS menu bar
   or side by side in the Windows taskbar.
-- Shows the Windows taskbar indicators on a transparent background.
+- Shows the Windows taskbar indicators on a transparent, fully clickable
+  status surface, including the space between each icon and percentage.
+- Keeps the Windows details window open during taskbar and notification-area
+  interactions, while genuine outside clicks still dismiss it.
 - Refreshes every connected provider automatically every two minutes.
 - Opens a compact glass-style details window from the menu-bar or taskbar
   shortcut.
