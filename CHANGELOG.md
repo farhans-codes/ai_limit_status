@@ -6,6 +6,18 @@ The project follows Semantic Versioning for public releases.
 
 ## [Unreleased]
 
+## [0.5.3] - 2026-08-20
+
+### Fixed
+
+- Kept the Windows details window visible while users interact with the
+  taskbar, notification area, and overflow controls, while preserving
+  outside-click dismissal.
+- Made the complete transparent Windows taskbar status surface clickable,
+  including the space between each provider icon and percentage.
+- Hid the internal macOS DMG background asset from the Finder installer canvas
+  without removing the branded installer artwork.
+
 ## [0.5.2] - 2026-08-20
 
 ### Fixed
@@ -142,7 +154,8 @@ The project follows Semantic Versioning for public releases.
 - Guided Codex and Claude setup.
 - Local usage caching and duplicate-instance protection.
 
-[Unreleased]: https://github.com/farhans-codes/ai_limit_status/compare/v0.5.2...HEAD
+[Unreleased]: https://github.com/farhans-codes/ai_limit_status/compare/v0.5.3...HEAD
+[0.5.3]: https://github.com/farhans-codes/ai_limit_status/compare/v0.5.2...v0.5.3
 [0.5.2]: https://github.com/farhans-codes/ai_limit_status/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/farhans-codes/ai_limit_status/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/farhans-codes/ai_limit_status/compare/v0.4.1...v0.5.0
