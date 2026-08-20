@@ -20,6 +20,82 @@ constexpr int kSegmentGap = 4;
 constexpr int kTaskbarPadding = 8;
 constexpr COLORREF kTransparentColor = RGB(1, 2, 3);
 
+std::wstring DiagnosticLogPath() {
+  std::array<wchar_t, 32768> local_app_data{};
+  const DWORD length = GetEnvironmentVariableW(
+      L"LOCALAPPDATA", local_app_data.data(),
+      static_cast<DWORD>(local_app_data.size()));
+  if (length == 0 || length >= local_app_data.size()) {
+    return std::wstring();
+  }
+  std::wstring directory(local_app_data.data(), length);
+  directory += L"\\AI Limit Status";
+  CreateDirectoryW(directory.c_str(), nullptr);
+  return directory + L"\\windows-popup-diagnostic.log";
+}
+
+void ResetDiagnosticLog() {
+  const std::wstring path = DiagnosticLogPath();
+  if (path.empty()) {
+    return;
+  }
+  const HANDLE file = CreateFileW(
+      path.c_str(), GENERIC_WRITE,
+      FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr,
+      CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+  if (file != INVALID_HANDLE_VALUE) {
+    CloseHandle(file);
+  }
+}
+
+void AppendDiagnosticLog(const std::wstring& event) {
+  const std::wstring path = DiagnosticLogPath();
+  if (path.empty()) {
+    return;
+  }
+
+  SYSTEMTIME now{};
+  GetLocalTime(&now);
+  std::array<wchar_t, 1024> line{};
+  StringCchPrintfW(
+      line.data(), line.size(),
+      L"%04u-%02u-%02uT%02u:%02u:%02u.%03u [native] %s\r\n", now.wYear,
+      now.wMonth, now.wDay, now.wHour, now.wMinute, now.wSecond,
+      now.wMilliseconds, event.c_str());
+
+  const int byte_count = WideCharToMultiByte(
+      CP_UTF8, 0, line.data(), -1, nullptr, 0, nullptr, nullptr);
+  if (byte_count <= 1) {
+    return;
+  }
+  std::string bytes(static_cast<size_t>(byte_count), '\0');
+  WideCharToMultiByte(CP_UTF8, 0, line.data(), -1, bytes.data(), byte_count,
+                      nullptr, nullptr);
+
+  const HANDLE file = CreateFileW(
+      path.c_str(), FILE_APPEND_DATA,
+      FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr,
+      OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+  if (file == INVALID_HANDLE_VALUE) {
+    return;
+  }
+  DWORD written = 0;
+  WriteFile(file, bytes.data(), static_cast<DWORD>(byte_count - 1), &written,
+            nullptr);
+  CloseHandle(file);
+}
+
+void AppendDiagnosticMessage(const wchar_t* event,
+                             WPARAM wparam,
+                             LPARAM lparam) {
+  std::array<wchar_t, 256> message{};
+  StringCchPrintfW(message.data(), message.size(),
+                   L"%s wparam=%llu lparam=%lld", event,
+                   static_cast<unsigned long long>(wparam),
+                   static_cast<long long>(lparam));
+  AppendDiagnosticLog(message.data());
+}
+
 const flutter::EncodableValue* ValueOrNull(
     const flutter::EncodableMap& arguments,
     const char* key) {
@@ -105,6 +181,8 @@ void WindowsTaskbarStatus::HandleMethodCall(
   const auto* arguments =
       std::get_if<flutter::EncodableMap>(method_call.arguments());
   if (method_call.method_name() == "initialize" && arguments != nullptr) {
+    ResetDiagnosticLog();
+    AppendDiagnosticLog(L"taskbar.initialize");
     open_label_ = RequiredString(*arguments, "openLabel");
     refresh_label_ = RequiredString(*arguments, "refreshLabel");
     quit_label_ = RequiredString(*arguments, "quitLabel");
@@ -133,6 +211,24 @@ void WindowsTaskbarStatus::HandleMethodCall(
 std::optional<LRESULT> WindowsTaskbarStatus::HandleMessage(UINT message,
                                                             WPARAM wparam,
                                                             LPARAM lparam) {
+  if (initialized_) {
+    switch (message) {
+      case WM_ACTIVATE:
+        AppendDiagnosticMessage(L"host.WM_ACTIVATE", wparam, lparam);
+        break;
+      case WM_SETFOCUS:
+        AppendDiagnosticMessage(L"host.WM_SETFOCUS", wparam, lparam);
+        break;
+      case WM_KILLFOCUS:
+        AppendDiagnosticMessage(L"host.WM_KILLFOCUS", wparam, lparam);
+        break;
+      case WM_SHOWWINDOW:
+        AppendDiagnosticMessage(L"host.WM_SHOWWINDOW", wparam, lparam);
+        break;
+      default:
+        break;
+    }
+  }
   if (message == taskbar_created_message_ && initialized_) {
     if (overlay_window_ != nullptr) {
       DestroyWindow(overlay_window_);
@@ -165,6 +261,7 @@ void WindowsTaskbarStatus::CreateOverlayIfNeeded() {
       kOverlayClassName, tooltip_.c_str(), WS_POPUP, 0, 0, 1, 1, nullptr,
       nullptr, GetModuleHandleW(nullptr), this);
   if (overlay_window_ != nullptr) {
+    AppendDiagnosticLog(L"overlay.created");
     SetLayeredWindowAttributes(overlay_window_, kTransparentColor, 0,
                                LWA_COLORKEY);
     SetTimer(overlay_window_, 1, 1000, nullptr);
@@ -180,6 +277,7 @@ void WindowsTaskbarStatus::UpdateOverlay() {
     return;
   }
   SetWindowTextW(overlay_window_, tooltip_.c_str());
+  AppendDiagnosticLog(L"overlay.update");
   PositionOverlay();
   InvalidateRect(overlay_window_, nullptr, TRUE);
   ShowWindow(overlay_window_, SW_SHOWNOACTIVATE);
@@ -403,6 +501,7 @@ void WindowsTaskbarStatus::PaintProviderMark(HDC dc,
 }
 
 void WindowsTaskbarStatus::ShowContextMenu() {
+  AppendDiagnosticLog(L"overlay.context-menu requested");
   HMENU menu = CreatePopupMenu();
   if (menu == nullptr) {
     return;
@@ -437,6 +536,7 @@ void WindowsTaskbarStatus::ShowContextMenu() {
 }
 
 void WindowsTaskbarStatus::InvokeDart(const std::string& method) {
+  AppendDiagnosticLog(L"invoke-dart " + Utf8ToWide(method));
   channel_->InvokeMethod(method,
                          std::make_unique<flutter::EncodableValue>());
 }
@@ -454,6 +554,7 @@ std::optional<std::wstring> WindowsTaskbarStatus::ReadOptionalValue(
 }
 
 void WindowsTaskbarStatus::Destroy() {
+  AppendDiagnosticLog(L"taskbar.destroy");
   if (overlay_window_ != nullptr) {
     KillTimer(overlay_window_, 1);
     DestroyWindow(overlay_window_);
@@ -482,17 +583,35 @@ LRESULT CALLBACK WindowsTaskbarStatus::OverlayWindowProc(HWND window,
         return 0;
       case WM_ERASEBKGND:
         return 1;
+      case WM_LBUTTONDOWN:
+        AppendDiagnosticMessage(L"overlay.WM_LBUTTONDOWN", wparam, lparam);
+        return 0;
       case WM_LBUTTONUP:
+        AppendDiagnosticMessage(L"overlay.WM_LBUTTONUP", wparam, lparam);
         status->InvokeDart("toggle");
         return 0;
       case WM_RBUTTONUP:
+        AppendDiagnosticMessage(L"overlay.WM_RBUTTONUP", wparam, lparam);
         status->ShowContextMenu();
         return 0;
       case WM_TIMER:
         status->PositionOverlay();
         return 0;
       case WM_MOUSEACTIVATE:
+        AppendDiagnosticMessage(L"overlay.WM_MOUSEACTIVATE", wparam, lparam);
         return MA_NOACTIVATE;
+      case WM_ACTIVATE:
+        AppendDiagnosticMessage(L"overlay.WM_ACTIVATE", wparam, lparam);
+        break;
+      case WM_SETFOCUS:
+        AppendDiagnosticMessage(L"overlay.WM_SETFOCUS", wparam, lparam);
+        break;
+      case WM_KILLFOCUS:
+        AppendDiagnosticMessage(L"overlay.WM_KILLFOCUS", wparam, lparam);
+        break;
+      case WM_SHOWWINDOW:
+        AppendDiagnosticMessage(L"overlay.WM_SHOWWINDOW", wparam, lparam);
+        break;
       case WM_NCHITTEST:
         return HTCLIENT;
       default:
