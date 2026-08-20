@@ -1,13 +1,16 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:flutter/widgets.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:screen_retriever/screen_retriever.dart';
 import 'package:window_manager/window_manager.dart';
 
 class AppWindowService extends GetxService with WindowListener {
   static const _windowsBlurGracePeriod = Duration(milliseconds: 150);
+  static const _windowsTaskbarChannel = MethodChannel(
+    'com.ailimitstatus/windows_taskbar_status',
+  );
 
   final Completer<void> _ready = Completer<void>();
   bool _isQuitting = false;
@@ -126,6 +129,12 @@ class AppWindowService extends GetxService with WindowListener {
     _cancelPendingBlurHide();
     _blurHideTimer = Timer(_windowsBlurGracePeriod, () async {
       _blurHideTimer = null;
+      if (_isQuitting || _isShowing || _isModalOpen) {
+        return;
+      }
+      if (await _isPointerOverWindowsTaskbarUi()) {
+        return;
+      }
       if (!_isQuitting &&
           !_isShowing &&
           !_isModalOpen &&
@@ -133,6 +142,22 @@ class AppWindowService extends GetxService with WindowListener {
         await windowManager.hide();
       }
     });
+  }
+
+  Future<bool> _isPointerOverWindowsTaskbarUi() async {
+    if (!Platform.isWindows) {
+      return false;
+    }
+    try {
+      return await _windowsTaskbarChannel.invokeMethod<bool>(
+            'isPointerOverTaskbarUi',
+          ) ??
+          false;
+    } on PlatformException {
+      return false;
+    } on MissingPluginException {
+      return false;
+    }
   }
 
   void _cancelPendingBlurHide() {

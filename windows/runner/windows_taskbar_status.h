@@ -35,7 +35,8 @@ class WindowsTaskbarStatus {
   void CreateOverlayIfNeeded();
   void UpdateOverlay();
   void PositionOverlay();
-  void PaintOverlay();
+  bool RenderLayeredOverlay(int x, int y, int width, int height);
+  void PaintOverlay(HDC dc, const RECT& bounds);
   void PaintProvider(HDC dc,
                      const RECT& bounds,
                      const std::wstring& value,
@@ -45,6 +46,7 @@ class WindowsTaskbarStatus {
                          bool is_claude) const;
   void ShowContextMenu();
   void InvokeDart(const std::string& method);
+  bool IsPointerOverTaskbarUi() const;
 
   std::optional<std::wstring> ReadOptionalValue(
       const flutter::EncodableMap& arguments,
