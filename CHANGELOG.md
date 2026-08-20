@@ -6,6 +6,14 @@ The project follows Semantic Versioning for public releases.
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-08-20
+
+### Fixed
+
+- Prevented the Windows details popup from briefly hiding and reopening when
+  its taskbar status control is clicked.
+- Replaced the placeholder Codex taskbar mark with the proper OpenAI glyph.
+
 ## [0.5.1] - 2026-08-20
 
 ### Fixed
@@ -134,7 +142,8 @@ The project follows Semantic Versioning for public releases.
 - Guided Codex and Claude setup.
 - Local usage caching and duplicate-instance protection.
 
-[Unreleased]: https://github.com/farhans-codes/ai_limit_status/compare/v0.5.1...HEAD
+[Unreleased]: https://github.com/farhans-codes/ai_limit_status/compare/v0.5.2...HEAD
+[0.5.2]: https://github.com/farhans-codes/ai_limit_status/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/farhans-codes/ai_limit_status/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/farhans-codes/ai_limit_status/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/farhans-codes/ai_limit_status/compare/v0.4.0...v0.4.1
