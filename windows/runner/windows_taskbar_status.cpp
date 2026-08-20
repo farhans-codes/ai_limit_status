@@ -18,7 +18,27 @@ constexpr int kSegmentWidth = 68;
 constexpr int kOverlayHeight = 34;
 constexpr int kSegmentGap = 4;
 constexpr int kTaskbarPadding = 8;
-constexpr COLORREF kTransparentColor = RGB(1, 2, 3);
+constexpr DWORD kTransparentSentinelRgb = 0x00010203;
+constexpr BYTE kHitSurfaceAlpha = 1;
+
+bool PointIsInsideWindow(HWND window, const POINT& point) {
+  if (window == nullptr || !IsWindowVisible(window)) {
+    return false;
+  }
+  RECT bounds{};
+  return GetWindowRect(window, &bounds) && PtInRect(&bounds, point);
+}
+
+bool PointIsInsideWindowClass(const wchar_t* class_name, const POINT& point) {
+  HWND window = nullptr;
+  while ((window = FindWindowExW(nullptr, window, class_name, nullptr)) !=
+         nullptr) {
+    if (PointIsInsideWindow(window, point)) {
+      return true;
+    }
+  }
+  return false;
+}
 
 const flutter::EncodableValue* ValueOrNull(
     const flutter::EncodableMap& arguments,
@@ -127,6 +147,10 @@ void WindowsTaskbarStatus::HandleMethodCall(
     result->Success();
     return;
   }
+  if (method_call.method_name() == "isPointerOverTaskbarUi") {
+    result->Success(flutter::EncodableValue(IsPointerOverTaskbarUi()));
+    return;
+  }
   result->NotImplemented();
 }
 
@@ -165,8 +189,6 @@ void WindowsTaskbarStatus::CreateOverlayIfNeeded() {
       kOverlayClassName, tooltip_.c_str(), WS_POPUP, 0, 0, 1, 1, nullptr,
       nullptr, GetModuleHandleW(nullptr), this);
   if (overlay_window_ != nullptr) {
-    SetLayeredWindowAttributes(overlay_window_, kTransparentColor, 0,
-                               LWA_COLORKEY);
     SetTimer(overlay_window_, 1, 1000, nullptr);
   }
 }
@@ -181,9 +203,6 @@ void WindowsTaskbarStatus::UpdateOverlay() {
   }
   SetWindowTextW(overlay_window_, tooltip_.c_str());
   PositionOverlay();
-  InvalidateRect(overlay_window_, nullptr, TRUE);
-  ShowWindow(overlay_window_, SW_SHOWNOACTIVATE);
-  UpdateWindow(overlay_window_);
 }
 
 void WindowsTaskbarStatus::PositionOverlay() {
@@ -250,36 +269,76 @@ void WindowsTaskbarStatus::PositionOverlay() {
   }
 
   SetWindowPos(overlay_window_, HWND_TOPMOST, x, y, width, height,
-               SWP_NOACTIVATE | SWP_SHOWWINDOW);
+               SWP_NOACTIVATE | SWP_NOREDRAW);
+  if (RenderLayeredOverlay(x, y, width, height)) {
+    ShowWindow(overlay_window_, SW_SHOWNOACTIVATE);
+  }
 }
 
-void WindowsTaskbarStatus::PaintOverlay() {
-  if (overlay_window_ == nullptr) {
-    return;
-  }
-  PAINTSTRUCT paint{};
-  HDC window_dc = BeginPaint(overlay_window_, &paint);
-  if (window_dc == nullptr) {
-    return;
+bool WindowsTaskbarStatus::RenderLayeredOverlay(int x,
+                                                int y,
+                                                int width,
+                                                int height) {
+  if (overlay_window_ == nullptr || width <= 0 || height <= 0) {
+    return false;
   }
 
-  RECT client{};
-  GetClientRect(overlay_window_, &client);
-  HDC buffer_dc = CreateCompatibleDC(window_dc);
-  HBITMAP buffer_bitmap = CreateCompatibleBitmap(
-      window_dc, client.right - client.left, client.bottom - client.top);
-  if (buffer_dc == nullptr || buffer_bitmap == nullptr) {
+  HDC screen_dc = GetDC(nullptr);
+  HDC buffer_dc = CreateCompatibleDC(screen_dc);
+  BITMAPINFO bitmap_info{};
+  bitmap_info.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+  bitmap_info.bmiHeader.biWidth = width;
+  bitmap_info.bmiHeader.biHeight = -height;
+  bitmap_info.bmiHeader.biPlanes = 1;
+  bitmap_info.bmiHeader.biBitCount = 32;
+  bitmap_info.bmiHeader.biCompression = BI_RGB;
+
+  void* bitmap_bits = nullptr;
+  HBITMAP buffer_bitmap = CreateDIBSection(
+      screen_dc, &bitmap_info, DIB_RGB_COLORS, &bitmap_bits, nullptr, 0);
+  if (screen_dc == nullptr || buffer_dc == nullptr ||
+      buffer_bitmap == nullptr || bitmap_bits == nullptr) {
     if (buffer_dc != nullptr) DeleteDC(buffer_dc);
     if (buffer_bitmap != nullptr) DeleteObject(buffer_bitmap);
-    EndPaint(overlay_window_, &paint);
-    return;
+    if (screen_dc != nullptr) ReleaseDC(nullptr, screen_dc);
+    return false;
   }
 
   const HGDIOBJ old_bitmap = SelectObject(buffer_dc, buffer_bitmap);
-  HBRUSH transparent = CreateSolidBrush(kTransparentColor);
-  FillRect(buffer_dc, &client, transparent);
-  DeleteObject(transparent);
+  auto* pixels = static_cast<DWORD*>(bitmap_bits);
+  const size_t pixel_count =
+      static_cast<size_t>(width) * static_cast<size_t>(height);
+  std::fill_n(pixels, pixel_count, kTransparentSentinelRgb);
 
+  const RECT client{0, 0, width, height};
+  PaintOverlay(buffer_dc, client);
+
+  for (size_t index = 0; index < pixel_count; ++index) {
+    const DWORD rgb = pixels[index] & 0x00FFFFFF;
+    pixels[index] = rgb == kTransparentSentinelRgb
+                        ? static_cast<DWORD>(kHitSurfaceAlpha) << 24
+                        : 0xFF000000 | rgb;
+  }
+
+  POINT destination{x, y};
+  POINT source{0, 0};
+  SIZE size{width, height};
+  BLENDFUNCTION blend{};
+  blend.BlendOp = AC_SRC_OVER;
+  blend.SourceConstantAlpha = 255;
+  blend.AlphaFormat = AC_SRC_ALPHA;
+  const BOOL updated = UpdateLayeredWindow(
+      overlay_window_, screen_dc, &destination, &size, buffer_dc, &source, 0,
+      &blend, ULW_ALPHA);
+
+  SelectObject(buffer_dc, old_bitmap);
+  DeleteObject(buffer_bitmap);
+  DeleteDC(buffer_dc);
+  ReleaseDC(nullptr, screen_dc);
+  return updated != FALSE;
+}
+
+void WindowsTaskbarStatus::PaintOverlay(HDC dc, const RECT& client) {
   std::array<std::pair<std::wstring, bool>, 2> providers{};
   int provider_count = 0;
   if (codex_value_.has_value()) {
@@ -290,7 +349,7 @@ void WindowsTaskbarStatus::PaintOverlay() {
   }
 
   if (provider_count == 0) {
-    PaintProvider(buffer_dc, client, L"AI", false);
+    PaintProvider(dc, client, L"AI", false);
   } else {
     const int gap = provider_count == 2
                         ? ScaleForDpi(kSegmentGap,
@@ -305,17 +364,10 @@ void WindowsTaskbarStatus::PaintOverlay() {
           index * (segment_width + gap) + segment_width,
           client.bottom,
       };
-      PaintProvider(buffer_dc, segment, providers[index].first,
+      PaintProvider(dc, segment, providers[index].first,
                     providers[index].second);
     }
   }
-
-  BitBlt(window_dc, 0, 0, client.right, client.bottom, buffer_dc, 0, 0,
-         SRCCOPY);
-  SelectObject(buffer_dc, old_bitmap);
-  DeleteObject(buffer_bitmap);
-  DeleteDC(buffer_dc);
-  EndPaint(overlay_window_, &paint);
 }
 
 void WindowsTaskbarStatus::PaintProvider(HDC dc,
@@ -339,7 +391,7 @@ void WindowsTaskbarStatus::PaintProvider(HDC dc,
                                             : height * 44 / 100;
   HFONT font = CreateFontW(-font_height, 0, 0, 0, FW_BOLD, FALSE, FALSE,
                            FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS,
-                           CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY,
+                           CLIP_DEFAULT_PRECIS, ANTIALIASED_QUALITY,
                            DEFAULT_PITCH, L"Segoe UI");
   const HGDIOBJ old_font = SelectObject(dc, font);
   SetBkMode(dc, TRANSPARENT);
@@ -441,6 +493,21 @@ void WindowsTaskbarStatus::InvokeDart(const std::string& method) {
                          std::make_unique<flutter::EncodableValue>());
 }
 
+bool WindowsTaskbarStatus::IsPointerOverTaskbarUi() const {
+  POINT pointer{};
+  if (!GetCursorPos(&pointer)) {
+    return false;
+  }
+  if (PointIsInsideWindow(overlay_window_, pointer)) {
+    return true;
+  }
+  return PointIsInsideWindowClass(L"Shell_TrayWnd", pointer) ||
+         PointIsInsideWindowClass(L"Shell_SecondaryTrayWnd", pointer) ||
+         PointIsInsideWindowClass(L"NotifyIconOverflowWindow", pointer) ||
+         PointIsInsideWindowClass(L"TopLevelWindowForOverflowXamlIsland",
+                                  pointer);
+}
+
 std::optional<std::wstring> WindowsTaskbarStatus::ReadOptionalValue(
     const flutter::EncodableMap& arguments,
     const char* key) const {
@@ -478,7 +545,7 @@ LRESULT CALLBACK WindowsTaskbarStatus::OverlayWindowProc(HWND window,
   if (status != nullptr) {
     switch (message) {
       case WM_PAINT:
-        status->PaintOverlay();
+        ValidateRect(window, nullptr);
         return 0;
       case WM_ERASEBKGND:
         return 1;
