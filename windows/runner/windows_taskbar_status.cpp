@@ -356,9 +356,9 @@ void WindowsTaskbarStatus::PaintProviderMark(HDC dc,
   const int center_x = (bounds.left + bounds.right) / 2;
   const int center_y = (bounds.top + bounds.bottom) / 2;
   if (!is_claude) {
-    const int icon_size =
-        std::max(12, std::min(bounds.right - bounds.left,
-                              bounds.bottom - bounds.top));
+    const int icon_width = static_cast<int>(bounds.right - bounds.left);
+    const int icon_height = static_cast<int>(bounds.bottom - bounds.top);
+    const int icon_size = std::max(12, std::min(icon_width, icon_height));
     HICON icon = static_cast<HICON>(LoadImageW(
         GetModuleHandleW(nullptr), MAKEINTRESOURCEW(IDI_CODEX_STATUS_ICON),
         IMAGE_ICON, icon_size, icon_size, LR_DEFAULTCOLOR));
