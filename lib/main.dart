@@ -35,6 +35,9 @@ Future<void> main() async {
   runApp(const LimitStatusApp());
 
   await windowManager.waitUntilReadyToShow(windowOptions, () async {
+    if (Platform.isWindows) {
+      await windowManager.setAsFrameless();
+    }
     await windowManager.setSize(windowOptions.size!);
     await windowManager.setMinimumSize(windowOptions.minimumSize!);
     await windowManager.setMaximumSize(windowOptions.maximumSize!);

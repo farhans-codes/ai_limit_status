@@ -1,12 +1,47 @@
-# AI Limit Status
+<p align="center">
+  <img src="assets/branding/app_icon.png" alt="AI Limit Status app icon" width="112">
+</p>
 
-AI Limit Status is an open-source Flutter desktop app that shows Codex and
-Claude subscription usage in the macOS menu bar and an experimental Windows
-taskbar status overlay.
+<h1 align="center">AI Limit Status</h1>
+
+<p align="center">
+  Monitor Codex and Claude usage limits from your macOS menu bar or Windows
+  taskbar.
+</p>
+
+<p align="center">
+  <a href="https://github.com/farhans-codes/ai_limit_status/releases/latest"><img src="https://img.shields.io/github/v/release/farhans-codes/ai_limit_status?display_name=tag&amp;style=flat-square" alt="Latest release"></a>
+  <a href="https://github.com/farhans-codes/ai_limit_status/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/farhans-codes/ai_limit_status/ci.yml?branch=main&amp;style=flat-square&amp;label=build" alt="Build status"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/farhans-codes/ai_limit_status?style=flat-square" alt="MIT license"></a>
+  <img src="https://img.shields.io/badge/platforms-macOS%20%7C%20Windows-334155?style=flat-square" alt="macOS and Windows">
+</p>
+
+AI Limit Status is a lightweight, open-source Flutter desktop companion that
+keeps subscription usage visible without interrupting your workflow. It uses
+the macOS menu bar and an experimental Windows taskbar overlay, refreshes
+connected providers automatically, and does not include analytics or telemetry.
 
 > [!IMPORTANT]
 > AI Limit Status is an independent community project. It is not affiliated
 > with, endorsed by, or sponsored by OpenAI or Anthropic.
+
+## Screenshots
+
+### Menu bar and popover
+
+<p align="center">
+  <img src="docs/screenshots/macos-menu-bar-and-popover.png" alt="AI Limit Status percentages in the macOS menu bar with the real details popover open" width="620">
+</p>
+
+<p align="center"><sub>Real macOS menu-bar indicators and details popover.</sub></p>
+
+### Detailed usage view
+
+<p align="center">
+  <img src="docs/screenshots/macos-usage-popover.png" alt="AI Limit Status showing real Codex and Claude usage on macOS" width="380">
+</p>
+
+<p align="center"><sub>Real application capture on macOS.</sub></p>
 
 ## Download
 
@@ -26,7 +61,7 @@ or [download SHA-256 checksums](https://github.com/farhans-codes/ai_limit_status
   weekly limit.
 - Keeps Codex and the selected Claude percentages visible in the macOS menu bar
   or side by side in the Windows taskbar.
-- Uses a blue Codex indicator and an orange Claude indicator on Windows.
+- Shows the Windows taskbar indicators on a transparent background.
 - Refreshes every connected provider automatically every two minutes.
 - Opens a compact glass-style details window from the menu-bar or taskbar
   shortcut.
