@@ -22,11 +22,6 @@ class ClaudeUsageReader {
   ProviderUsageModel? _lastSuccessfulUsage;
 
   Future<ProviderUsageModel> read() async {
-    final executable = await _executableLocator.find(UsageProvider.claude);
-    if (executable == null) {
-      throw const UsageReadException(UsageConnectionIssue.cliNotFound);
-    }
-
     final cachedUsage = _lastSuccessfulUsage;
     if (cachedUsage != null &&
         DateTime.now().difference(cachedUsage.fetchedAt) <
@@ -34,12 +29,30 @@ class ClaudeUsageReader {
       return cachedUsage;
     }
 
-    final accessToken = await _readAccessToken();
-    if (accessToken == null || accessToken.isEmpty) {
-      throw const UsageReadException(UsageConnectionIssue.notSignedIn);
+    final credentials = await _readCredentials();
+    if (credentials == null) {
+      // Stored credentials count as an install even without a resolvable
+      // CLI binary; only report "not installed" when both are absent.
+      final executable = await _executableLocator.find(UsageProvider.claude);
+      throw UsageReadException(
+        executable == null
+            ? UsageConnectionIssue.cliNotFound
+            : UsageConnectionIssue.notSignedIn,
+      );
+    }
+    if (credentials.isExpired) {
+      // The Claude CLI refreshes its own token the next time it runs. A
+      // stored refresh token means the user is still signed in, so treat
+      // this as a temporary outage (keeping the cached snapshot) instead of
+      // asking for a fresh sign-in.
+      throw UsageReadException(
+        credentials.hasRefreshToken
+            ? UsageConnectionIssue.unavailable
+            : UsageConnectionIssue.notSignedIn,
+      );
     }
 
-    final payload = await _fetchUsage(accessToken);
+    final payload = await _fetchUsage(credentials);
     final limits = _parseLimits(payload);
     if (limits.isEmpty) {
       throw const UsageReadException(UsageConnectionIssue.unavailable);
@@ -54,39 +67,110 @@ class ClaudeUsageReader {
     );
   }
 
-  Future<String?> _readAccessToken() async {
-    String? credentialsJson;
-    if (Platform.isMacOS) {
-      final result = await Process.run('/usr/bin/security', const [
+  Future<_ClaudeCredentials?> _readCredentials() async {
+    final overrideConfigDir = Platform.environment['CLAUDE_CONFIG_DIR'];
+    final hasOverride =
+        overrideConfigDir != null && overrideConfigDir.isNotEmpty;
+
+    // With a custom CLAUDE_CONFIG_DIR the credentials file is authoritative.
+    // Otherwise, on macOS the CLI stores credentials in the keychain first
+    // and keeps the file as a fallback; on Windows the file is the only
+    // store. Reading both sides mirrors CodexBar.
+    final sources = <Future<String?> Function()>[
+      if (hasOverride) _readCredentialsFile,
+      if (Platform.isMacOS) _readKeychainCredentials,
+      if (!hasOverride) _readCredentialsFile,
+    ];
+    for (final source in sources) {
+      final credentials = _parseCredentials(await source());
+      if (credentials != null) {
+        return credentials;
+      }
+    }
+    return null;
+  }
+
+  Future<String?> _readKeychainCredentials() async {
+    Process process;
+    try {
+      process = await Process.start('/usr/bin/security', const [
         'find-generic-password',
         '-s',
         'Claude Code-credentials',
         '-w',
-      ]).timeout(_requestTimeout);
-      if (result.exitCode == 0) {
-        credentialsJson = result.stdout.toString();
+      ]);
+    } on Object {
+      return null;
+    }
+    try {
+      final outputFuture = process.stdout.transform(utf8.decoder).join();
+      unawaited(process.stderr.drain<void>());
+      final exitCode = await process.exitCode.timeout(
+        _requestTimeout,
+        onTimeout: () {
+          // Killing on timeout also dismisses a still-open keychain prompt
+          // instead of stacking a new one on every refresh.
+          process.kill(ProcessSignal.sigkill);
+          return -1;
+        },
+      );
+      final output = await outputFuture.timeout(_requestTimeout);
+      if (exitCode != 0) {
+        return null;
       }
-    } else {
+      return output;
+    } on Object {
+      // Keychain access can be denied or time out; fall back to the
+      // credentials file.
+      process.kill(ProcessSignal.sigkill);
+      return null;
+    }
+  }
+
+  Future<String?> _readCredentialsFile() async {
+    try {
       final configDirectory =
           Platform.environment['CLAUDE_CONFIG_DIR'] ??
           (Platform.isWindows
               ? '${Platform.environment['USERPROFILE']}\\.claude'
               : '${Platform.environment['HOME']}/.claude');
-      final credentialsFile = File('$configDirectory/.credentials.json');
-      if (await credentialsFile.exists()) {
-        credentialsJson = await credentialsFile.readAsString();
+      final separator = Platform.isWindows ? r'\' : '/';
+      final credentialsFile = File(
+        '$configDirectory$separator.credentials.json',
+      );
+      if (!await credentialsFile.exists()) {
+        return null;
       }
+      return await credentialsFile.readAsString();
+    } on Object {
+      return null;
     }
+  }
 
+  _ClaudeCredentials? _parseCredentials(String? credentialsJson) {
     final credentials = _decodeMap(credentialsJson);
     final oauth = credentials?['claudeAiOauth'];
     if (oauth is! Map<String, dynamic>) {
       return null;
     }
-    return oauth['accessToken'] as String?;
+    final accessToken = oauth['accessToken'];
+    if (accessToken is! String || accessToken.isEmpty) {
+      return null;
+    }
+    final refreshToken = oauth['refreshToken'];
+    final expiresAtMs = (oauth['expiresAt'] as num?)?.toInt();
+    return _ClaudeCredentials(
+      accessToken: accessToken,
+      expiresAt: expiresAtMs == null
+          ? null
+          : DateTime.fromMillisecondsSinceEpoch(expiresAtMs),
+      hasRefreshToken: refreshToken is String && refreshToken.isNotEmpty,
+    );
   }
 
-  Future<Map<String, dynamic>> _fetchUsage(String accessToken) async {
+  Future<Map<String, dynamic>> _fetchUsage(
+    _ClaudeCredentials credentials,
+  ) async {
     final now = DateTime.now();
     final rateLimitedUntil = _rateLimitedUntil;
     if (rateLimitedUntil != null && now.isBefore(rateLimitedUntil)) {
@@ -99,7 +183,10 @@ class ClaudeUsageReader {
           .getUrl(Uri.https('api.anthropic.com', '/api/oauth/usage'))
           .timeout(_requestTimeout);
       request.headers
-        ..set(HttpHeaders.authorizationHeader, 'Bearer $accessToken')
+        ..set(
+          HttpHeaders.authorizationHeader,
+          'Bearer ${credentials.accessToken}',
+        )
         ..set(HttpHeaders.acceptHeader, 'application/json')
         ..set(HttpHeaders.contentTypeHeader, 'application/json')
         ..set(HttpHeaders.userAgentHeader, await _claudeCodeUserAgent())
@@ -108,7 +195,14 @@ class ClaudeUsageReader {
       if (response.statusCode == HttpStatus.unauthorized ||
           response.statusCode == HttpStatus.forbidden) {
         await response.drain<void>();
-        throw const UsageReadException(UsageConnectionIssue.notSignedIn);
+        // A rejected token alongside a refresh token usually means the
+        // access token lapsed between the local expiry check and this call;
+        // the CLI will repair it, so keep the cached snapshot meanwhile.
+        throw UsageReadException(
+          credentials.hasRefreshToken
+              ? UsageConnectionIssue.unavailable
+              : UsageConnectionIssue.notSignedIn,
+        );
       }
       if (response.statusCode == HttpStatus.tooManyRequests) {
         _rateLimitedUntil =
@@ -122,7 +216,10 @@ class ClaudeUsageReader {
         throw const UsageReadException(UsageConnectionIssue.unavailable);
       }
 
-      final body = await utf8.decoder.bind(response).join();
+      final body = await utf8.decoder
+          .bind(response)
+          .join()
+          .timeout(_requestTimeout);
       final payload = _decodeMap(body);
       if (payload == null) {
         throw const UsageReadException(UsageConnectionIssue.unavailable);
@@ -151,7 +248,7 @@ class ClaudeUsageReader {
       final exitCode = await process.exitCode.timeout(
         _versionTimeout,
         onTimeout: () {
-          process.kill();
+          unawaited(terminateProviderProcess(process));
           return -1;
         },
       );
@@ -181,7 +278,7 @@ class ClaudeUsageReader {
     }
     try {
       return HttpDate.parse(value).toLocal();
-    } on FormatException {
+    } on Object {
       return null;
     }
   }
@@ -315,5 +412,22 @@ class ClaudeUsageReader {
     } on FormatException {
       return null;
     }
+  }
+}
+
+class _ClaudeCredentials {
+  const _ClaudeCredentials({
+    required this.accessToken,
+    this.expiresAt,
+    this.hasRefreshToken = false,
+  });
+
+  final String accessToken;
+  final DateTime? expiresAt;
+  final bool hasRefreshToken;
+
+  bool get isExpired {
+    final expiresAt = this.expiresAt;
+    return expiresAt != null && !DateTime.now().isBefore(expiresAt);
   }
 }
