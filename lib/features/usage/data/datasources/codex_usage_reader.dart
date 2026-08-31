@@ -29,13 +29,41 @@ class CodexUsageReader {
     } on CodexOAuthReadException catch (error) {
       switch (error.issue) {
         case CodexOAuthIssue.credentialsNotFound:
-          return _readFromCli(oauthCredentialsExisted: false);
+          return _readFromCliOrWeb(oauthCredentialsExisted: false);
         case CodexOAuthIssue.unauthorized:
-          return _readFromCli(oauthCredentialsExisted: true);
+          return _readFromCliOrWeb(oauthCredentialsExisted: true);
         case CodexOAuthIssue.unavailable:
-          throw const UsageReadException(UsageConnectionIssue.unavailable);
+          return _readFromWebOrThrow(
+            const UsageReadException(UsageConnectionIssue.unavailable),
+          );
       }
     }
+  }
+
+  Future<ProviderUsageModel> _readFromCliOrWeb({
+    required bool oauthCredentialsExisted,
+  }) async {
+    try {
+      return await _readFromCli(
+        oauthCredentialsExisted: oauthCredentialsExisted,
+      );
+    } on UsageReadException catch (error) {
+      return _readFromWebOrThrow(error);
+    }
+  }
+
+  Future<ProviderUsageModel> _readFromWebOrThrow(
+    UsageReadException originalError,
+  ) async {
+    if (Platform.isMacOS) {
+      try {
+        return await _oauthReader.readFromWeb();
+      } on CodexOAuthReadException {
+        // Preserve the primary OAuth/CLI error when the optional browser
+        // fallback is unavailable too.
+      }
+    }
+    throw originalError;
   }
 
   Future<ProviderUsageModel> _readFromCli({

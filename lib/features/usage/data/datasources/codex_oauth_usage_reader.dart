@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:ai_limit_status/features/usage/data/datasources/browser_session_reader.dart';
 import 'package:ai_limit_status/features/usage/data/models/provider_usage_model.dart';
 import 'package:ai_limit_status/features/usage/domain/entities/provider_usage.dart';
 
@@ -50,9 +51,12 @@ class CodexOAuthUsageReader {
   static const _staleRefreshAge = Duration(days: 8);
 
   static const _refreshFailureCooldown = Duration(minutes: 5);
+  static const _webCookieCacheTtl = Duration(minutes: 30);
 
   DateTime? _lastRefreshFailureAt;
   Future<ProviderUsageModel>? _inFlightRead;
+  String? _cachedWebCookieHeader;
+  DateTime? _webCookieReadAt;
 
   /// Coalesces overlapping calls so a token refresh (and the auth.json
   /// rewrite it implies) can never race against itself within the app.
@@ -88,6 +92,75 @@ class CodexOAuthUsageReader {
       isInstalled: true,
       fetchedAt: DateTime.now(),
     );
+  }
+
+  Future<ProviderUsageModel> readFromWeb() async {
+    if (!Platform.isMacOS) {
+      throw const CodexOAuthReadException(CodexOAuthIssue.unavailable);
+    }
+    final cookieHeader = await _readWebCookieHeader();
+    if (cookieHeader == null) {
+      throw const CodexOAuthReadException(CodexOAuthIssue.credentialsNotFound);
+    }
+
+    final payload = await _fetchUsageRequest(
+      (headers) => headers.set(HttpHeaders.cookieHeader, cookieHeader),
+    );
+    if (payload == null) {
+      _cachedWebCookieHeader = null;
+      _webCookieReadAt = null;
+      throw const CodexOAuthReadException(CodexOAuthIssue.unauthorized);
+    }
+
+    final expectedAccountId = await _expectedAccountId();
+    final actualAccountId =
+        _string(payload['account_id']) ?? _string(payload['accountId']);
+    if (expectedAccountId != null &&
+        actualAccountId != null &&
+        expectedAccountId != actualAccountId) {
+      throw const CodexOAuthReadException(CodexOAuthIssue.unauthorized);
+    }
+
+    final limits = _parseLimits(payload);
+    if (limits.isEmpty) {
+      throw const CodexOAuthReadException(CodexOAuthIssue.unavailable);
+    }
+    return ProviderUsageModel(
+      provider: UsageProvider.codex,
+      limits: limits,
+      isConnected: true,
+      isInstalled: true,
+      fetchedAt: DateTime.now(),
+    );
+  }
+
+  Future<String?> _readWebCookieHeader() async {
+    final cached = _cachedWebCookieHeader;
+    final readAt = _webCookieReadAt;
+    if (cached != null &&
+        readAt != null &&
+        DateTime.now().difference(readAt) < _webCookieCacheTtl) {
+      return cached;
+    }
+    try {
+      final value = await readChatGptBrowserCookieHeader();
+      if (value == null || value.isEmpty) {
+        return null;
+      }
+      _cachedWebCookieHeader = value;
+      _webCookieReadAt = DateTime.now();
+      return value;
+    } on Object {
+      return null;
+    }
+  }
+
+  Future<String?> _expectedAccountId() async {
+    try {
+      return (await _loadCredentials()).accountId;
+    } on CodexOAuthReadException {
+      return null;
+    }
   }
 
   File _authFile() {
@@ -320,8 +393,21 @@ class CodexOAuthUsageReader {
   /// Returns the decoded payload on success, null when the token was
   /// rejected (401/403), and throws [CodexOAuthIssue.unavailable] for
   /// transient failures.
-  Future<Map<String, dynamic>?> _fetchUsage(
-    _CodexCredentials credentials,
+  Future<Map<String, dynamic>?> _fetchUsage(_CodexCredentials credentials) {
+    return _fetchUsageRequest((headers) {
+      headers.set(
+        HttpHeaders.authorizationHeader,
+        'Bearer ${credentials.accessToken}',
+      );
+      final accountId = credentials.accountId;
+      if (accountId != null && accountId.isNotEmpty) {
+        headers.set('ChatGPT-Account-Id', accountId);
+      }
+    });
+  }
+
+  Future<Map<String, dynamic>?> _fetchUsageRequest(
+    void Function(HttpHeaders headers) authorize,
   ) async {
     final client = HttpClient()..connectionTimeout = _requestTimeout;
     try {
@@ -329,16 +415,9 @@ class CodexOAuthUsageReader {
           .getUrl(Uri.parse(_usageUrl))
           .timeout(_requestTimeout);
       request.headers
-        ..set(
-          HttpHeaders.authorizationHeader,
-          'Bearer ${credentials.accessToken}',
-        )
         ..set(HttpHeaders.acceptHeader, 'application/json')
         ..set(HttpHeaders.userAgentHeader, 'ai-limit-status');
-      final accountId = credentials.accountId;
-      if (accountId != null && accountId.isNotEmpty) {
-        request.headers.set('ChatGPT-Account-Id', accountId);
-      }
+      authorize(request.headers);
       final response = await request.close().timeout(_requestTimeout);
       if (response.statusCode == HttpStatus.unauthorized ||
           response.statusCode == HttpStatus.forbidden) {
