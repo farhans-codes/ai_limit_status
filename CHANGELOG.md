@@ -6,6 +6,29 @@ The project follows Semantic Versioning for public releases.
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-08-31
+
+### Changed
+
+- Read Codex usage from the CLI's stored sign-in (`auth.json`) through the
+  provider usage endpoint first, refreshing tokens shortly before they expire,
+  and keep the `codex app-server` probe as a fallback with CodexBar's
+  read-only, non-interactive launch arguments.
+
+### Fixed
+
+- Located Codex and Claude executables installed through version managers
+  (nvm, fnm, mise, volta, scoop, npm-global, bun) and honored the
+  `CODEX_CLI_PATH` and `CLAUDE_CLI_PATH` overrides, using the login shell's
+  PATH on macOS where GUI apps see a minimal PATH.
+- Ran npm `.cmd` shims through cmd.exe without double-escaped arguments and
+  terminated the whole Codex probe process tree on Windows so orphaned
+  processes no longer accumulate.
+- Read Claude credentials from `.credentials.json` (including
+  `CLAUDE_CONFIG_DIR`) when the macOS keychain entry is denied or missing,
+  and kept the last known percentages instead of asking for a new sign-in
+  when a stored Claude token merely lapsed between CLI runs.
+
 ## [0.5.3] - 2026-08-20
 
 ### Fixed
@@ -154,7 +177,8 @@ The project follows Semantic Versioning for public releases.
 - Guided Codex and Claude setup.
 - Local usage caching and duplicate-instance protection.
 
-[Unreleased]: https://github.com/farhans-codes/ai_limit_status/compare/v0.5.3...HEAD
+[Unreleased]: https://github.com/farhans-codes/ai_limit_status/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/farhans-codes/ai_limit_status/compare/v0.5.3...v0.6.0
 [0.5.3]: https://github.com/farhans-codes/ai_limit_status/compare/v0.5.2...v0.5.3
 [0.5.2]: https://github.com/farhans-codes/ai_limit_status/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/farhans-codes/ai_limit_status/compare/v0.5.0...v0.5.1
