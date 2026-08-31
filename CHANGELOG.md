@@ -6,6 +6,19 @@ The project follows Semantic Versioning for public releases.
 
 ## [Unreleased]
 
+### Fixed
+
+- Let Anthropic validate stored Claude access tokens instead of treating the
+  local expiry timestamp as a forced sign-out, preventing valid CLI sessions
+  from repeatedly showing the sign-in prompt.
+- Fall back to the user's existing claude.ai browser session on macOS when the
+  Claude OAuth usage endpoint is unavailable or rate limited.
+- Fall back to the user's existing ChatGPT browser session on macOS when both
+  Codex OAuth and local CLI usage reads are unavailable.
+- Add an opt-in Chrome, Edge, and Firefox Native Messaging bridge on Windows so
+  the same in-memory ChatGPT and Claude browser fallbacks work without reading
+  Chromium's encrypted cookie database directly.
+
 ## [0.6.1] - 2026-08-31
 
 ### Added

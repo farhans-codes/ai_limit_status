@@ -39,6 +39,9 @@ investigate it privately, and coordinate disclosure after a fix is available.
 - Claude authentication is managed by Claude Code. AI Limit Status reads the
   existing OAuth credential only to request usage from Anthropic and does not
   persist that token in app-owned storage.
+- The optional Windows browser bridge accepts messages only from its allowlisted
+  extension IDs. Its local named pipe grants access only to the current Windows
+  user and SYSTEM, and browser sessions remain in process memory.
 - Cached usage files are not intended to contain secrets.
 - Release artifacts should be downloaded only from this repository's GitHub
   Releases page and verified with the published SHA256 checksums.

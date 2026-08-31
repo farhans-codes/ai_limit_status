@@ -126,6 +126,15 @@ notification is shown only once for a specific reset window.
 2. Open it and drag **AI Limit Status** into **Applications**.
 3. Open the app from Applications.
 
+When Claude's OAuth usage endpoint is unavailable, the macOS app can read the
+existing `claude.ai` session cookie from a supported browser and may request
+browser Keychain or Full Disk Access permission. The cookie remains in app
+memory and is used only with Claude-owned endpoints.
+
+If both Codex OAuth and its local app-server are unavailable, the same macOS
+fallback can use the existing `chatgpt.com` browser session. Browser credentials
+remain in app memory and are sent only to their provider-owned endpoint.
+
 Public beta builds may not yet be notarized. If Gatekeeper blocks a verified
 GitHub release, Control-click the app, choose **Open**, and confirm once. Never
 run a copy downloaded from an untrusted source.
@@ -151,6 +160,30 @@ The portable ZIP is also available for users who do not want an installer.
 Extract the entire ZIP into a normal folder before opening
 `ai_limit_status.exe`; running the executable from inside the compressed archive
 prevents Windows from loading the bundled Flutter and Visual C++ DLLs.
+
+### Optional Windows browser fallback
+
+If a provider's CLI session cannot return usage, Windows users can opt in to
+the bundled browser bridge. It reads only the signed-in `chatgpt.com` and
+`claude.ai` cookies and keeps them in memory while requesting usage from the
+same provider.
+
+For Chrome or Edge, open the browser's Extensions page, enable **Developer
+mode**, choose **Load unpacked**, and select:
+
+```text
+%LOCALAPPDATA%\Programs\AI Limit Status\browser_extension\chromium
+```
+
+The Setup EXE registers the local bridge automatically. Portable ZIP users
+must first run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File ".\browser_bridge\register_native_host.ps1"
+```
+
+Firefox source is bundled under `browser_extension/firefox`; a signed Firefox
+add-on is required for permanent installation outside development mode.
 
 ## Provider setup
 
@@ -178,12 +211,21 @@ AI Limit Status does not ask users to paste an API key into the app.
   `https://auth.openai.com/oauth/token` and write the rotated credential back
   to the same provider-owned `auth.json` file so the Codex CLI stays in sync.
   Codex tokens are not stored in AI Limit Status cache, settings, or logs.
+- On macOS, or on Windows with the optional browser bridge, if OAuth and the
+  local Codex app-server are both unavailable, the app can import the existing
+  `chatgpt.com` browser session and request usage from
+  `https://chatgpt.com/backend-api/wham/usage`. Browser cookies are not written
+  to AI Limit Status cache, settings, or logs.
 - Claude usage requires the existing Claude Code OAuth credential. On macOS,
   the app reads it from the `Claude Code-credentials` Keychain entry. On
   Windows, it reads the provider-owned `.claude/.credentials.json` file.
 - The Claude access token is held in memory only long enough to request usage
   from `https://api.anthropic.com/api/oauth/usage`. AI Limit Status does not
   write the token to its own files or logs.
+- On macOS, or on Windows with the optional browser bridge, if that endpoint is
+  unavailable, the app can import the existing `claude.ai` `sessionKey` from a
+  supported browser and request usage from `https://claude.ai/api`. The session
+  key is not written to AI Limit Status cache, settings, or logs.
 - Local cache files contain only remaining percentages, reset timestamps, and
   the last successful update time.
 - No usage data is sent to the project maintainer or any analytics service.
@@ -195,7 +237,8 @@ Read the complete [privacy statement](PRIVACY.md) and
 
 - Provider CLIs and usage endpoints can change without notice and temporarily
   break usage detection.
-- Claude usage currently depends on an OAuth usage endpoint used by Claude Code.
+- Direct browser-cookie fallback requires macOS 13 or newer. Windows requires
+  the bundled opt-in extension; marketplace publication is still pending.
 - The Windows taskbar status is an experimental overlay because Windows 11 does
   not provide a supported API for embedding two live custom indicators in the
   taskbar. It currently targets the primary taskbar; Windows Shell updates or
