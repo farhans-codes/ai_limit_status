@@ -13,6 +13,7 @@ import 'package:ai_limit_status/features/usage/data/datasources/provider_executa
 import 'package:ai_limit_status/features/usage/data/datasources/usage_data_source.dart';
 import 'package:ai_limit_status/features/usage/data/datasources/usage_cache_store.dart';
 import 'package:ai_limit_status/features/usage/data/datasources/claude_usage_reader.dart';
+import 'package:ai_limit_status/features/usage/data/datasources/codex_oauth_usage_reader.dart';
 import 'package:ai_limit_status/features/usage/data/datasources/codex_usage_reader.dart';
 import 'package:ai_limit_status/features/usage/data/datasources/usage_warning_state_store.dart';
 import 'package:ai_limit_status/features/usage/data/repositories/provider_setup_repository_impl.dart';
@@ -41,8 +42,12 @@ class UsageBinding extends Bindings {
       permanent: true,
     );
     Get.lazyPut<ProviderExecutableLocator>(ProviderExecutableLocator.new);
+    Get.lazyPut<CodexOAuthUsageReader>(CodexOAuthUsageReader.new);
     Get.lazyPut<CodexUsageReader>(
-      () => CodexUsageReader(Get.find<ProviderExecutableLocator>()),
+      () => CodexUsageReader(
+        Get.find<ProviderExecutableLocator>(),
+        Get.find<CodexOAuthUsageReader>(),
+      ),
     );
     Get.lazyPut<ClaudeUsageReader>(
       () => ClaudeUsageReader(Get.find<ProviderExecutableLocator>()),
