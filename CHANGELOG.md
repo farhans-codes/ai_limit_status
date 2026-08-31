@@ -6,6 +6,18 @@ The project follows Semantic Versioning for public releases.
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-08-31
+
+### Added
+
+- Showed the app version at the bottom of the settings dialog.
+
+### Fixed
+
+- Read the Claude CLI's macOS keychain entry natively through
+  Security.framework, so one "Always Allow" keeps every later read silent
+  instead of the `security` tool timing out or prompting repeatedly.
+
 ## [0.6.0] - 2026-08-31
 
 ### Changed
@@ -177,7 +189,8 @@ The project follows Semantic Versioning for public releases.
 - Guided Codex and Claude setup.
 - Local usage caching and duplicate-instance protection.
 
-[Unreleased]: https://github.com/farhans-codes/ai_limit_status/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/farhans-codes/ai_limit_status/compare/v0.6.1...HEAD
+[0.6.1]: https://github.com/farhans-codes/ai_limit_status/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/farhans-codes/ai_limit_status/compare/v0.5.3...v0.6.0
 [0.5.3]: https://github.com/farhans-codes/ai_limit_status/compare/v0.5.2...v0.5.3
 [0.5.2]: https://github.com/farhans-codes/ai_limit_status/compare/v0.5.1...v0.5.2

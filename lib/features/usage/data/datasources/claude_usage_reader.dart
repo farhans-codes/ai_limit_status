@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/services.dart';
+
 import 'package:ai_limit_status/features/usage/data/datasources/provider_executable_locator.dart';
 import 'package:ai_limit_status/features/usage/data/datasources/usage_read_exception.dart';
 import 'package:ai_limit_status/features/usage/data/models/provider_usage_model.dart';
@@ -16,10 +18,25 @@ class ClaudeUsageReader {
   static const _minimumFetchInterval = Duration(minutes: 2);
   static const _fallbackUserAgent = 'claude-code/2.1.0';
 
+  /// The keychain access prompt needs time for the user to respond.
+  static const _keychainPromptTimeout = Duration(seconds: 45);
+
+  /// After the user denies keychain access, wait before asking again so the
+  /// prompt does not reappear on every two-minute refresh.
+  static const _keychainDenialCooldown = Duration(minutes: 30);
+
+  static const _credentialsCacheTtl = Duration(minutes: 10);
+
+  static const _keychainChannel = MethodChannel('com.ailimitstatus/keychain');
+  static const _keychainService = 'Claude Code-credentials';
+
   final ProviderExecutableLocator _executableLocator;
   DateTime? _rateLimitedUntil;
   String? _cachedUserAgent;
   ProviderUsageModel? _lastSuccessfulUsage;
+  DateTime? _keychainDeniedAt;
+  _ClaudeCredentials? _cachedCredentials;
+  DateTime? _credentialsReadAt;
 
   Future<ProviderUsageModel> read() async {
     final cachedUsage = _lastSuccessfulUsage;
@@ -29,7 +46,7 @@ class ClaudeUsageReader {
       return cachedUsage;
     }
 
-    final credentials = await _readCredentials();
+    final credentials = await _readCredentialsCached();
     if (credentials == null) {
       // Stored credentials count as an install even without a resolvable
       // CLI binary; only report "not installed" when both are absent.
@@ -41,6 +58,9 @@ class ClaudeUsageReader {
       );
     }
     if (credentials.isExpired) {
+      // Re-read the store on the next poll; the CLI may have refreshed the
+      // token in the meantime.
+      _cachedCredentials = null;
       // The Claude CLI refreshes its own token the next time it runs. A
       // stored refresh token means the user is still signed in, so treat
       // this as a temporary outage (keeping the cached snapshot) instead of
@@ -67,6 +87,21 @@ class ClaudeUsageReader {
     );
   }
 
+  Future<_ClaudeCredentials?> _readCredentialsCached() async {
+    final cached = _cachedCredentials;
+    final readAt = _credentialsReadAt;
+    if (cached != null &&
+        readAt != null &&
+        !cached.isExpired &&
+        DateTime.now().difference(readAt) < _credentialsCacheTtl) {
+      return cached;
+    }
+    final credentials = await _readCredentials();
+    _cachedCredentials = credentials;
+    _credentialsReadAt = DateTime.now();
+    return credentials;
+  }
+
   Future<_ClaudeCredentials?> _readCredentials() async {
     final overrideConfigDir = Platform.environment['CLAUDE_CONFIG_DIR'];
     final hasOverride =
@@ -78,7 +113,7 @@ class ClaudeUsageReader {
     // store. Reading both sides mirrors CodexBar.
     final sources = <Future<String?> Function()>[
       if (hasOverride) _readCredentialsFile,
-      if (Platform.isMacOS) _readKeychainCredentials,
+      if (Platform.isMacOS) _readMacKeychainCredentials,
       if (!hasOverride) _readCredentialsFile,
     ];
     for (final source in sources) {
@@ -88,6 +123,45 @@ class ClaudeUsageReader {
       }
     }
     return null;
+  }
+
+  /// Reads the Claude CLI's keychain item the way CodexBar does: through
+  /// Security.framework under this app's own identity, so macOS shows its
+  /// access prompt once and "Always Allow" keeps every later read silent.
+  /// The `security` command-line tool remains a fallback for older builds
+  /// whose runner does not implement the channel yet.
+  Future<String?> _readMacKeychainCredentials() async {
+    final deniedAt = _keychainDeniedAt;
+    if (deniedAt != null &&
+        DateTime.now().difference(deniedAt) < _keychainDenialCooldown) {
+      return null;
+    }
+    try {
+      final response = await _keychainChannel
+          .invokeMapMethod<String, Object?>('readGenericPassword', {
+            'service': _keychainService,
+          })
+          .timeout(_keychainPromptTimeout);
+      final value = response?['value'];
+      if (value is String && value.isNotEmpty) {
+        _keychainDeniedAt = null;
+        return value;
+      }
+      final status = response?['status'];
+      // -128: the user canceled the prompt; -25293: authorization failed.
+      // Back off so the prompt does not reappear on every refresh.
+      if (status == -128 || status == -25293) {
+        _keychainDeniedAt = DateTime.now();
+      }
+      // Any explicit status (including -25300 item-not-found) is a
+      // conclusive answer from the same keychain the CLI tool would query,
+      // so do not run the CLI and risk a second prompt.
+      return null;
+    } on Object {
+      // The channel is unavailable (old runner build) or timed out; try the
+      // command-line fallback once.
+      return _readKeychainCredentials();
+    }
   }
 
   Future<String?> _readKeychainCredentials() async {
@@ -195,6 +269,9 @@ class ClaudeUsageReader {
       if (response.statusCode == HttpStatus.unauthorized ||
           response.statusCode == HttpStatus.forbidden) {
         await response.drain<void>();
+        // Re-read the store on the next poll instead of retrying a token
+        // the server has already rejected.
+        _cachedCredentials = null;
         // A rejected token alongside a refresh token usually means the
         // access token lapsed between the local expiry check and this call;
         // the CLI will repair it, so keep the cached snapshot meanwhile.

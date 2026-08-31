@@ -1,5 +1,6 @@
 import Cocoa
 import FlutterMacOS
+import Security
 import ServiceManagement
 
 class MainFlutterWindow: NSPanel {
@@ -32,8 +33,67 @@ class MainFlutterWindow: NSPanel {
     MacStartupController.install(
       messenger: flutterViewController.engine.binaryMessenger
     )
+    MacKeychainController.install(
+      messenger: flutterViewController.engine.binaryMessenger
+    )
 
     super.awakeFromNib()
+  }
+}
+
+private final class MacKeychainController {
+  private static var shared: MacKeychainController?
+
+  static func install(messenger: FlutterBinaryMessenger) {
+    shared = MacKeychainController(messenger: messenger)
+  }
+
+  private let channel: FlutterMethodChannel
+
+  private init(messenger: FlutterBinaryMessenger) {
+    channel = FlutterMethodChannel(
+      name: "com.ailimitstatus/keychain",
+      binaryMessenger: messenger
+    )
+    channel.setMethodCallHandler { [weak self] call, result in
+      self?.handle(call, result: result)
+    }
+  }
+
+  private func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    guard call.method == "readGenericPassword" else {
+      result(FlutterMethodNotImplemented)
+      return
+    }
+    guard
+      let arguments = call.arguments as? [String: Any],
+      let service = arguments["service"] as? String
+    else {
+      result(FlutterError(code: "invalid_arguments", message: nil, details: nil))
+      return
+    }
+    // SecItemCopyMatching can block on the keychain access prompt; keep it
+    // off the main thread so the UI stays responsive.
+    DispatchQueue.global(qos: .userInitiated).async {
+      let query: [String: Any] = [
+        kSecClass as String: kSecClassGenericPassword,
+        kSecAttrService as String: service,
+        kSecMatchLimit as String: kSecMatchLimitOne,
+        kSecReturnData as String: true,
+      ]
+      var item: CFTypeRef?
+      let status = SecItemCopyMatching(query as CFDictionary, &item)
+      var payload: [String: Any] = ["status": Int(status)]
+      if status == errSecSuccess,
+        let data = item as? Data,
+        let value = String(data: data, encoding: .utf8)
+      {
+        payload["value"] = value
+      }
+      DispatchQueue.main.async {
+        result(payload)
+      }
+    }
   }
 }
 
