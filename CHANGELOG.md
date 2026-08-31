@@ -6,6 +6,16 @@ The project follows Semantic Versioning for public releases.
 
 ## [Unreleased]
 
+### Added
+
+- Showed the app version at the bottom of the settings dialog.
+
+### Fixed
+
+- Read the Claude CLI's macOS keychain entry natively through
+  Security.framework, so one "Always Allow" keeps every later read silent
+  instead of the `security` tool timing out or prompting repeatedly.
+
 ## [0.6.0] - 2026-08-31
 
 ### Changed
