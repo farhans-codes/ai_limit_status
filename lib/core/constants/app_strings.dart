@@ -92,6 +92,7 @@ class AppStrings {
       'Choose the Claude limit shown in the menu bar or Windows taskbar.';
   String get claudeFiveHourShortcut => '5-hour limit';
   String get claudeFableShortcut => 'Fable weekly limit';
+  String appVersion(String version) => 'Version $version';
   String get done => 'Done';
   String get settingsUpdateFailedTitle => 'Setting not changed';
   String get settingsUpdateFailed =>

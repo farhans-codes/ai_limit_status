@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:ai_limit_status/core/constants/app_strings.dart';
 import 'package:ai_limit_status/features/settings/domain/entities/desktop_settings.dart';
 import 'package:ai_limit_status/features/settings/presentation/controllers/desktop_settings_controller.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 class DesktopSettingsDialog extends StatelessWidget {
   const DesktopSettingsDialog({
@@ -14,9 +15,14 @@ class DesktopSettingsDialog extends StatelessWidget {
   final DesktopSettingsController controller;
   final bool firstRun;
 
+  static final Future<String> _version = PackageInfo.fromPlatform().then(
+    (info) => info.version,
+  );
+
   @override
   Widget build(BuildContext context) {
     final strings = AppStrings.instance;
+    final theme = Theme.of(context);
     return PopScope(
       canPop: !firstRun,
       child: AlertDialog(
@@ -94,6 +100,23 @@ class DesktopSettingsDialog extends StatelessWidget {
                             }
                           },
                   ),
+                ),
+                const Divider(),
+                FutureBuilder<String>(
+                  future: _version,
+                  builder: (context, snapshot) {
+                    final version = snapshot.data;
+                    if (version == null) {
+                      return const SizedBox.shrink();
+                    }
+                    return Text(
+                      strings.appVersion(version),
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    );
+                  },
                 ),
               ],
             ),
