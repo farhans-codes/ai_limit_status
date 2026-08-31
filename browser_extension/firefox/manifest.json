@@ -1,0 +1,21 @@
+{
+  "manifest_version": 2,
+  "name": "AI Limit Status Browser Bridge",
+  "version": "0.1.0",
+  "description": "Provides opted-in ChatGPT and Claude browser sessions to the local AI Limit Status app.",
+  "permissions": [
+    "cookies",
+    "nativeMessaging",
+    "https://chatgpt.com/*",
+    "https://claude.ai/*"
+  ],
+  "background": {
+    "scripts": ["background.js"],
+    "persistent": true
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "browser-bridge@ai-limit-status"
+    }
+  }
+}
