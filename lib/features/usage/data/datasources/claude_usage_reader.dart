@@ -57,20 +57,6 @@ class ClaudeUsageReader {
             : UsageConnectionIssue.notSignedIn,
       );
     }
-    if (credentials.isExpired) {
-      // Re-read the store on the next poll; the CLI may have refreshed the
-      // token in the meantime.
-      _cachedCredentials = null;
-      // The Claude CLI refreshes its own token the next time it runs. A
-      // stored refresh token means the user is still signed in, so treat
-      // this as a temporary outage (keeping the cached snapshot) instead of
-      // asking for a fresh sign-in.
-      throw UsageReadException(
-        credentials.hasRefreshToken
-            ? UsageConnectionIssue.unavailable
-            : UsageConnectionIssue.notSignedIn,
-      );
-    }
 
     final payload = await _fetchUsage(credentials);
     final limits = _parseLimits(payload);
@@ -92,7 +78,6 @@ class ClaudeUsageReader {
     final readAt = _credentialsReadAt;
     if (cached != null &&
         readAt != null &&
-        !cached.isExpired &&
         DateTime.now().difference(readAt) < _credentialsCacheTtl) {
       return cached;
     }
@@ -232,12 +217,8 @@ class ClaudeUsageReader {
       return null;
     }
     final refreshToken = oauth['refreshToken'];
-    final expiresAtMs = (oauth['expiresAt'] as num?)?.toInt();
     return _ClaudeCredentials(
       accessToken: accessToken,
-      expiresAt: expiresAtMs == null
-          ? null
-          : DateTime.fromMillisecondsSinceEpoch(expiresAtMs),
       hasRefreshToken: refreshToken is String && refreshToken.isNotEmpty,
     );
   }
@@ -495,16 +476,9 @@ class ClaudeUsageReader {
 class _ClaudeCredentials {
   const _ClaudeCredentials({
     required this.accessToken,
-    this.expiresAt,
     this.hasRefreshToken = false,
   });
 
   final String accessToken;
-  final DateTime? expiresAt;
   final bool hasRefreshToken;
-
-  bool get isExpired {
-    final expiresAt = this.expiresAt;
-    return expiresAt != null && !DateTime.now().isBefore(expiresAt);
-  }
 }
