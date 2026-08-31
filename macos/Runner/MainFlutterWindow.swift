@@ -2,6 +2,7 @@ import Cocoa
 import FlutterMacOS
 import Security
 import ServiceManagement
+import SweetCookieKit
 
 class MainFlutterWindow: NSPanel {
   override func awakeFromNib() {
@@ -61,6 +62,24 @@ private final class MacKeychainController {
   }
 
   private func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    if call.method == "readChatGPTWebCookieHeader" {
+      DispatchQueue.global(qos: .userInitiated).async {
+        let cookieHeader = Self.readChatGPTWebCookieHeader()
+        DispatchQueue.main.async {
+          result(cookieHeader)
+        }
+      }
+      return
+    }
+    if call.method == "readClaudeWebSessionKey" {
+      DispatchQueue.global(qos: .userInitiated).async {
+        let sessionKey = Self.readClaudeWebSessionKey()
+        DispatchQueue.main.async {
+          result(sessionKey)
+        }
+      }
+      return
+    }
     guard call.method == "readGenericPassword" else {
       result(FlutterMethodNotImplemented)
       return
@@ -94,6 +113,56 @@ private final class MacKeychainController {
         result(payload)
       }
     }
+  }
+
+  private static func readClaudeWebSessionKey() -> String? {
+    let client = BrowserCookieClient()
+    let query = BrowserCookieQuery(
+      domains: ["claude.ai"],
+      domainMatch: .suffix
+    )
+    for browser in Browser.defaultImportOrder {
+      guard let stores = try? client.records(matching: query, in: browser) else {
+        continue
+      }
+      for store in stores {
+        if let value = store.records.first(where: {
+          $0.name == "sessionKey" && $0.value.hasPrefix("sk-ant-")
+        })?.value {
+          return value
+        }
+      }
+    }
+    return nil
+  }
+
+  private static func readChatGPTWebCookieHeader() -> String? {
+    let client = BrowserCookieClient()
+    let query = BrowserCookieQuery(
+      domains: ["chatgpt.com"],
+      domainMatch: .suffix
+    )
+    let now = Date()
+    for browser in Browser.defaultImportOrder {
+      guard let stores = try? client.records(matching: query, in: browser) else {
+        continue
+      }
+      for store in stores {
+        let records = store.records.filter { record in
+          record.expires.map { $0 > now } ?? true
+        }
+        let hasSession = records.contains { record in
+          let name = record.name.lowercased()
+          return name.contains("session-token") || name.contains("authjs")
+            || name.contains("next-auth") || name == "_account"
+        }
+        guard hasSession else { continue }
+        return records
+          .map { "\($0.name)=\($0.value)" }
+          .joined(separator: "; ")
+      }
+    }
+    return nil
   }
 }
 
