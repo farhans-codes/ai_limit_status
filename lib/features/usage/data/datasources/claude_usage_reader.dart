@@ -71,7 +71,7 @@ class ClaudeUsageReader {
           : UsageConnectionIssue.notSignedIn;
     }
 
-    if (payload == null && Platform.isMacOS) {
+    if (payload == null && (Platform.isMacOS || Platform.isWindows)) {
       try {
         payload = await _fetchWebUsage();
       } on UsageReadException catch (error) {

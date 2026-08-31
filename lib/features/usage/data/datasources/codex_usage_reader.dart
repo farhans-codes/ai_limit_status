@@ -55,7 +55,7 @@ class CodexUsageReader {
   Future<ProviderUsageModel> _readFromWebOrThrow(
     UsageReadException originalError,
   ) async {
-    if (Platform.isMacOS) {
+    if (Platform.isMacOS || Platform.isWindows) {
       try {
         return await _oauthReader.readFromWeb();
       } on CodexOAuthReadException {

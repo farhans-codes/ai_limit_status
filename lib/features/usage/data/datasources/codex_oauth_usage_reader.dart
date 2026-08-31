@@ -95,7 +95,7 @@ class CodexOAuthUsageReader {
   }
 
   Future<ProviderUsageModel> readFromWeb() async {
-    if (!Platform.isMacOS) {
+    if (!Platform.isMacOS && !Platform.isWindows) {
       throw const CodexOAuthReadException(CodexOAuthIssue.unavailable);
     }
     final cookieHeader = await _readWebCookieHeader();
