@@ -2,20 +2,64 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:ai_limit_status/features/usage/data/datasources/codex_oauth_usage_reader.dart';
 import 'package:ai_limit_status/features/usage/data/datasources/provider_executable_locator.dart';
 import 'package:ai_limit_status/features/usage/data/datasources/usage_read_exception.dart';
 import 'package:ai_limit_status/features/usage/data/models/provider_usage_model.dart';
 import 'package:ai_limit_status/features/usage/domain/entities/provider_usage.dart';
 
 class CodexUsageReader {
-  const CodexUsageReader(this._executableLocator);
+  const CodexUsageReader(this._executableLocator, this._oauthReader);
 
-  static const _timeout = Duration(seconds: 8);
+  /// The app-server handshake includes a cold process start (on Windows
+  /// often a node shim), so give the first response more headroom.
+  static const _initializeTimeout = Duration(seconds: 15);
+  static const _requestTimeout = Duration(seconds: 10);
 
   final ProviderExecutableLocator _executableLocator;
+  final CodexOAuthUsageReader _oauthReader;
 
   Future<ProviderUsageModel> read() async {
+    // Mirror CodexBar's auto mode: prefer the OAuth strategy (auth.json plus
+    // the usage API) and fall back to the CLI app-server only for issues the
+    // CLI can actually repair, so transient network errors never spawn
+    // processes in a loop.
+    try {
+      return await _oauthReader.read();
+    } on CodexOAuthReadException catch (error) {
+      switch (error.issue) {
+        case CodexOAuthIssue.credentialsNotFound:
+          return _readFromCli(oauthCredentialsExisted: false);
+        case CodexOAuthIssue.unauthorized:
+          return _readFromCli(oauthCredentialsExisted: true);
+        case CodexOAuthIssue.unavailable:
+          throw const UsageReadException(UsageConnectionIssue.unavailable);
+      }
+    }
+  }
+
+  Future<ProviderUsageModel> _readFromCli({
+    required bool oauthCredentialsExisted,
+  }) async {
+    try {
+      return await _readFromAppServer();
+    } on UsageReadException catch (error) {
+      if (error.issue == UsageConnectionIssue.cliNotFound &&
+          oauthCredentialsExisted) {
+        // Tokens exist but were rejected, and no CLI is present to repair
+        // them: the account needs a fresh sign-in rather than an install.
+        throw const UsageReadException(UsageConnectionIssue.notSignedIn);
+      }
+      rethrow;
+    }
+  }
+
+  Future<ProviderUsageModel> _readFromAppServer() async {
     final process = await _startProcess();
+    // A CLI that exits immediately (for example an outdated version that
+    // does not know app-server) closes stdin; without a listener that
+    // broken-pipe error would surface as an unhandled async exception.
+    process.stdin.done.ignore();
     final lines = StreamIterator<String>(
       process.stdout.transform(utf8.decoder).transform(const LineSplitter()),
     );
@@ -32,7 +76,7 @@ class CodexUsageReader {
           },
         }),
       );
-      await _responseFor(lines, 1);
+      await _responseFor(lines, 1, _initializeTimeout);
       process.stdin.writeln(jsonEncode({'method': 'initialized'}));
       process.stdin.writeln(
         jsonEncode({
@@ -42,7 +86,7 @@ class CodexUsageReader {
         }),
       );
 
-      final response = await _responseFor(lines, 2);
+      final response = await _responseFor(lines, 2, _requestTimeout);
       final result = response['result'];
       if (result is! Map<String, dynamic>) {
         throw const UsageReadException(UsageConnectionIssue.notSignedIn);
@@ -69,7 +113,7 @@ class CodexUsageReader {
       throw const UsageReadException(UsageConnectionIssue.unavailable);
     } finally {
       await lines.cancel();
-      process.kill();
+      await terminateProviderProcess(process);
     }
   }
 
@@ -79,7 +123,16 @@ class CodexUsageReader {
       throw const UsageReadException(UsageConnectionIssue.cliNotFound);
     }
     try {
-      return await executable.start(const ['app-server', '--stdio']);
+      // Same launch arguments CodexBar uses: a read-only sandbox with
+      // approvals disabled, so the app-server can never prompt or mutate
+      // anything, and no extra flags that newer CLI versions reject.
+      return await executable.start(const [
+        '-s',
+        'read-only',
+        '-a',
+        'never',
+        'app-server',
+      ]);
     } on ProcessException {
       throw const UsageReadException(UsageConnectionIssue.cliNotFound);
     }
@@ -88,8 +141,9 @@ class CodexUsageReader {
   Future<Map<String, dynamic>> _responseFor(
     StreamIterator<String> lines,
     int requestId,
+    Duration timeout,
   ) async {
-    return _readResponse(lines, requestId).timeout(_timeout);
+    return _readResponse(lines, requestId).timeout(timeout);
   }
 
   Future<Map<String, dynamic>> _readResponse(
@@ -97,7 +151,13 @@ class CodexUsageReader {
     int requestId,
   ) async {
     while (await lines.moveNext()) {
-      final decoded = jsonDecode(lines.current);
+      final Object? decoded;
+      try {
+        decoded = jsonDecode(lines.current);
+      } on FormatException {
+        // Ignore non-JSON noise (for example npm shim banners) on stdout.
+        continue;
+      }
       if (decoded is Map<String, dynamic> && decoded['id'] == requestId) {
         if (decoded['error'] != null) {
           throw const UsageReadException(UsageConnectionIssue.unavailable);
