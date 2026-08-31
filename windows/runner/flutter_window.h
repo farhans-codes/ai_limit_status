@@ -10,6 +10,7 @@
 
 class WindowsTaskbarStatus;
 class WindowsNotificationSound;
+class WindowsBrowserSession;
 
 // A window that does nothing but host a Flutter view.
 class FlutterWindow : public Win32Window {
@@ -37,6 +38,9 @@ class FlutterWindow : public Win32Window {
 
   // Plays the bundled warning chime for desktop notifications.
   std::unique_ptr<WindowsNotificationSound> windows_notification_sound_;
+
+  // Reads an opt-in browser extension's in-memory provider sessions.
+  std::unique_ptr<WindowsBrowserSession> windows_browser_session_;
 };
 
 #endif  // RUNNER_FLUTTER_WINDOW_H_

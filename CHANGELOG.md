@@ -6,6 +6,24 @@ The project follows Semantic Versioning for public releases.
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-08-31
+
+### Added
+
+- Fall back to the user's existing claude.ai browser session on macOS when the
+  Claude OAuth usage endpoint is unavailable or rate limited.
+- Fall back to the user's existing ChatGPT browser session on macOS when both
+  Codex OAuth and local CLI usage reads are unavailable.
+- Add an opt-in Chrome, Edge, and Firefox Native Messaging bridge on Windows so
+  the same in-memory ChatGPT and Claude browser fallbacks work without reading
+  Chromium's encrypted cookie database directly.
+
+### Fixed
+
+- Let Anthropic validate stored Claude access tokens instead of treating the
+  local expiry timestamp as a forced sign-out, preventing valid CLI sessions
+  from repeatedly showing the sign-in prompt.
+
 ## [0.6.1] - 2026-08-31
 
 ### Added
@@ -189,7 +207,8 @@ The project follows Semantic Versioning for public releases.
 - Guided Codex and Claude setup.
 - Local usage caching and duplicate-instance protection.
 
-[Unreleased]: https://github.com/farhans-codes/ai_limit_status/compare/v0.6.1...HEAD
+[Unreleased]: https://github.com/farhans-codes/ai_limit_status/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/farhans-codes/ai_limit_status/compare/v0.6.1...v0.7.0
 [0.6.1]: https://github.com/farhans-codes/ai_limit_status/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/farhans-codes/ai_limit_status/compare/v0.5.3...v0.6.0
 [0.5.3]: https://github.com/farhans-codes/ai_limit_status/compare/v0.5.2...v0.5.3

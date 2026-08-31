@@ -1,0 +1,7 @@
+{
+  "name": "com.ailimitstatus.browser_bridge",
+  "description": "AI Limit Status browser-session bridge",
+  "path": "..\\ai_limit_status.exe",
+  "type": "stdio",
+  "allowed_extensions": ["browser-bridge@ai-limit-status"]
+}

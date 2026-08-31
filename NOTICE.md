@@ -19,3 +19,7 @@ logos remain with their respective owners.
 Third-party Flutter and native dependencies retain their own licenses. Flutter
 release builds include the generated third-party notices supplied by the
 Flutter toolchain.
+
+The macOS browser-cookie fallback uses SweetCookieKit, copyright its
+contributors and distributed under the MIT License:
+https://github.com/steipete/SweetCookieKit

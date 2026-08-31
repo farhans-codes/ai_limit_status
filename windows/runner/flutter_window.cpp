@@ -3,6 +3,7 @@
 #include <optional>
 
 #include "flutter/generated_plugin_registrant.h"
+#include "windows_browser_session.h"
 #include "windows_notification_sound.h"
 #include "windows_taskbar_status.h"
 
@@ -31,6 +32,8 @@ bool FlutterWindow::OnCreate() {
       flutter_controller_->engine()->messenger(), GetHandle());
   windows_notification_sound_ = std::make_unique<WindowsNotificationSound>(
       flutter_controller_->engine()->messenger());
+  windows_browser_session_ = std::make_unique<WindowsBrowserSession>(
+      flutter_controller_->engine()->messenger());
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
 
   flutter_controller_->engine()->SetNextFrameCallback([&]() {
@@ -46,6 +49,7 @@ bool FlutterWindow::OnCreate() {
 }
 
 void FlutterWindow::OnDestroy() {
+  windows_browser_session_.reset();
   windows_notification_sound_.reset();
   windows_taskbar_status_.reset();
   if (flutter_controller_) {

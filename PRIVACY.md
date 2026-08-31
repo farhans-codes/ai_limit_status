@@ -20,6 +20,19 @@ credential is missing or rejected, the app can fall back to the locally
 installed `codex app-server` process. Codex tokens are not written to AI Limit
 Status cache or settings files and are not intentionally logged.
 
+On macOS, if both Codex OAuth and the local app-server are unavailable, the app
+can read the existing `chatgpt.com` session cookies from supported Safari,
+Chromium, or Firefox browser profiles. macOS may request Keychain or Full Disk
+Access permission for this read. The cookies are held in process memory, sent
+only to `https://chatgpt.com/backend-api/wham/usage`, and are not written to AI
+Limit Status cache, settings, or logs.
+
+On Windows, users can optionally install the bundled browser extension. The
+extension is allowlisted only for `chatgpt.com` and `claude.ai`, sends its
+in-memory session snapshot to the local AI Limit Status process through browser
+Native Messaging, and does not use extension storage. The app receives that
+snapshot through a named pipe restricted to the signed-in Windows user.
+
 ### Claude
 
 The app uses the OAuth credential already created by Claude Code:
@@ -31,6 +44,17 @@ The app uses the OAuth credential already created by Claude Code:
 The access token is kept in process memory while the app requests usage data
 from `https://api.anthropic.com/api/oauth/usage`. The token is not written to AI
 Limit Status cache or settings files and is not intentionally logged.
+
+On macOS, if the OAuth usage endpoint is unavailable, the app can read the
+existing `claude.ai` `sessionKey` cookie from supported Safari, Chromium, or
+Firefox browser profiles. macOS may request Keychain or Full Disk Access
+permission for this read. The session key is held in process memory, sent only
+to `https://claude.ai/api`, and is not written to AI Limit Status cache,
+settings, or logs.
+
+On Windows, the same provider request can use the in-memory session supplied by
+the optional browser extension described above. Neither browser session is
+written to AI Limit Status cache, settings, diagnostic logs, or analytics.
 
 ## Data stored locally
 

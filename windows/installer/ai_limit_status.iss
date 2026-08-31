@@ -1,5 +1,5 @@
 #ifndef MyAppVersion
-  #define MyAppVersion "0.6.1"
+  #define MyAppVersion "0.7.0"
 #endif
 
 #define MyAppName "AI Limit Status"
@@ -40,6 +40,11 @@ Source: "..\..\build\windows\x64\runner\Release\*"; DestDir: "{app}"; Flags: ign
 [Icons]
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; AppUserModelID: "com.ailimitstatus.AILimitStatus"; AppUserModelToastActivatorCLSID: "6F4E47C9-7E92-47E4-A8A2-81C21E74B7AC"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; AppUserModelID: "com.ailimitstatus.AILimitStatus"; AppUserModelToastActivatorCLSID: "6F4E47C9-7E92-47E4-A8A2-81C21E74B7AC"; Tasks: desktopicon
+
+[Registry]
+Root: HKCU; Subkey: "Software\Google\Chrome\NativeMessagingHosts\com.ailimitstatus.browser_bridge"; ValueType: string; ValueName: ""; ValueData: "{app}\browser_bridge\chromium-host.json"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\Microsoft\Edge\NativeMessagingHosts\com.ailimitstatus.browser_bridge"; ValueType: string; ValueName: ""; ValueData: "{app}\browser_bridge\chromium-host.json"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\Mozilla\NativeMessagingHosts\com.ailimitstatus.browser_bridge"; ValueType: string; ValueName: ""; ValueData: "{app}\browser_bridge\firefox-host.json"; Flags: uninsdeletekey
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
