@@ -1,7 +1,6 @@
 #include "windows_browser_session.h"
 
 #include <flutter/standard_method_codec.h>
-#include <sddl.h>
 #include <windows.h>
 
 #include <algorithm>
@@ -45,7 +44,8 @@ bool ReadExact(HANDLE input, void* destination, DWORD size) {
 
 bool CreateCurrentUserSecurityAttributes(
     SECURITY_ATTRIBUTES* attributes,
-    PSECURITY_DESCRIPTOR* descriptor) {
+    SECURITY_DESCRIPTOR* descriptor,
+    std::vector<BYTE>* acl_buffer) {
   HANDLE token = nullptr;
   if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token)) {
     return false;
@@ -62,28 +62,33 @@ bool CreateCurrentUserSecurityAttributes(
   CloseHandle(token);
 
   const auto* token_user = reinterpret_cast<const TOKEN_USER*>(buffer.data());
-  wchar_t* sid = nullptr;
-  if (!ConvertSidToStringSidW(token_user->User.Sid, &sid)) {
-    return false;
-  }
-  const std::wstring sddl =
-      L"D:P(A;;GA;;;SY)(A;;GA;;;" + std::wstring(sid) + L")";
-  LocalFree(sid);
-
-  if (!ConvertStringSecurityDescriptorToSecurityDescriptorW(
-          sddl.c_str(), SDDL_REVISION_1, descriptor, nullptr)) {
+  const DWORD sid_size = GetLengthSid(token_user->User.Sid);
+  const DWORD acl_size =
+      static_cast<DWORD>(sizeof(ACL) + sizeof(ACCESS_ALLOWED_ACE) -
+                         sizeof(DWORD)) +
+      sid_size;
+  acl_buffer->resize(acl_size);
+  auto* acl = reinterpret_cast<ACL*>(acl_buffer->data());
+  if (!InitializeAcl(acl, acl_size, ACL_REVISION) ||
+      !AddAccessAllowedAce(acl, ACL_REVISION, GENERIC_READ | GENERIC_WRITE,
+                           token_user->User.Sid) ||
+      !InitializeSecurityDescriptor(descriptor,
+                                    SECURITY_DESCRIPTOR_REVISION) ||
+      !SetSecurityDescriptorDacl(descriptor, TRUE, acl, FALSE)) {
     return false;
   }
   attributes->nLength = sizeof(SECURITY_ATTRIBUTES);
-  attributes->lpSecurityDescriptor = *descriptor;
+  attributes->lpSecurityDescriptor = descriptor;
   attributes->bInheritHandle = FALSE;
   return true;
 }
 
 void ServeSnapshots(const std::atomic<bool>& stopping) {
   SECURITY_ATTRIBUTES attributes{};
-  PSECURITY_DESCRIPTOR descriptor = nullptr;
-  if (!CreateCurrentUserSecurityAttributes(&attributes, &descriptor)) {
+  SECURITY_DESCRIPTOR descriptor{};
+  std::vector<BYTE> acl_buffer;
+  if (!CreateCurrentUserSecurityAttributes(&attributes, &descriptor,
+                                           &acl_buffer)) {
     return;
   }
 
@@ -120,7 +125,6 @@ void ServeSnapshots(const std::atomic<bool>& stopping) {
     DisconnectNamedPipe(pipe);
     CloseHandle(pipe);
   }
-  LocalFree(descriptor);
 }
 
 void WakePipeServer() {

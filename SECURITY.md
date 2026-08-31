@@ -41,7 +41,7 @@ investigate it privately, and coordinate disclosure after a fix is available.
   persist that token in app-owned storage.
 - The optional Windows browser bridge accepts messages only from its allowlisted
   extension IDs. Its local named pipe grants access only to the current Windows
-  user and SYSTEM, and browser sessions remain in process memory.
+  user, and browser sessions remain in process memory.
 - Cached usage files are not intended to contain secrets.
 - Release artifacts should be downloaded only from this repository's GitHub
   Releases page and verified with the published SHA256 checksums.
