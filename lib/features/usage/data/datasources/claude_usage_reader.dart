@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:flutter/services.dart';
 
+import 'package:ai_limit_status/features/usage/data/datasources/browser_session_reader.dart';
 import 'package:ai_limit_status/features/usage/data/datasources/provider_executable_locator.dart';
 import 'package:ai_limit_status/features/usage/data/datasources/usage_read_exception.dart';
 import 'package:ai_limit_status/features/usage/data/models/provider_usage_model.dart';
@@ -26,6 +27,7 @@ class ClaudeUsageReader {
   static const _keychainDenialCooldown = Duration(minutes: 30);
 
   static const _credentialsCacheTtl = Duration(minutes: 10);
+  static const _webSessionCacheTtl = Duration(minutes: 30);
 
   static const _keychainChannel = MethodChannel('com.ailimitstatus/keychain');
   static const _keychainService = 'Claude Code-credentials';
@@ -37,6 +39,9 @@ class ClaudeUsageReader {
   DateTime? _keychainDeniedAt;
   _ClaudeCredentials? _cachedCredentials;
   DateTime? _credentialsReadAt;
+  String? _cachedWebSessionKey;
+  String? _cachedWebOrganizationId;
+  DateTime? _webSessionReadAt;
 
   Future<ProviderUsageModel> read() async {
     final cachedUsage = _lastSuccessfulUsage;
@@ -46,19 +51,37 @@ class ClaudeUsageReader {
       return cachedUsage;
     }
 
+    Map<String, dynamic>? payload;
+    UsageConnectionIssue? directIssue;
     final credentials = await _readCredentialsCached();
-    if (credentials == null) {
+    if (credentials != null) {
+      try {
+        payload = await _fetchUsage(credentials);
+      } on UsageReadException catch (error) {
+        directIssue = error.issue;
+      } on Object {
+        directIssue = UsageConnectionIssue.unavailable;
+      }
+    } else {
       // Stored credentials count as an install even without a resolvable
       // CLI binary; only report "not installed" when both are absent.
       final executable = await _executableLocator.find(UsageProvider.claude);
-      throw UsageReadException(
-        executable == null
-            ? UsageConnectionIssue.cliNotFound
-            : UsageConnectionIssue.notSignedIn,
-      );
+      directIssue = executable == null
+          ? UsageConnectionIssue.cliNotFound
+          : UsageConnectionIssue.notSignedIn;
     }
 
-    final payload = await _fetchUsage(credentials);
+    if (payload == null && Platform.isMacOS) {
+      try {
+        payload = await _fetchWebUsage();
+      } on UsageReadException catch (error) {
+        throw UsageReadException(directIssue ?? error.issue);
+      }
+    }
+    if (payload == null) {
+      throw UsageReadException(directIssue ?? UsageConnectionIssue.unavailable);
+    }
+
     final limits = _parseLimits(payload);
     if (limits.isEmpty) {
       throw const UsageReadException(UsageConnectionIssue.unavailable);
@@ -146,6 +169,30 @@ class ClaudeUsageReader {
       // The channel is unavailable (old runner build) or timed out; try the
       // command-line fallback once.
       return _readKeychainCredentials();
+    }
+  }
+
+  Future<String?> _readWebSessionKey() async {
+    final cached = _cachedWebSessionKey;
+    final readAt = _webSessionReadAt;
+    if (cached != null &&
+        readAt != null &&
+        DateTime.now().difference(readAt) < _webSessionCacheTtl) {
+      return cached;
+    }
+    try {
+      final sessionKey = await readClaudeBrowserSessionKey();
+      if (sessionKey == null || !sessionKey.startsWith('sk-ant-')) {
+        return null;
+      }
+      if (_cachedWebSessionKey != sessionKey) {
+        _cachedWebOrganizationId = null;
+      }
+      _cachedWebSessionKey = sessionKey;
+      _webSessionReadAt = DateTime.now();
+      return sessionKey;
+    } on Object {
+      return null;
     }
   }
 
@@ -287,6 +334,136 @@ class ClaudeUsageReader {
     } finally {
       client.close(force: true);
     }
+  }
+
+  Future<Map<String, dynamic>> _fetchWebUsage() async {
+    var sessionKey = await _readWebSessionKey();
+    if (sessionKey == null) {
+      throw const UsageReadException(UsageConnectionIssue.notSignedIn);
+    }
+
+    final client = HttpClient()..connectionTimeout = _requestTimeout;
+    try {
+      var organizationId = _cachedWebOrganizationId;
+      if (organizationId == null) {
+        final organizations = await _fetchWebJson(
+          client,
+          Uri.https('claude.ai', '/api/organizations'),
+          sessionKey,
+        );
+        organizationId = _selectWebOrganizationId(organizations);
+        if (organizationId == null) {
+          throw const UsageReadException(UsageConnectionIssue.unavailable);
+        }
+        _cachedWebOrganizationId = organizationId;
+        sessionKey = _cachedWebSessionKey ?? sessionKey;
+      }
+
+      final payload = await _fetchWebJson(
+        client,
+        Uri.https(
+          'claude.ai',
+          '/api/organizations/${Uri.encodeComponent(organizationId)}/usage',
+        ),
+        sessionKey,
+      );
+      if (payload is! Map<String, dynamic>) {
+        throw const UsageReadException(UsageConnectionIssue.unavailable);
+      }
+      return payload;
+    } finally {
+      client.close(force: true);
+    }
+  }
+
+  Future<Object?> _fetchWebJson(
+    HttpClient client,
+    Uri uri,
+    String sessionKey,
+  ) async {
+    final request = await client.getUrl(uri).timeout(_requestTimeout);
+    request.headers
+      ..set(HttpHeaders.cookieHeader, 'sessionKey=$sessionKey')
+      ..set(HttpHeaders.acceptHeader, 'application/json');
+    final response = await request.close().timeout(_requestTimeout);
+    _captureRotatedWebSessionKey(response);
+    if (response.statusCode == HttpStatus.unauthorized ||
+        response.statusCode == HttpStatus.forbidden) {
+      await response.drain<void>();
+      _cachedWebSessionKey = null;
+      _cachedWebOrganizationId = null;
+      _webSessionReadAt = null;
+      throw const UsageReadException(UsageConnectionIssue.notSignedIn);
+    }
+    if (response.statusCode != HttpStatus.ok) {
+      await response.drain<void>();
+      throw const UsageReadException(UsageConnectionIssue.unavailable);
+    }
+    final body = await utf8.decoder
+        .bind(response)
+        .join()
+        .timeout(_requestTimeout);
+    try {
+      return jsonDecode(body);
+    } on FormatException {
+      throw const UsageReadException(UsageConnectionIssue.unavailable);
+    }
+  }
+
+  void _captureRotatedWebSessionKey(HttpClientResponse response) {
+    final setCookies = response.headers[HttpHeaders.setCookieHeader];
+    if (setCookies == null) {
+      return;
+    }
+    for (final header in setCookies) {
+      final match = RegExp(
+        r'(?:^|,)\s*sessionKey=([^;,]+)',
+        caseSensitive: false,
+      ).firstMatch(header);
+      final sessionKey = match?.group(1);
+      if (sessionKey != null && sessionKey.startsWith('sk-ant-')) {
+        _cachedWebSessionKey = sessionKey;
+        _webSessionReadAt = DateTime.now();
+        return;
+      }
+    }
+  }
+
+  String? _selectWebOrganizationId(Object? payload) {
+    if (payload is! List) {
+      return null;
+    }
+    final organizations = payload.whereType<Map<String, dynamic>>().toList();
+    if (organizations.isEmpty) {
+      return null;
+    }
+
+    bool hasCapability(Map<String, dynamic> organization, String capability) {
+      final capabilities = organization['capabilities'];
+      return capabilities is List &&
+          capabilities.any(
+            (value) => value.toString().toLowerCase() == capability,
+          );
+    }
+
+    bool isApiOnly(Map<String, dynamic> organization) {
+      final capabilities = organization['capabilities'];
+      return capabilities is List &&
+          capabilities.isNotEmpty &&
+          capabilities.every(
+            (value) => value.toString().toLowerCase() == 'api',
+          );
+    }
+
+    final selected = organizations.firstWhere(
+      (organization) => hasCapability(organization, 'chat'),
+      orElse: () => organizations.firstWhere(
+        (organization) => !isApiOnly(organization),
+        orElse: () => organizations.first,
+      ),
+    );
+    final id = selected['uuid'];
+    return id is String && id.isNotEmpty ? id : null;
   }
 
   Future<String> _claudeCodeUserAgent() async {
