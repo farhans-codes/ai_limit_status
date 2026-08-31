@@ -7,10 +7,18 @@ advertising, crash reporting, or maintainer-operated telemetry.
 
 ### Codex
 
-The app starts the locally installed `codex app-server` process and requests
-rate-limit information through its standard input/output interface. Codex owns
-and manages its authentication material. AI Limit Status does not directly read
-or store Codex access tokens.
+The app reads the OAuth credential already created by Codex from the
+provider-owned `auth.json` file under `CODEX_HOME` or the user's `.codex`
+directory. It uses that credential to request usage from
+`https://chatgpt.com/backend-api/wham/usage`.
+
+Shortly before a token expires, the app may refresh it through
+`https://auth.openai.com/oauth/token` and atomically write the rotated
+credential back to the same provider-owned `auth.json` file so Codex and AI
+Limit Status remain in sync. If the direct request is unavailable because the
+credential is missing or rejected, the app can fall back to the locally
+installed `codex app-server` process. Codex tokens are not written to AI Limit
+Status cache or settings files and are not intentionally logged.
 
 ### Claude
 
@@ -41,8 +49,9 @@ the user's local application-data directory.
 ## Network requests
 
 The app does not send data to the project maintainer. Network activity is
-limited to provider-owned services required to retrieve usage and to official
-setup links opened by the user.
+limited to provider-owned services required to retrieve usage, refresh Codex
+credentials when necessary, and open official setup links selected by the
+user.
 
 ## Removing local data
 

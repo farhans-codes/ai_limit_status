@@ -55,7 +55,8 @@ or [download SHA-256 checksums](https://github.com/farhans-codes/ai_limit_status
 
 ## Features
 
-- Shows only the providers installed on the current computer.
+- Shows only providers available through an installed CLI or existing provider
+  credentials on the current computer.
 - Displays available five-hour, weekly, Fable, Opus, and Sonnet usage windows.
 - Lets users choose whether the Claude shortcut shows the five-hour or Fable
   weekly limit.
@@ -169,8 +170,14 @@ AI Limit Status does not ask users to paste an API key into the app.
 
 ## Privacy and credential handling
 
-- Codex usage is requested through the locally installed `codex app-server`.
-  AI Limit Status does not directly read or store Codex credentials.
+- Codex usage normally uses the existing provider-owned `auth.json` file under
+  `CODEX_HOME` or the user's `.codex` directory, then requests usage from
+  `https://chatgpt.com/backend-api/wham/usage`. The local `codex app-server`
+  remains a fallback.
+- Shortly before a Codex token expires, AI Limit Status may refresh it through
+  `https://auth.openai.com/oauth/token` and write the rotated credential back
+  to the same provider-owned `auth.json` file so the Codex CLI stays in sync.
+  Codex tokens are not stored in AI Limit Status cache, settings, or logs.
 - Claude usage requires the existing Claude Code OAuth credential. On macOS,
   the app reads it from the `Claude Code-credentials` Keychain entry. On
   Windows, it reads the provider-owned `.claude/.credentials.json` file.
@@ -204,7 +211,7 @@ Requirements:
 - Flutter `3.44.2` or a compatible stable release.
 - Xcode command-line tools for macOS builds.
 - Visual Studio with **Desktop development with C++** for Windows builds.
-- The provider CLIs needed for the limits you want to monitor.
+- The provider CLIs needed for initial sign-in and fallback usage detection.
 
 ```bash
 flutter pub get

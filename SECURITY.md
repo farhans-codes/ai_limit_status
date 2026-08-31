@@ -6,8 +6,8 @@ Security fixes are provided for the latest published release line.
 
 | Version | Supported |
 | --- | --- |
-| 0.3.x | Yes |
-| 0.2.x and earlier | No |
+| 0.6.x | Yes |
+| 0.5.x and earlier | No |
 
 ## Reporting a vulnerability
 
@@ -32,7 +32,10 @@ investigate it privately, and coordinate disclosure after a fix is available.
 
 ## Security boundaries
 
-- Codex authentication is managed by the locally installed Codex CLI.
+- Codex authentication originates from the Codex CLI. AI Limit Status reads
+  its provider-owned `auth.json` credential and may refresh and write rotated
+  tokens back to that same file; it does not persist those tokens in app-owned
+  storage.
 - Claude authentication is managed by Claude Code. AI Limit Status reads the
   existing OAuth credential only to request usage from Anthropic and does not
   persist that token in app-owned storage.
