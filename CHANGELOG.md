@@ -6,6 +6,13 @@ The project follows Semantic Versioning for public releases.
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-09-03
+
+### Fixed
+
+- Use an opaque black background for the Windows popup so other applications
+  cannot show through it, while preserving the macOS glass effect.
+
 ## [0.8.0] - 2026-09-03
 
 ### Added

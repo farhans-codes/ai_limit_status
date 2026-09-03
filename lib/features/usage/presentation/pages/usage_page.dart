@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -17,19 +18,26 @@ class UsagePage extends GetView<UsageController> {
     final settingsController = Get.find<DesktopSettingsController>();
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isWindows = Platform.isWindows;
+    final windowBackground = Theme.of(context).scaffoldBackgroundColor;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: ClipRRect(
         borderRadius: BorderRadius.circular(20),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+          filter: ImageFilter.blur(
+            sigmaX: isWindows ? 0 : 14,
+            sigmaY: isWindows ? 0 : 14,
+          ),
           child: DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: isDark
+                colors: isWindows
+                    ? [windowBackground, windowBackground]
+                    : isDark
                     ? const [Color(0x621A1E28), Color(0x480C1018)]
                     : const [Color(0x86F9FBFF), Color(0x6EE8EDF7)],
               ),
