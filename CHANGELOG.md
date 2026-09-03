@@ -27,9 +27,6 @@ The project follows Semantic Versioning for public releases.
   through Claude Code's own OAuth client and write it back to
   `.credentials.json`, so Windows users who do not run `claude` daily keep
   live Claude usage.
-- Let Windows users paste a `claude.ai` session key in App settings (stored
-  DPAPI-encrypted) as an alternative to the browser extension bridge, and show
-  the bridge's live status with a one-click **Open extension folder** action.
 - Distinguish an expired claude.ai session from a Cloudflare challenge in the
   Claude card so users know whether signing in again will help.
 - Write a small local diagnostic log (`logs/app.log`) of window and provider

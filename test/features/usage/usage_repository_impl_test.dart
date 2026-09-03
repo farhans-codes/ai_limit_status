@@ -73,16 +73,14 @@ void main() {
     expect(usages.single.provider, UsageProvider.codex);
   });
 
-  test('DesktopSettings exposes visibility and manual session state', () {
+  test('DesktopSettings exposes provider visibility', () {
     const settings = DesktopSettings(
       notificationsEnabled: false,
       launchAtStartupEnabled: false,
       onboardingCompleted: true,
       claudeStatusLimitPreference: ClaudeStatusLimitPreference.fiveHour,
       visibleProviders: {UsageProvider.claude},
-      hasManualClaudeSessionKey: true,
     );
     expect(settings.visibleProviders, {UsageProvider.claude});
-    expect(settings.hasManualClaudeSessionKey, isTrue);
   });
 }

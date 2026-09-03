@@ -45,13 +45,13 @@ class AppStrings {
   String get providerUnavailableMessage =>
       'Live usage is temporarily unavailable.';
   String get browserSessionExpiredMessage =>
-      'Your claude.ai session was rejected. Sign in to claude.ai again or '
-      'paste a new session key in App settings.';
+      'Your claude.ai browser session was rejected. Sign in to claude.ai '
+      'again, or sign in to the Claude CLI.';
   String get browserBlockedMessage =>
       'claude.ai answered with a Cloudflare challenge (common on VPN or '
       'datacenter networks). Signing in again will not help; try another '
       'network or install Claude Code.';
-  String get connectClaudeSession => 'Connect claude.ai';
+
   String get installAndSignIn => 'Install & sign in';
   String get openSetupGuide => 'Open setup guide';
   String get signIn => 'Sign in';
@@ -105,30 +105,6 @@ class AppStrings {
   String get showClaudeTitle => 'Show Claude';
   String get providerVisibilityDescription =>
       'Hidden providers are not read, shown, or included in the shortcut.';
-  String get claudeSessionSectionTitle => 'claude.ai browser session';
-  String get claudeSessionSectionDescription =>
-      'Used when the Claude Code sign-in is unavailable. Either load the '
-      'bundled browser extension, or paste the "sessionKey" cookie from '
-      'claude.ai (Developer tools › Application › Cookies).';
-  String get claudeSessionKeyLabel => 'claude.ai session key';
-  String get claudeSessionKeyHint => 'sk-ant-sid01-…';
-  String get claudeSessionKeyStored =>
-      'A session key is stored (encrypted for this Windows account).';
-  String get claudeSessionKeyInvalid =>
-      'That does not look like a claude.ai session key (it starts with '
-      '"sk-ant-").';
-  String get saveSessionKey => 'Save';
-  String get clearSessionKey => 'Clear';
-  String get browserBridgeStatusLabel => 'Browser extension';
-  String get browserBridgeConnected => 'Connected';
-  String get browserBridgeNotDetected => 'Not detected';
-  String get browserBridgeChecking => 'Checking…';
-  String get openExtensionFolder => 'Open extension folder';
-  String get browserExtensionFolderMissing =>
-      'The bundled browser extension folder was not found next to the app.';
-  String get browserBridgeHowTo =>
-      'In Chrome or Edge open the Extensions page, enable Developer mode, '
-      'choose "Load unpacked", and select the folder above.';
   String appVersion(String version) => 'Version $version';
   String get done => 'Done';
   String get settingsUpdateFailedTitle => 'Setting not changed';

@@ -152,14 +152,6 @@ std::optional<std::string> ReadSnapshot() {
   return std::string(output.data(), bytes_read);
 }
 
-bool IsBridgeConnected() {
-  if (WaitNamedPipeW(kPipeName, 0)) {
-    return true;
-  }
-  // ERROR_PIPE_BUSY means the server exists but is serving another client.
-  return GetLastError() == ERROR_PIPE_BUSY;
-}
-
 }  // namespace
 
 bool IsWindowsBrowserSessionHostInvocation(
@@ -211,12 +203,6 @@ WindowsBrowserSession::WindowsBrowserSession(
           messenger, "com.ailimitstatus/keychain",
           &flutter::StandardMethodCodec::GetInstance())) {
   channel_->SetMethodCallHandler([](const auto& call, auto result) {
-    if (call.method_name() == "isWindowsBrowserBridgeConnected") {
-      // A pipe instance exists only while a browser has the extension
-      // loaded and its native host running.
-      result->Success(flutter::EncodableValue(IsBridgeConnected()));
-      return;
-    }
     if (call.method_name() != "readWindowsBrowserSessions") {
       result->NotImplemented();
       return;

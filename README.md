@@ -161,23 +161,16 @@ Extract the entire ZIP into a normal folder before opening
 `ai_limit_status.exe`; running the executable from inside the compressed archive
 prevents Windows from loading the bundled Flutter and Visual C++ DLLs.
 
-### Claude on Windows without Claude Code
+### Connecting Claude
 
-If Claude Code is not installed (or not signed in) on the PC, the Claude card
-stays visible and explains what is missing. Two ways to connect an existing
-claude.ai login are available from **App settings → claude.ai browser
-session**:
+Claude works exactly like Codex: the app reads the sign-in created by the
+provider CLI. If Claude Code is not installed (or not signed in) on the PC, the
+Claude card stays visible and offers **Install & sign in**, which installs
+`Anthropic.ClaudeCode` through WinGet and starts `claude auth login`. After
+that one-time sign-in the app keeps the token fresh itself.
 
-- **Paste a session key.** In Chrome or Edge, open claude.ai, press F12,
-  choose *Application → Cookies → https://claude.ai*, copy the `sessionKey`
-  value (it starts with `sk-ant-`), paste it into the field and press
-  **Save**. The key is encrypted with Windows DPAPI for your account and can be
-  removed with **Clear**.
-- **Load the bundled browser extension** (below). Settings shows whether the
-  bridge is currently connected and can open the extension folder for you.
-
-Use **Show Codex** / **Show Claude** in the same dialog to hide a provider you
-do not use.
+Use **Show Codex** / **Show Claude** in App settings to hide a provider you do
+not use.
 
 ### Optional Windows browser fallback
 

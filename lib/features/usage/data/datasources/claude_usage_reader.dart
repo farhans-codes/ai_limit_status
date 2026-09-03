@@ -5,7 +5,6 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 
 import 'package:ai_limit_status/core/diagnostics/app_log.dart';
-import 'package:ai_limit_status/features/settings/data/datasources/manual_claude_session_store.dart';
 import 'package:ai_limit_status/features/usage/data/datasources/browser_session_reader.dart';
 import 'package:ai_limit_status/features/usage/data/datasources/provider_executable_locator.dart';
 import 'package:ai_limit_status/features/usage/data/datasources/usage_read_exception.dart';
@@ -22,10 +21,10 @@ import 'package:ai_limit_status/features/usage/domain/entities/provider_usage.da
 ///    in a file this reader can also refresh it shortly before it expires and
 ///    writes the rotated token back so the CLI stays signed in.
 /// 2. The user's claude.ai browser session (`sessionKey` cookie) from the
-///    manual Settings entry (Windows), the opt-in browser bridge (Windows), or
-///    the browser cookie stores (macOS), sent to `https://claude.ai/api`.
+///    opt-in browser bridge (Windows) or the browser cookie stores (macOS),
+///    sent to `https://claude.ai/api`.
 class ClaudeUsageReader {
-  ClaudeUsageReader(this._executableLocator, this._manualSessionStore);
+  ClaudeUsageReader(this._executableLocator);
 
   static const _requestTimeout = Duration(seconds: 8);
   static const _versionTimeout = Duration(seconds: 3);
@@ -61,7 +60,6 @@ class ClaudeUsageReader {
   static const _requiredScope = 'user:profile';
 
   final ProviderExecutableLocator _executableLocator;
-  final ManualClaudeSessionStore _manualSessionStore;
   DateTime? _rateLimitedUntil;
   String? _cachedUserAgent;
   ProviderUsageModel? _lastSuccessfulUsage;
@@ -254,17 +252,12 @@ class ClaudeUsageReader {
       return cached;
     }
     try {
-      var sessionKey = await _manualSessionStore.read();
-      var source = 'manual';
-      if (sessionKey == null) {
-        sessionKey = await readClaudeBrowserSessionKey();
-        source = Platform.isWindows ? 'browser bridge' : 'browser cookies';
-      }
+      final sessionKey = await readClaudeBrowserSessionKey();
       if (sessionKey == null || !sessionKey.startsWith('sk-ant-')) {
         AppLog.log('claude: no claude.ai session key available');
         return null;
       }
-      AppLog.log('claude: using claude.ai session key from $source');
+      AppLog.log('claude: using the claude.ai browser session');
       if (_cachedWebSessionKey != sessionKey) {
         _cachedWebOrganizationId = null;
       }

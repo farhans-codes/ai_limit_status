@@ -14,7 +14,6 @@ class ProviderDetailsCard extends StatelessWidget {
     required this.onSignIn,
     required this.onOpenSetupGuide,
     required this.onCheckAgain,
-    this.onConnectBrowserSession,
     super.key,
   });
 
@@ -25,10 +24,6 @@ class ProviderDetailsCard extends StatelessWidget {
   final VoidCallback onSignIn;
   final VoidCallback onOpenSetupGuide;
   final VoidCallback onCheckAgain;
-
-  /// Opens the claude.ai session settings; shown for Claude when no CLI
-  /// credential can be used and the platform supports a manual session.
-  final VoidCallback? onConnectBrowserSession;
 
   @override
   Widget build(BuildContext context) {
@@ -179,14 +174,6 @@ class ProviderDetailsCard extends StatelessWidget {
                             onSignIn: onSignIn,
                             onOpenSetupGuide: onOpenSetupGuide,
                           ),
-                          secondaryLabel:
-                              usage.provider == UsageProvider.claude &&
-                                  onConnectBrowserSession != null &&
-                                  _offersBrowserSession(usage.connectionIssue)
-                              ? l10n.connectClaudeSession
-                              : null,
-                          secondaryIcon: Icons.language_rounded,
-                          onSecondary: onConnectBrowserSession,
                           checkAgainLabel: l10n.checkAgain,
                           onCheckAgain: onCheckAgain,
                           isSetupInProgress: isSetupInProgress,
@@ -454,18 +441,12 @@ class _DisconnectedMessage extends StatelessWidget {
     required this.checkAgainLabel,
     required this.onCheckAgain,
     required this.isSetupInProgress,
-    this.secondaryLabel,
-    this.secondaryIcon,
-    this.onSecondary,
   });
 
   final String message;
   final String? primaryLabel;
   final IconData? primaryIcon;
   final VoidCallback? onPrimary;
-  final String? secondaryLabel;
-  final IconData? secondaryIcon;
-  final VoidCallback? onSecondary;
   final String checkAgainLabel;
   final VoidCallback onCheckAgain;
   final bool isSetupInProgress;
@@ -501,12 +482,6 @@ class _DisconnectedMessage extends StatelessWidget {
                       : Icon(primaryIcon, size: 17),
                   label: Text(primaryLabel!),
                 ),
-              if (onSecondary != null && secondaryLabel != null)
-                OutlinedButton.icon(
-                  onPressed: isSetupInProgress ? null : onSecondary,
-                  icon: Icon(secondaryIcon, size: 17),
-                  label: Text(secondaryLabel!),
-                ),
               OutlinedButton.icon(
                 onPressed: isSetupInProgress ? null : onCheckAgain,
                 icon: const Icon(Icons.refresh_rounded, size: 17),
@@ -518,18 +493,6 @@ class _DisconnectedMessage extends StatelessWidget {
       ),
     );
   }
-}
-
-/// Issues where connecting (or reconnecting) a claude.ai browser session is
-/// a sensible next step.
-bool _offersBrowserSession(UsageConnectionIssue? issue) {
-  return switch (issue) {
-    UsageConnectionIssue.cliNotFound ||
-    UsageConnectionIssue.notSignedIn ||
-    UsageConnectionIssue.browserSessionExpired ||
-    UsageConnectionIssue.browserBlocked => true,
-    UsageConnectionIssue.unavailable || null => false,
-  };
 }
 
 String? _primarySetupLabel(
