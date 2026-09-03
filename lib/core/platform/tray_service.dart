@@ -76,6 +76,9 @@ class TrayService extends GetxService with TrayListener {
         onShow: _windowService.showPopover,
         onRefresh: onRefresh,
         onQuit: _quit,
+        onPopoverWillShow: _windowService.prepareForNativeShow,
+        onPopoverShown: _windowService.prepareForNativeShow,
+        onPopoverHidden: _windowService.onNativePopoverHidden,
       );
       _isInitialized = true;
       _ready.complete();

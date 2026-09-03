@@ -11,6 +11,7 @@
 class WindowsTaskbarStatus;
 class WindowsNotificationSound;
 class WindowsBrowserSession;
+class WindowsSecureStore;
 
 // A window that does nothing but host a Flutter view.
 class FlutterWindow : public Win32Window {
@@ -41,6 +42,9 @@ class FlutterWindow : public Win32Window {
 
   // Reads an opt-in browser extension's in-memory provider sessions.
   std::unique_ptr<WindowsBrowserSession> windows_browser_session_;
+
+  // DPAPI-backed protect/unprotect for small user secrets.
+  std::unique_ptr<WindowsSecureStore> windows_secure_store_;
 };
 
 #endif  // RUNNER_FLUTTER_WINDOW_H_

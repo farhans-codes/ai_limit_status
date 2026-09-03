@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:ai_limit_status/core/constants/app_strings.dart';
+import 'package:ai_limit_status/core/diagnostics/app_log.dart';
 import 'package:ai_limit_status/core/platform/app_instance_guard.dart';
 import 'package:ai_limit_status/core/platform/app_window_service.dart';
 import 'package:ai_limit_status/core/theme/app_theme.dart';
@@ -15,6 +16,7 @@ Future<void> main() async {
   if (!await AppInstanceGuard.acquire()) {
     exit(0);
   }
+  AppLog.log('app: starting on ${Platform.operatingSystemVersion}');
   await windowManager.ensureInitialized();
 
   final windowService = AppWindowService();
@@ -53,6 +55,7 @@ Future<void> main() async {
       );
     }
     await windowManager.hide();
+    AppLog.log('app: window configured and hidden');
     windowService.markReady();
   });
 }

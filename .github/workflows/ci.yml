@@ -33,6 +33,9 @@ jobs:
       - name: Analyze source
         run: flutter analyze
 
+      - name: Run tests
+        run: flutter test
+
   build-macos:
     runs-on: macos-latest
     steps:

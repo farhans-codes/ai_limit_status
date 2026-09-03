@@ -6,7 +6,9 @@ import 'package:ai_limit_status/features/usage/data/datasources/usage_cache_stor
 import 'package:ai_limit_status/features/usage/domain/entities/provider_usage.dart';
 
 abstract interface class UsageDataSource {
-  Future<List<ProviderUsageModel>> fetchUsage();
+  /// Reads usage for [providers] (every provider when `null`). Providers the
+  /// user hid are skipped entirely so they never trigger credential prompts.
+  Future<List<ProviderUsageModel>> fetchUsage({Set<UsageProvider>? providers});
 }
 
 class LiveUsageDataSource implements UsageDataSource {
@@ -21,10 +23,13 @@ class LiveUsageDataSource implements UsageDataSource {
   final Set<UsageProvider> _loadedPersistentCache = {};
 
   @override
-  Future<List<ProviderUsageModel>> fetchUsage() {
+  Future<List<ProviderUsageModel>> fetchUsage({Set<UsageProvider>? providers}) {
+    final requested = providers ?? UsageProvider.values.toSet();
     return Future.wait([
-      _readProvider(UsageProvider.codex, _codexReader.read),
-      _readProvider(UsageProvider.claude, _claudeReader.read),
+      if (requested.contains(UsageProvider.codex))
+        _readProvider(UsageProvider.codex, _codexReader.read),
+      if (requested.contains(UsageProvider.claude))
+        _readProvider(UsageProvider.claude, _claudeReader.read),
     ]);
   }
 

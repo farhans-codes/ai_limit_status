@@ -3,27 +3,37 @@ import 'dart:async';
 import 'package:ai_limit_status/core/platform/desktop_notification_service.dart';
 import 'package:ai_limit_status/core/platform/desktop_startup_service.dart';
 import 'package:ai_limit_status/features/settings/data/datasources/desktop_settings_store.dart';
+import 'package:ai_limit_status/features/settings/data/datasources/manual_claude_session_store.dart';
 import 'package:ai_limit_status/features/settings/domain/entities/desktop_settings.dart';
 import 'package:ai_limit_status/features/settings/domain/repositories/desktop_settings_repository.dart';
+import 'package:ai_limit_status/features/usage/domain/entities/provider_usage.dart';
 
 class DesktopSettingsRepositoryImpl implements DesktopSettingsRepository {
   DesktopSettingsRepositoryImpl(
     this._store,
     this._notificationService,
     this._startupService,
+    this._manualClaudeSessionStore,
   );
 
   final DesktopSettingsStore _store;
   final DesktopNotificationService _notificationService;
   final DesktopStartupService _startupService;
+  final ManualClaudeSessionStore _manualClaudeSessionStore;
   final StreamController<ClaudeStatusLimitPreference>
   _claudeStatusLimitChanges = StreamController.broadcast();
+  final StreamController<void> _providerConfigurationChanges =
+      StreamController.broadcast();
 
   bool _isInitialized = false;
 
   @override
   Stream<ClaudeStatusLimitPreference> get claudeStatusLimitChanges =>
       _claudeStatusLimitChanges.stream;
+
+  @override
+  Stream<void> get providerConfigurationChanges =>
+      _providerConfigurationChanges.stream;
 
   @override
   Future<void> initialize(String appName) async {
@@ -44,7 +54,53 @@ class DesktopSettingsRepositoryImpl implements DesktopSettingsRepository {
       launchAtStartupEnabled: await _startupService.isEnabled(),
       onboardingCompleted: stored.onboardingCompleted,
       claudeStatusLimitPreference: stored.claudeStatusLimitPreference,
+      visibleProviders: stored.visibleProviders,
+      hasManualClaudeSessionKey: await _manualClaudeSessionStore.exists(),
     );
+  }
+
+  @override
+  Future<Set<UsageProvider>> loadVisibleProviders() async {
+    return (await _store.read()).visibleProviders;
+  }
+
+  @override
+  Future<DesktopSettingUpdateResult> setProviderVisible(
+    UsageProvider provider,
+    bool visible,
+  ) async {
+    try {
+      final stored = await _store.read();
+      final hidden = {...stored.hiddenProviders};
+      if (visible) {
+        hidden.remove(provider);
+      } else {
+        hidden.add(provider);
+      }
+      await _store.write(stored.copyWith(hiddenProviders: hidden));
+      _providerConfigurationChanges.add(null);
+      return DesktopSettingUpdateResult.succeeded;
+    } on Object {
+      return DesktopSettingUpdateResult.failed;
+    }
+  }
+
+  @override
+  Future<DesktopSettingUpdateResult> setManualClaudeSessionKey(
+    String? sessionKey,
+  ) async {
+    if (!_manualClaudeSessionStore.isSupported) {
+      return DesktopSettingUpdateResult.unsupported;
+    }
+    final trimmed = sessionKey?.trim() ?? '';
+    final succeeded = trimmed.isEmpty
+        ? await _manualClaudeSessionStore.clear()
+        : await _manualClaudeSessionStore.write(trimmed);
+    if (!succeeded) {
+      return DesktopSettingUpdateResult.failed;
+    }
+    _providerConfigurationChanges.add(null);
+    return DesktopSettingUpdateResult.succeeded;
   }
 
   @override

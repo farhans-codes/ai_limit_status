@@ -151,6 +151,25 @@ void WindowsTaskbarStatus::HandleMethodCall(
     result->Success(flutter::EncodableValue(IsPointerOverTaskbarUi()));
     return;
   }
+  if (method_call.method_name() == "showPopover") {
+    ShowPopover();
+    result->Success(flutter::EncodableValue(IsPopoverVisible()));
+    return;
+  }
+  if (method_call.method_name() == "hidePopover") {
+    HidePopover();
+    result->Success();
+    return;
+  }
+  if (method_call.method_name() == "togglePopover") {
+    TogglePopover();
+    result->Success(flutter::EncodableValue(IsPopoverVisible()));
+    return;
+  }
+  if (method_call.method_name() == "isPopoverVisible") {
+    result->Success(flutter::EncodableValue(IsPopoverVisible()));
+    return;
+  }
   result->NotImplemented();
 }
 
@@ -202,6 +221,8 @@ void WindowsTaskbarStatus::UpdateOverlay() {
     return;
   }
   SetWindowTextW(overlay_window_, tooltip_.c_str());
+  // Content changed: force the next PositionOverlay to repaint.
+  last_rendered_signature_.clear();
   PositionOverlay();
 }
 
@@ -212,6 +233,7 @@ void WindowsTaskbarStatus::PositionOverlay() {
   const HWND taskbar = FindWindowW(L"Shell_TrayWnd", nullptr);
   if (taskbar == nullptr) {
     ShowWindow(overlay_window_, SW_HIDE);
+    overlay_rendered_ = false;
     return;
   }
 
@@ -239,6 +261,7 @@ void WindowsTaskbarStatus::PositionOverlay() {
                                     : taskbar_bounds.right - taskbar_bounds.left;
   if (taskbar_thickness < ScaleForDpi(24, dpi)) {
     ShowWindow(overlay_window_, SW_HIDE);
+    overlay_rendered_ = false;
     return;
   }
   const HWND notification_area =
@@ -268,10 +291,144 @@ void WindowsTaskbarStatus::PositionOverlay() {
                  bottom_anchor - height - padding);
   }
 
+  // Skip the work (and the z-order churn) when nothing changed since the
+  // last render; the timer calls this once per second.
+  const RECT bounds{x, y, x + width, y + height};
+  std::wstring signature = tooltip_;
+  signature += L'|';
+  signature += codex_value_.value_or(L"<none>");
+  signature += L'|';
+  signature += claude_value_.value_or(L"<none>");
+  signature += L'|';
+  signature += std::to_wstring(dpi);
+  if (overlay_rendered_ && IsWindowVisible(overlay_window_) &&
+      EqualRect(&bounds, &last_overlay_bounds_) &&
+      signature == last_rendered_signature_) {
+    return;
+  }
+
   SetWindowPos(overlay_window_, HWND_TOPMOST, x, y, width, height,
                SWP_NOACTIVATE | SWP_NOREDRAW);
   if (RenderLayeredOverlay(x, y, width, height)) {
     ShowWindow(overlay_window_, SW_SHOWNOACTIVATE);
+    last_overlay_bounds_ = bounds;
+    last_rendered_signature_ = std::move(signature);
+    overlay_rendered_ = true;
+  } else {
+    overlay_rendered_ = false;
+  }
+}
+
+bool WindowsTaskbarStatus::IsPopoverVisible() const {
+  return host_window_ != nullptr && IsWindowVisible(host_window_) != FALSE;
+}
+
+RECT WindowsTaskbarStatus::PopoverBoundsAnchoredToTaskbar(int width,
+                                                          int height) const {
+  // Anchor to the overlay when it is on screen, otherwise to the cursor
+  // (for example when the taskbar could not be found).
+  RECT anchor{};
+  const bool has_overlay =
+      overlay_window_ != nullptr && IsWindowVisible(overlay_window_) &&
+      GetWindowRect(overlay_window_, &anchor);
+  if (!has_overlay) {
+    POINT cursor{};
+    GetCursorPos(&cursor);
+    anchor = RECT{cursor.x, cursor.y, cursor.x, cursor.y};
+  }
+
+  HMONITOR monitor = MonitorFromRect(&anchor, MONITOR_DEFAULTTONEAREST);
+  MONITORINFO monitor_info{};
+  monitor_info.cbSize = sizeof(monitor_info);
+  RECT work{};
+  if (GetMonitorInfoW(monitor, &monitor_info)) {
+    // rcWork excludes the taskbar, so the window never opens underneath it.
+    work = monitor_info.rcWork;
+  } else {
+    work = RECT{0, 0, GetSystemMetrics(SM_CXSCREEN),
+                GetSystemMetrics(SM_CYSCREEN)};
+  }
+  const UINT dpi = DpiForWindowOrDefault(
+      has_overlay ? overlay_window_ : host_window_);
+  const int gap = ScaleForDpi(10, dpi);
+
+  const int anchor_center_x = (anchor.left + anchor.right) / 2;
+  const int anchor_center_y = (anchor.top + anchor.bottom) / 2;
+  int x = anchor_center_x - width / 2;
+  int y = 0;
+  if (anchor.top >= work.bottom) {
+    // Taskbar at the bottom: open upward.
+    y = anchor.top - height - gap;
+  } else if (anchor.bottom <= work.top) {
+    // Taskbar at the top: open downward.
+    y = anchor.bottom + gap;
+  } else if (anchor.right <= work.left) {
+    // Taskbar on the left: open to the right.
+    x = anchor.right + gap;
+    y = anchor_center_y - height / 2;
+  } else if (anchor.left >= work.right) {
+    // Taskbar on the right: open to the left.
+    x = anchor.left - width - gap;
+    y = anchor_center_y - height / 2;
+  } else {
+    // Anchor inside the work area (cursor fallback): prefer above.
+    y = anchor.top - height - gap;
+    if (y < work.top) {
+      y = anchor.bottom + gap;
+    }
+  }
+
+  const int max_x = std::max(static_cast<int>(work.left),
+                             static_cast<int>(work.right) - width);
+  const int max_y = std::max(static_cast<int>(work.top),
+                             static_cast<int>(work.bottom) - height);
+  x = std::min(std::max(x, static_cast<int>(work.left)), max_x);
+  y = std::min(std::max(y, static_cast<int>(work.top)), max_y);
+  return RECT{x, y, x + width, y + height};
+}
+
+void WindowsTaskbarStatus::ShowPopover() {
+  if (host_window_ == nullptr) {
+    return;
+  }
+  RECT host{};
+  if (!GetWindowRect(host_window_, &host)) {
+    return;
+  }
+  const int width = host.right - host.left;
+  const int height = host.bottom - host.top;
+  const RECT bounds = PopoverBoundsAnchoredToTaskbar(width, height);
+
+  // Dart is told first so its blur handling can ignore the activation churn
+  // that showing and focusing the window produces.
+  InvokeDart("popoverWillShow");
+  SetWindowPos(host_window_, HWND_TOPMOST, bounds.left, bounds.top, 0, 0,
+               SWP_NOSIZE | SWP_NOOWNERZORDER | SWP_SHOWWINDOW);
+  // Called on the thread that received the click, so the foreground lock
+  // allows it even though the overlay itself never activates.
+  if (!SetForegroundWindow(host_window_)) {
+    // Fall back to the async request when another process holds the lock;
+    // the window is still visible and topmost either way.
+    SetActiveWindow(host_window_);
+  }
+  OutputDebugStringW(L"[AI Limit Status] popover shown\n");
+  InvokeDart("popoverShown");
+}
+
+void WindowsTaskbarStatus::HidePopover() {
+  if (host_window_ == nullptr) {
+    return;
+  }
+  ShowWindow(host_window_, SW_HIDE);
+  OutputDebugStringW(L"[AI Limit Status] popover hidden\n");
+  InvokeDart("popoverHidden");
+}
+
+void WindowsTaskbarStatus::TogglePopover() {
+  if (IsPopoverVisible()) {
+    HidePopover();
+  } else {
+    ShowPopover();
   }
 }
 
@@ -475,7 +632,7 @@ void WindowsTaskbarStatus::ShowContextMenu() {
 
   switch (command) {
     case kOpenCommand:
-      InvokeDart("show");
+      ShowPopover();
       break;
     case kRefreshCommand:
       InvokeDart("refresh");
@@ -550,7 +707,8 @@ LRESULT CALLBACK WindowsTaskbarStatus::OverlayWindowProc(HWND window,
       case WM_ERASEBKGND:
         return 1;
       case WM_LBUTTONUP:
-        status->InvokeDart("toggle");
+        OutputDebugStringW(L"[AI Limit Status] overlay clicked\n");
+        status->TogglePopover();
         return 0;
       case WM_RBUTTONUP:
         status->ShowContextMenu();
