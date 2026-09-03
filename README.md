@@ -161,6 +161,24 @@ Extract the entire ZIP into a normal folder before opening
 `ai_limit_status.exe`; running the executable from inside the compressed archive
 prevents Windows from loading the bundled Flutter and Visual C++ DLLs.
 
+### Claude on Windows without Claude Code
+
+If Claude Code is not installed (or not signed in) on the PC, the Claude card
+stays visible and explains what is missing. Two ways to connect an existing
+claude.ai login are available from **App settings → claude.ai browser
+session**:
+
+- **Paste a session key.** In Chrome or Edge, open claude.ai, press F12,
+  choose *Application → Cookies → https://claude.ai*, copy the `sessionKey`
+  value (it starts with `sk-ant-`), paste it into the field and press
+  **Save**. The key is encrypted with Windows DPAPI for your account and can be
+  removed with **Clear**.
+- **Load the bundled browser extension** (below). Settings shows whether the
+  bridge is currently connected and can open the extension folder for you.
+
+Use **Show Codex** / **Show Claude** in the same dialog to hide a provider you
+do not use.
+
 ### Optional Windows browser fallback
 
 If a provider's CLI session cannot return usage, Windows users can opt in to
@@ -219,6 +237,11 @@ AI Limit Status does not ask users to paste an API key into the app.
 - Claude usage requires the existing Claude Code OAuth credential. On macOS,
   the app reads it from the `Claude Code-credentials` Keychain entry. On
   Windows, it reads the provider-owned `.claude/.credentials.json` file.
+- Shortly before a file-backed Claude token expires, AI Limit Status may
+  refresh it through `https://platform.claude.com/v1/oauth/token` with Claude
+  Code's own OAuth client and write the rotated credential back to the same
+  `.credentials.json` file so the Claude CLI stays in sync. Keychain-held
+  credentials are never rewritten.
 - The Claude access token is held in memory only long enough to request usage
   from `https://api.anthropic.com/api/oauth/usage`. AI Limit Status does not
   write the token to its own files or logs.
@@ -227,7 +250,9 @@ AI Limit Status does not ask users to paste an API key into the app.
   supported browser and request usage from `https://claude.ai/api`. The session
   key is not written to AI Limit Status cache, settings, or logs.
 - Local cache files contain only remaining percentages, reset timestamps, and
-  the last successful update time.
+  the last successful update time. A small diagnostic log
+  (`logs/app.log`, never uploaded) records window and provider events without
+  tokens or usage payloads; attach it to bug reports.
 - No usage data is sent to the project maintainer or any analytics service.
 
 Read the complete [privacy statement](PRIVACY.md) and

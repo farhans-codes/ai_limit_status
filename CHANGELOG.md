@@ -6,6 +6,41 @@ The project follows Semantic Versioning for public releases.
 
 ## [Unreleased]
 
+### Added
+
+- Show disconnected providers in the details window with the reason and the
+  matching action (install, sign in, connect claude.ai) instead of hiding
+  them; the Windows taskbar and macOS menu bar now show `—` for a visible but
+  disconnected provider.
+- Add **Show Codex** / **Show Claude** switches in App settings so a provider
+  can be hidden deliberately (hidden providers are not read at all).
+- Refresh a file-backed Claude Code OAuth token shortly before it expires
+  through Claude Code's own OAuth client and write it back to
+  `.credentials.json`, so Windows users who do not run `claude` daily keep
+  live Claude usage.
+- Let Windows users paste a `claude.ai` session key in App settings (stored
+  DPAPI-encrypted) as an alternative to the browser extension bridge, and show
+  the bridge's live status with a one-click **Open extension folder** action.
+- Distinguish an expired claude.ai session from a Cloudflare challenge in the
+  Claude card so users know whether signing in again will help.
+- Write a small local diagnostic log (`logs/app.log`) of window and provider
+  events, without tokens or usage payloads, to make bug reports actionable.
+
+### Fixed
+
+- Open the Windows details window reliably from the taskbar indicators: the
+  runner now positions, shows, focuses, and toggles the window natively from
+  the click handler (anchored to the indicators and clamped to the monitor
+  work area) instead of a Dart round trip through screen and window plugins,
+  and no longer races the startup `hide()` against the stock first-frame
+  `Show()`.
+- Stop the taskbar overlay from re-asserting its topmost position every
+  second when nothing changed, which could disturb the open details window.
+- Report the most actionable Claude connection issue (signed-out CLI, rejected
+  browser session, Cloudflare block) instead of collapsing everything into
+  "CLI not found".
+- Honour `CLAUDE_SECURESTORAGE_CONFIG_DIR` when locating `.credentials.json`.
+
 ## [0.7.0] - 2026-08-31
 
 ### Added
