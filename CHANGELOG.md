@@ -6,6 +6,8 @@ The project follows Semantic Versioning for public releases.
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-09-03
+
 ### Added
 
 - Show disconnected providers in the details window with the reason and the
