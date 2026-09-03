@@ -31,6 +31,8 @@ class ProviderUsageModel extends ProviderUsage {
       provider: provider,
       limits: const [],
       isConnected: false,
+      // `isInstalled` is informational only; disconnected providers are
+      // shown with an actionable card instead of being dropped from the UI.
       isInstalled: issue != UsageConnectionIssue.cliNotFound,
       fetchedAt: DateTime.now(),
       connectionIssue: issue,

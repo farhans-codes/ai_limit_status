@@ -2,7 +2,25 @@ enum UsageProvider { codex, claude }
 
 enum UsageLimitType { session, weekly, fableWeekly, opusWeekly, sonnetWeekly }
 
-enum UsageConnectionIssue { cliNotFound, notSignedIn, unavailable }
+enum UsageConnectionIssue {
+  /// No provider CLI and no other credential source was found.
+  cliNotFound,
+
+  /// The CLI is installed (or a credential store exists) but holds no valid
+  /// sign-in, or the provider rejected the stored token permanently.
+  notSignedIn,
+
+  /// A claude.ai browser session was available but the provider rejected it;
+  /// the user must sign in to claude.ai again (or paste a new session key).
+  browserSessionExpired,
+
+  /// claude.ai answered with a Cloudflare challenge (typically VPN or
+  /// datacenter networks). Signing in again does not help.
+  browserBlocked,
+
+  /// A temporary failure; the last successful snapshot is kept when present.
+  unavailable,
+}
 
 class UsageLimit {
   const UsageLimit({

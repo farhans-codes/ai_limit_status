@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:get/get.dart';
 import 'package:ai_limit_status/core/constants/app_strings.dart';
+import 'package:ai_limit_status/core/diagnostics/app_log.dart';
 import 'package:ai_limit_status/core/platform/tray_service.dart';
 import 'package:ai_limit_status/features/settings/domain/entities/desktop_settings.dart';
 import 'package:ai_limit_status/features/settings/domain/repositories/desktop_settings_repository.dart';
@@ -47,6 +48,7 @@ class UsageController extends GetxController {
   final Map<UsageProvider, Timer> _connectionPollingTimers = {};
   StreamSubscription<ClaudeStatusLimitPreference>?
   _claudeStatusLimitSubscription;
+  StreamSubscription<void>? _providerConfigurationSubscription;
   ClaudeStatusLimitPreference _claudeStatusLimitPreference =
       ClaudeStatusLimitPreference.fiveHour;
   bool _isRefreshing = false;
@@ -71,6 +73,9 @@ class UsageController extends GetxController {
           _claudeStatusLimitPreference = preference;
           unawaited(_updateTray());
         });
+    _providerConfigurationSubscription = _settingsRepository
+        .providerConfigurationChanges
+        .listen((_) => unawaited(refreshUsage()));
     _claudeStatusLimitPreference = await _settingsRepository
         .loadClaudeStatusLimitPreference();
     await _trayService.initialize(
@@ -99,10 +104,16 @@ class UsageController extends GetxController {
     try {
       final previousUsages = usages.toList(growable: false);
       usages.assignAll(await _getUsageSummary());
+      AppLog.log(
+        'usage: ${usages.map((usage) => '${usage.provider.name}='
+            '${usage.isConnected ? 'connected' : usage.connectionIssue?.name}'
+            '${usage.isStale ? '(cached)' : ''}').join(', ')}',
+      );
       _stopPollingForConnectedProviders();
       await _updateTray();
       await _notifyForThresholds(previousUsages);
-    } on Object {
+    } on Object catch (error) {
+      AppLog.log('usage: refresh failed: $error');
       hasError.value = true;
     } finally {
       isLoading.value = false;
@@ -376,6 +387,7 @@ class UsageController extends GetxController {
   void onClose() {
     _refreshTimer?.cancel();
     _claudeStatusLimitSubscription?.cancel();
+    _providerConfigurationSubscription?.cancel();
     for (final timer in _connectionPollingTimers.values) {
       timer.cancel();
     }

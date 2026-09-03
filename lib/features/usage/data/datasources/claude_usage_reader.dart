@@ -4,14 +4,28 @@ import 'dart:io';
 
 import 'package:flutter/services.dart';
 
+import 'package:ai_limit_status/core/diagnostics/app_log.dart';
+import 'package:ai_limit_status/features/settings/data/datasources/manual_claude_session_store.dart';
 import 'package:ai_limit_status/features/usage/data/datasources/browser_session_reader.dart';
 import 'package:ai_limit_status/features/usage/data/datasources/provider_executable_locator.dart';
 import 'package:ai_limit_status/features/usage/data/datasources/usage_read_exception.dart';
 import 'package:ai_limit_status/features/usage/data/models/provider_usage_model.dart';
 import 'package:ai_limit_status/features/usage/domain/entities/provider_usage.dart';
 
+/// Reads Claude subscription usage.
+///
+/// Sources, in order (mirroring CodexBar's planner):
+///
+/// 1. The Claude Code OAuth credential (`claudeAiOauth.accessToken`) from the
+///    macOS keychain or `.credentials.json`, sent to
+///    `https://api.anthropic.com/api/oauth/usage`. When the credential lives
+///    in a file this reader can also refresh it shortly before it expires and
+///    writes the rotated token back so the CLI stays signed in.
+/// 2. The user's claude.ai browser session (`sessionKey` cookie) from the
+///    manual Settings entry (Windows), the opt-in browser bridge (Windows), or
+///    the browser cookie stores (macOS), sent to `https://claude.ai/api`.
 class ClaudeUsageReader {
-  ClaudeUsageReader(this._executableLocator);
+  ClaudeUsageReader(this._executableLocator, this._manualSessionStore);
 
   static const _requestTimeout = Duration(seconds: 8);
   static const _versionTimeout = Duration(seconds: 3);
@@ -29,16 +43,32 @@ class ClaudeUsageReader {
   static const _credentialsCacheTtl = Duration(minutes: 10);
   static const _webSessionCacheTtl = Duration(minutes: 30);
 
+  /// Refresh a file-backed OAuth token this long before it expires so the
+  /// usage request never races the expiry.
+  static const _refreshLeeway = Duration(minutes: 5);
+
+  /// Back-off after a refresh attempt fails for a transient reason.
+  static const _refreshFailureCooldown = Duration(minutes: 10);
+
   static const _keychainChannel = MethodChannel('com.ailimitstatus/keychain');
   static const _keychainService = 'Claude Code-credentials';
 
+  /// Claude Code's public OAuth client, used only to refresh a token the CLI
+  /// itself issued. Same value CodexBar uses.
+  static const _oauthClientId = '9d1c250a-e61b-44d9-88ed-5944d1962f5e';
+  static const _oauthTokenEndpoint =
+      'https://platform.claude.com/v1/oauth/token';
+  static const _requiredScope = 'user:profile';
+
   final ProviderExecutableLocator _executableLocator;
+  final ManualClaudeSessionStore _manualSessionStore;
   DateTime? _rateLimitedUntil;
   String? _cachedUserAgent;
   ProviderUsageModel? _lastSuccessfulUsage;
   DateTime? _keychainDeniedAt;
   _ClaudeCredentials? _cachedCredentials;
   DateTime? _credentialsReadAt;
+  DateTime? _refreshBlockedUntil;
   String? _cachedWebSessionKey;
   String? _cachedWebOrganizationId;
   DateTime? _webSessionReadAt;
@@ -56,11 +86,14 @@ class ClaudeUsageReader {
     final credentials = await _readCredentialsCached();
     if (credentials != null) {
       try {
-        payload = await _fetchUsage(credentials);
+        payload = await _fetchUsageWithRefresh(credentials);
+        AppLog.log('claude: OAuth usage read succeeded');
       } on UsageReadException catch (error) {
         directIssue = error.issue;
-      } on Object {
+        AppLog.log('claude: OAuth usage read failed: ${error.issue.name}');
+      } on Object catch (error) {
         directIssue = UsageConnectionIssue.unavailable;
+        AppLog.log('claude: OAuth usage read error: ${error.runtimeType}');
       }
     } else {
       // Stored credentials count as an install even without a resolvable
@@ -69,17 +102,28 @@ class ClaudeUsageReader {
       directIssue = executable == null
           ? UsageConnectionIssue.cliNotFound
           : UsageConnectionIssue.notSignedIn;
+      AppLog.log('claude: no OAuth credential (${directIssue.name})');
     }
 
+    UsageConnectionIssue? webIssue;
     if (payload == null && (Platform.isMacOS || Platform.isWindows)) {
       try {
         payload = await _fetchWebUsage();
+        AppLog.log('claude: claude.ai session usage read succeeded');
       } on UsageReadException catch (error) {
-        throw UsageReadException(directIssue ?? error.issue);
+        webIssue = error.issue;
+        AppLog.log(
+          'claude: claude.ai session read failed: ${error.issue.name}',
+        );
+      } on Object catch (error) {
+        webIssue = UsageConnectionIssue.unavailable;
+        AppLog.log(
+          'claude: claude.ai session read error: ${error.runtimeType}',
+        );
       }
     }
     if (payload == null) {
-      throw UsageReadException(directIssue ?? UsageConnectionIssue.unavailable);
+      throw UsageReadException(_mostActionableIssue(directIssue, webIssue));
     }
 
     final limits = _parseLimits(payload);
@@ -94,6 +138,30 @@ class ClaudeUsageReader {
       isInstalled: true,
       fetchedAt: DateTime.now(),
     );
+  }
+
+  /// Picks the issue the user can actually act on when every source failed.
+  ///
+  /// A browser session that exists but is rejected or blocked explains more
+  /// than "CLI not found"; a signed-out CLI beats a missing one; and a
+  /// temporary failure is reported only when nothing else applies, because
+  /// `unavailable` keeps the cached snapshot instead of showing setup
+  /// actions.
+  UsageConnectionIssue _mostActionableIssue(
+    UsageConnectionIssue? directIssue,
+    UsageConnectionIssue? webIssue,
+  ) {
+    if (webIssue == UsageConnectionIssue.browserBlocked ||
+        webIssue == UsageConnectionIssue.browserSessionExpired) {
+      return directIssue == UsageConnectionIssue.notSignedIn
+          ? directIssue!
+          : webIssue!;
+    }
+    if (directIssue == UsageConnectionIssue.notSignedIn ||
+        directIssue == UsageConnectionIssue.cliNotFound) {
+      return directIssue!;
+    }
+    return directIssue ?? webIssue ?? UsageConnectionIssue.unavailable;
   }
 
   Future<_ClaudeCredentials?> _readCredentialsCached() async {
@@ -119,13 +187,13 @@ class ClaudeUsageReader {
     // Otherwise, on macOS the CLI stores credentials in the keychain first
     // and keeps the file as a fallback; on Windows the file is the only
     // store. Reading both sides mirrors CodexBar.
-    final sources = <Future<String?> Function()>[
+    final sources = <Future<_ClaudeCredentials?> Function()>[
       if (hasOverride) _readCredentialsFile,
       if (Platform.isMacOS) _readMacKeychainCredentials,
       if (!hasOverride) _readCredentialsFile,
     ];
     for (final source in sources) {
-      final credentials = _parseCredentials(await source());
+      final credentials = await source();
       if (credentials != null) {
         return credentials;
       }
@@ -138,12 +206,13 @@ class ClaudeUsageReader {
   /// access prompt once and "Always Allow" keeps every later read silent.
   /// The `security` command-line tool remains a fallback for older builds
   /// whose runner does not implement the channel yet.
-  Future<String?> _readMacKeychainCredentials() async {
+  Future<_ClaudeCredentials?> _readMacKeychainCredentials() async {
     final deniedAt = _keychainDeniedAt;
     if (deniedAt != null &&
         DateTime.now().difference(deniedAt) < _keychainDenialCooldown) {
       return null;
     }
+    String? raw;
     try {
       final response = await _keychainChannel
           .invokeMapMethod<String, Object?>('readGenericPassword', {
@@ -153,23 +222,27 @@ class ClaudeUsageReader {
       final value = response?['value'];
       if (value is String && value.isNotEmpty) {
         _keychainDeniedAt = null;
-        return value;
+        raw = value;
+      } else {
+        final status = response?['status'];
+        // -128: the user canceled the prompt; -25293: authorization failed.
+        // Back off so the prompt does not reappear on every refresh.
+        if (status == -128 || status == -25293) {
+          _keychainDeniedAt = DateTime.now();
+        }
+        // Any explicit status (including -25300 item-not-found) is a
+        // conclusive answer from the same keychain the CLI tool would query,
+        // so do not run the CLI and risk a second prompt.
+        return null;
       }
-      final status = response?['status'];
-      // -128: the user canceled the prompt; -25293: authorization failed.
-      // Back off so the prompt does not reappear on every refresh.
-      if (status == -128 || status == -25293) {
-        _keychainDeniedAt = DateTime.now();
-      }
-      // Any explicit status (including -25300 item-not-found) is a
-      // conclusive answer from the same keychain the CLI tool would query,
-      // so do not run the CLI and risk a second prompt.
-      return null;
     } on Object {
       // The channel is unavailable (old runner build) or timed out; try the
       // command-line fallback once.
-      return _readKeychainCredentials();
+      raw = await _readKeychainCredentials();
     }
+    // Keychain credentials belong to the CLI, which refreshes them itself;
+    // never rotate them from here.
+    return _parseCredentials(raw, writableFile: null);
   }
 
   Future<String?> _readWebSessionKey() async {
@@ -181,10 +254,17 @@ class ClaudeUsageReader {
       return cached;
     }
     try {
-      final sessionKey = await readClaudeBrowserSessionKey();
+      var sessionKey = await _manualSessionStore.read();
+      var source = 'manual';
+      if (sessionKey == null) {
+        sessionKey = await readClaudeBrowserSessionKey();
+        source = Platform.isWindows ? 'browser bridge' : 'browser cookies';
+      }
       if (sessionKey == null || !sessionKey.startsWith('sk-ant-')) {
+        AppLog.log('claude: no claude.ai session key available');
         return null;
       }
+      AppLog.log('claude: using claude.ai session key from $source');
       if (_cachedWebSessionKey != sessionKey) {
         _cachedWebOrganizationId = null;
       }
@@ -233,27 +313,47 @@ class ClaudeUsageReader {
     }
   }
 
-  Future<String?> _readCredentialsFile() async {
+  /// Resolves the credentials file like CodexBar: `CLAUDE_CONFIG_DIR` is a
+  /// single literal directory (no `~` expansion), and
+  /// `CLAUDE_SECURESTORAGE_CONFIG_DIR` overrides where `.credentials.json`
+  /// itself lives.
+  File _credentialsFile() {
+    final environment = Platform.environment;
+    final separator = Platform.isWindows ? r'\' : '/';
+    final home = Platform.isWindows
+        ? environment['USERPROFILE']
+        : environment['HOME'];
+    final defaultRoot = '$home$separator.claude';
+    final configDir = environment['CLAUDE_CONFIG_DIR'];
+    var root = configDir != null && configDir.isNotEmpty
+        ? configDir
+        : defaultRoot;
+    final secureRoot = environment['CLAUDE_SECURESTORAGE_CONFIG_DIR'];
+    if (secureRoot != null) {
+      root = secureRoot.isEmpty ? defaultRoot : secureRoot;
+    }
+    return File('$root$separator.credentials.json');
+  }
+
+  Future<_ClaudeCredentials?> _readCredentialsFile() async {
     try {
-      final configDirectory =
-          Platform.environment['CLAUDE_CONFIG_DIR'] ??
-          (Platform.isWindows
-              ? '${Platform.environment['USERPROFILE']}\\.claude'
-              : '${Platform.environment['HOME']}/.claude');
-      final separator = Platform.isWindows ? r'\' : '/';
-      final credentialsFile = File(
-        '$configDirectory$separator.credentials.json',
-      );
+      final credentialsFile = _credentialsFile();
       if (!await credentialsFile.exists()) {
         return null;
       }
-      return await credentialsFile.readAsString();
+      return _parseCredentials(
+        await credentialsFile.readAsString(),
+        writableFile: credentialsFile,
+      );
     } on Object {
       return null;
     }
   }
 
-  _ClaudeCredentials? _parseCredentials(String? credentialsJson) {
+  _ClaudeCredentials? _parseCredentials(
+    String? credentialsJson, {
+    required File? writableFile,
+  }) {
     final credentials = _decodeMap(credentialsJson);
     final oauth = credentials?['claudeAiOauth'];
     if (oauth is! Map<String, dynamic>) {
@@ -264,10 +364,206 @@ class ClaudeUsageReader {
       return null;
     }
     final refreshToken = oauth['refreshToken'];
+    final expiresAt = oauth['expiresAt'];
+    final scopes = oauth['scopes'];
     return _ClaudeCredentials(
       accessToken: accessToken,
-      hasRefreshToken: refreshToken is String && refreshToken.isNotEmpty,
+      refreshToken: refreshToken is String && refreshToken.isNotEmpty
+          ? refreshToken
+          : null,
+      expiresAt: expiresAt is num
+          ? DateTime.fromMillisecondsSinceEpoch(expiresAt.toInt())
+          : null,
+      scopes: scopes is List
+          ? scopes.map((scope) => scope.toString()).toList()
+          : const [],
+      document: credentials!,
+      writableFile: writableFile,
     );
+  }
+
+  /// Fetches usage, refreshing a file-backed token first when it is about
+  /// to expire, and once more after an unexpected `401`.
+  Future<Map<String, dynamic>> _fetchUsageWithRefresh(
+    _ClaudeCredentials credentials,
+  ) async {
+    var current = credentials;
+    if (current.scopes.isNotEmpty && !current.scopes.contains(_requiredScope)) {
+      // The usage endpoint needs `user:profile`; the CLI grants it on sign-in
+      // but a `claude setup-token` token may not carry it.
+      AppLog.log('claude: OAuth token lacks $_requiredScope scope');
+      throw const UsageReadException(UsageConnectionIssue.notSignedIn);
+    }
+    if (current.isExpiringWithin(_refreshLeeway)) {
+      current = await _refreshCredentials(current) ?? current;
+    }
+    try {
+      return await _fetchUsage(current);
+    } on _UnauthorizedException {
+      // Re-read the store on the next poll instead of retrying a token the
+      // server has already rejected.
+      _cachedCredentials = null;
+      final refreshed = await _refreshCredentials(current);
+      if (refreshed != null) {
+        try {
+          return await _fetchUsage(refreshed);
+        } on _UnauthorizedException {
+          // Fall through to the classification below.
+        }
+      }
+      // A rejected token alongside a refresh token usually means the access
+      // token lapsed and the CLI will repair it on its next run; keep the
+      // cached snapshot meanwhile. Without one the user must sign in again.
+      throw UsageReadException(
+        current.refreshToken != null
+            ? UsageConnectionIssue.unavailable
+            : UsageConnectionIssue.notSignedIn,
+      );
+    }
+  }
+
+  /// Refreshes a file-backed OAuth credential through Claude Code's own
+  /// client and writes the rotated token back to the same file so the CLI
+  /// keeps working. Keychain credentials are never refreshed here.
+  Future<_ClaudeCredentials?> _refreshCredentials(
+    _ClaudeCredentials credentials,
+  ) async {
+    final refreshToken = credentials.refreshToken;
+    final file = credentials.writableFile;
+    if (refreshToken == null || file == null) {
+      return null;
+    }
+    final blockedUntil = _refreshBlockedUntil;
+    if (blockedUntil != null && DateTime.now().isBefore(blockedUntil)) {
+      return null;
+    }
+
+    final client = HttpClient()..connectionTimeout = _requestTimeout;
+    try {
+      final request = await client
+          .postUrl(Uri.parse(_oauthTokenEndpoint))
+          .timeout(_requestTimeout);
+      request.headers
+        ..set(
+          HttpHeaders.contentTypeHeader,
+          'application/x-www-form-urlencoded',
+        )
+        ..set(HttpHeaders.acceptHeader, 'application/json');
+      request.write(
+        Uri(
+          queryParameters: {
+            'grant_type': 'refresh_token',
+            'refresh_token': refreshToken,
+            'client_id': _oauthClientId,
+          },
+        ).query,
+      );
+      final response = await request.close().timeout(_requestTimeout);
+      final body = await utf8.decoder
+          .bind(response)
+          .join()
+          .timeout(_requestTimeout);
+      if (response.statusCode == HttpStatus.badRequest ||
+          response.statusCode == HttpStatus.unauthorized) {
+        final error = _decodeMap(body)?['error'];
+        AppLog.log(
+          'claude: token refresh rejected (${response.statusCode}, $error)',
+        );
+        if (error == 'invalid_grant') {
+          _cachedCredentials = null;
+          // The CLI may have rotated the token concurrently; prefer whatever
+          // it wrote before declaring the sign-in dead.
+          final latest = await _readCredentialsFile();
+          if (latest != null && latest.accessToken != credentials.accessToken) {
+            AppLog.log('claude: using credential rotated by the CLI');
+            _cachedCredentials = latest;
+            _credentialsReadAt = DateTime.now();
+            return latest;
+          }
+          throw const UsageReadException(UsageConnectionIssue.notSignedIn);
+        }
+        _refreshBlockedUntil = DateTime.now().add(_refreshFailureCooldown);
+        return null;
+      }
+      if (response.statusCode != HttpStatus.ok) {
+        AppLog.log('claude: token refresh failed (${response.statusCode})');
+        _refreshBlockedUntil = DateTime.now().add(_refreshFailureCooldown);
+        return null;
+      }
+      final payload = _decodeMap(body);
+      final accessToken = payload?['access_token'];
+      if (accessToken is! String || accessToken.isEmpty) {
+        _refreshBlockedUntil = DateTime.now().add(_refreshFailureCooldown);
+        return null;
+      }
+      final expiresIn = payload?['expires_in'];
+      final rotatedRefreshToken = payload?['refresh_token'];
+      final refreshed = credentials.copyWith(
+        accessToken: accessToken,
+        refreshToken:
+            rotatedRefreshToken is String && rotatedRefreshToken.isNotEmpty
+            ? rotatedRefreshToken
+            : refreshToken,
+        // Anthropic returns `expires_in`; if it ever does not, assume one
+        // hour rather than inheriting the old expiry and refreshing on
+        // every poll.
+        expiresAt: DateTime.now().add(
+          expiresIn is num
+              ? Duration(seconds: expiresIn.toInt())
+              : const Duration(hours: 1),
+        ),
+      );
+      await _writeCredentials(refreshed);
+      _cachedCredentials = refreshed;
+      _credentialsReadAt = DateTime.now();
+      _refreshBlockedUntil = null;
+      AppLog.log('claude: OAuth token refreshed and written back');
+      return refreshed;
+    } on UsageReadException {
+      rethrow;
+    } on Object catch (error) {
+      AppLog.log('claude: token refresh error: ${error.runtimeType}');
+      _refreshBlockedUntil = DateTime.now().add(_refreshFailureCooldown);
+      return null;
+    } finally {
+      client.close(force: true);
+    }
+  }
+
+  /// Writes the rotated credential back, preserving every other key in the
+  /// file (`mcpOAuth`, scopes, subscription metadata) and replacing the file
+  /// atomically so a crash cannot leave the CLI with a truncated store.
+  Future<void> _writeCredentials(_ClaudeCredentials credentials) async {
+    final file = credentials.writableFile;
+    if (file == null) {
+      return;
+    }
+    final document = Map<String, dynamic>.from(credentials.document);
+    final oauth = Map<String, dynamic>.from(
+      document['claudeAiOauth'] as Map<String, dynamic>? ?? const {},
+    );
+    oauth['accessToken'] = credentials.accessToken;
+    if (credentials.refreshToken != null) {
+      oauth['refreshToken'] = credentials.refreshToken;
+    }
+    final expiresAt = credentials.expiresAt;
+    if (expiresAt != null) {
+      oauth['expiresAt'] = expiresAt.millisecondsSinceEpoch;
+    }
+    document['claudeAiOauth'] = oauth;
+
+    final temporary = File('${file.path}.ai-limit-status.tmp');
+    await temporary.writeAsString(jsonEncode(document), flush: true);
+    try {
+      await temporary.rename(file.path);
+    } on FileSystemException {
+      // Windows cannot rename over an open file; fall back to an in-place
+      // write, which the CLI tolerates.
+      await file.writeAsString(jsonEncode(document), flush: true);
+      if (await temporary.exists()) {
+        await temporary.delete();
+      }
+    }
   }
 
   Future<Map<String, dynamic>> _fetchUsage(
@@ -294,19 +590,22 @@ class ClaudeUsageReader {
         ..set(HttpHeaders.userAgentHeader, await _claudeCodeUserAgent())
         ..set('anthropic-beta', 'oauth-2025-04-20');
       final response = await request.close().timeout(_requestTimeout);
-      if (response.statusCode == HttpStatus.unauthorized ||
-          response.statusCode == HttpStatus.forbidden) {
+      if (response.statusCode == HttpStatus.unauthorized) {
         await response.drain<void>();
-        // Re-read the store on the next poll instead of retrying a token
-        // the server has already rejected.
-        _cachedCredentials = null;
-        // A rejected token alongside a refresh token usually means the
-        // access token lapsed between the local expiry check and this call;
-        // the CLI will repair it, so keep the cached snapshot meanwhile.
+        throw const _UnauthorizedException();
+      }
+      if (response.statusCode == HttpStatus.forbidden) {
+        final body = await utf8.decoder
+            .bind(response)
+            .join()
+            .timeout(_requestTimeout);
+        AppLog.log('claude: OAuth usage forbidden (403)');
+        // A token without the profile scope is a sign-in problem the user
+        // can fix; anything else is treated as temporary.
         throw UsageReadException(
-          credentials.hasRefreshToken
-              ? UsageConnectionIssue.unavailable
-              : UsageConnectionIssue.notSignedIn,
+          body.contains(_requiredScope)
+              ? UsageConnectionIssue.notSignedIn
+              : UsageConnectionIssue.unavailable,
         );
       }
       if (response.statusCode == HttpStatus.tooManyRequests) {
@@ -314,10 +613,12 @@ class ClaudeUsageReader {
             _parseRetryAfter(response.headers.value('retry-after')) ??
             now.add(_rateLimitCooldown);
         await response.drain<void>();
+        AppLog.log('claude: OAuth usage rate limited until $_rateLimitedUntil');
         throw const UsageReadException(UsageConnectionIssue.unavailable);
       }
       if (response.statusCode != HttpStatus.ok) {
         await response.drain<void>();
+        AppLog.log('claude: OAuth usage HTTP ${response.statusCode}');
         throw const UsageReadException(UsageConnectionIssue.unavailable);
       }
 
@@ -387,16 +688,31 @@ class ClaudeUsageReader {
       ..set(HttpHeaders.acceptHeader, 'application/json');
     final response = await request.close().timeout(_requestTimeout);
     _captureRotatedWebSessionKey(response);
+    if (response.statusCode == HttpStatus.forbidden &&
+        await _isCloudflareChallenge(response)) {
+      // Typically a VPN or datacenter network; the session itself is fine,
+      // so keep it and let the user know signing in again will not help.
+      AppLog.log('claude: claude.ai answered with a Cloudflare challenge');
+      throw const UsageReadException(UsageConnectionIssue.browserBlocked);
+    }
     if (response.statusCode == HttpStatus.unauthorized ||
         response.statusCode == HttpStatus.forbidden) {
       await response.drain<void>();
       _cachedWebSessionKey = null;
       _cachedWebOrganizationId = null;
       _webSessionReadAt = null;
-      throw const UsageReadException(UsageConnectionIssue.notSignedIn);
+      AppLog.log(
+        'claude: claude.ai rejected the session (${response.statusCode})',
+      );
+      throw const UsageReadException(
+        UsageConnectionIssue.browserSessionExpired,
+      );
     }
     if (response.statusCode != HttpStatus.ok) {
       await response.drain<void>();
+      AppLog.log(
+        'claude: claude.ai HTTP ${response.statusCode} for ${uri.path}',
+      );
       throw const UsageReadException(UsageConnectionIssue.unavailable);
     }
     final body = await utf8.decoder
@@ -408,6 +724,19 @@ class ClaudeUsageReader {
     } on FormatException {
       throw const UsageReadException(UsageConnectionIssue.unavailable);
     }
+  }
+
+  Future<bool> _isCloudflareChallenge(HttpClientResponse response) async {
+    final mitigated = response.headers.value('cf-mitigated');
+    if (mitigated != null && mitigated.toLowerCase() == 'challenge') {
+      await response.drain<void>();
+      return true;
+    }
+    final body = await utf8.decoder
+        .bind(response)
+        .join()
+        .timeout(_requestTimeout);
+    return body.contains('Just a moment');
   }
 
   void _captureRotatedWebSessionKey(HttpClientResponse response) {
@@ -653,9 +982,50 @@ class ClaudeUsageReader {
 class _ClaudeCredentials {
   const _ClaudeCredentials({
     required this.accessToken,
-    this.hasRefreshToken = false,
+    required this.refreshToken,
+    required this.expiresAt,
+    required this.scopes,
+    required this.document,
+    required this.writableFile,
   });
 
   final String accessToken;
-  final bool hasRefreshToken;
+  final String? refreshToken;
+  final DateTime? expiresAt;
+  final List<String> scopes;
+
+  /// The full decoded credential document, kept so a refresh can write the
+  /// file back without dropping keys this app does not understand.
+  final Map<String, dynamic> document;
+
+  /// The file that may be rewritten after a refresh; `null` for keychain or
+  /// read-only sources.
+  final File? writableFile;
+
+  bool isExpiringWithin(Duration leeway) {
+    final expiry = expiresAt;
+    // Like CodexBar, treat a missing expiry as expired so a stale file token
+    // is refreshed rather than sent blindly.
+    return expiry == null || DateTime.now().add(leeway).isAfter(expiry);
+  }
+
+  _ClaudeCredentials copyWith({
+    String? accessToken,
+    String? refreshToken,
+    DateTime? expiresAt,
+  }) {
+    return _ClaudeCredentials(
+      accessToken: accessToken ?? this.accessToken,
+      refreshToken: refreshToken ?? this.refreshToken,
+      expiresAt: expiresAt ?? this.expiresAt,
+      scopes: scopes,
+      document: document,
+      writableFile: writableFile,
+    );
+  }
+}
+
+/// Internal signal that the usage endpoint rejected the access token.
+class _UnauthorizedException implements Exception {
+  const _UnauthorizedException();
 }

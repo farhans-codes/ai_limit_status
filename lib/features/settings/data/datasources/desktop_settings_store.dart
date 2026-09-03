@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:ai_limit_status/features/settings/domain/entities/desktop_settings.dart';
+import 'package:ai_limit_status/features/usage/domain/entities/provider_usage.dart';
 
 class StoredDesktopSettings {
   const StoredDesktopSettings({
@@ -9,24 +10,34 @@ class StoredDesktopSettings {
     required this.notificationPreferenceConfigured,
     required this.onboardingCompleted,
     required this.claudeStatusLimitPreference,
+    required this.hiddenProviders,
   });
 
   const StoredDesktopSettings.defaults()
     : notificationsEnabled = false,
       notificationPreferenceConfigured = false,
       onboardingCompleted = false,
-      claudeStatusLimitPreference = ClaudeStatusLimitPreference.fiveHour;
+      claudeStatusLimitPreference = ClaudeStatusLimitPreference.fiveHour,
+      hiddenProviders = const {};
 
   final bool notificationsEnabled;
   final bool notificationPreferenceConfigured;
   final bool onboardingCompleted;
   final ClaudeStatusLimitPreference claudeStatusLimitPreference;
 
+  /// Providers the user chose to hide. Stored as the hidden set so every
+  /// provider is visible by default, including ones added later.
+  final Set<UsageProvider> hiddenProviders;
+
+  Set<UsageProvider> get visibleProviders =>
+      UsageProvider.values.toSet().difference(hiddenProviders);
+
   StoredDesktopSettings copyWith({
     bool? notificationsEnabled,
     bool? notificationPreferenceConfigured,
     bool? onboardingCompleted,
     ClaudeStatusLimitPreference? claudeStatusLimitPreference,
+    Set<UsageProvider>? hiddenProviders,
   }) {
     return StoredDesktopSettings(
       notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
@@ -36,6 +47,7 @@ class StoredDesktopSettings {
       onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
       claudeStatusLimitPreference:
           claudeStatusLimitPreference ?? this.claudeStatusLimitPreference,
+      hiddenProviders: hiddenProviders ?? this.hiddenProviders,
     );
   }
 
@@ -44,6 +56,8 @@ class StoredDesktopSettings {
     'notificationPreferenceConfigured': notificationPreferenceConfigured,
     'onboardingCompleted': onboardingCompleted,
     'claudeStatusLimitPreference': claudeStatusLimitPreference.name,
+    'hiddenProviders': hiddenProviders.map((provider) => provider.name).toList()
+      ..sort(),
   };
 }
 
@@ -66,6 +80,7 @@ class DesktopSettingsStore {
         claudeStatusLimitPreference: _parseClaudeStatusLimitPreference(
           decoded['claudeStatusLimitPreference'],
         ),
+        hiddenProviders: _parseHiddenProviders(decoded['hiddenProviders']),
       );
     } on Object {
       return const StoredDesktopSettings.defaults();
@@ -77,6 +92,17 @@ class DesktopSettingsStore {
       (preference) => preference.name == value,
       orElse: () => ClaudeStatusLimitPreference.fiveHour,
     );
+  }
+
+  Set<UsageProvider> _parseHiddenProviders(Object? value) {
+    if (value is! List) {
+      return const {};
+    }
+    return {
+      for (final name in value)
+        for (final provider in UsageProvider.values)
+          if (provider.name == name) provider,
+    };
   }
 
   Future<void> write(StoredDesktopSettings settings) async {
