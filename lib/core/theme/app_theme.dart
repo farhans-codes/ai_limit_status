@@ -7,6 +7,9 @@ abstract final class AppTheme {
 
   static ThemeData get dark => _theme(Brightness.dark);
 
+  static ThemeData get windows =>
+      _theme(Brightness.dark).copyWith(scaffoldBackgroundColor: Colors.black);
+
   static ThemeData _theme(Brightness brightness) {
     final colorScheme = ColorScheme.fromSeed(
       seedColor: _seedColor,

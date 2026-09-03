@@ -69,8 +69,8 @@ class LimitStatusApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: AppStrings.instance.appTitle,
       theme: AppTheme.light,
-      darkTheme: AppTheme.dark,
-      themeMode: ThemeMode.system,
+      darkTheme: Platform.isWindows ? AppTheme.windows : AppTheme.dark,
+      themeMode: Platform.isWindows ? ThemeMode.dark : ThemeMode.system,
       initialBinding: UsageBinding(),
       home: const UsagePage(),
     );
