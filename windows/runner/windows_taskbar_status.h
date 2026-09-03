@@ -36,6 +36,16 @@ class WindowsTaskbarStatus {
   void UpdateOverlay();
   void PositionOverlay();
   bool RenderLayeredOverlay(int x, int y, int width, int height);
+
+  // The details window is shown, hidden, and positioned natively, from the
+  // same thread and input event that clicked the overlay, so Windows still
+  // grants this process foreground rights and no DPI round trip through
+  // Dart is needed.
+  bool IsPopoverVisible() const;
+  void ShowPopover();
+  void HidePopover();
+  void TogglePopover();
+  RECT PopoverBoundsAnchoredToTaskbar(int width, int height) const;
   void PaintOverlay(HDC dc, const RECT& bounds);
   void PaintProvider(HDC dc,
                      const RECT& bounds,
@@ -63,6 +73,12 @@ class WindowsTaskbarStatus {
   std::wstring refresh_label_;
   std::wstring quit_label_;
   bool initialized_ = false;
+  // Last overlay placement and content that were actually rendered, so the
+  // one-second reposition timer is a no-op unless something changed and
+  // never re-asserts HWND_TOPMOST above the open details window.
+  RECT last_overlay_bounds_{};
+  std::wstring last_rendered_signature_;
+  bool overlay_rendered_ = false;
 };
 
 #endif  // RUNNER_WINDOWS_TASKBAR_STATUS_H_

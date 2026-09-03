@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:ai_limit_status/core/diagnostics/app_log.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:screen_retriever/screen_retriever.dart';
@@ -8,6 +9,11 @@ import 'package:window_manager/window_manager.dart';
 
 class AppWindowService extends GetxService with WindowListener {
   static const _windowsBlurGracePeriod = Duration(milliseconds: 150);
+
+  /// How long a native show keeps blur-to-hide suppressed. Showing and
+  /// focusing the window from the taskbar overlay produces activation churn
+  /// that would otherwise hide it again immediately.
+  static const _nativeShowGuardPeriod = Duration(milliseconds: 600);
   static const _windowsTaskbarChannel = MethodChannel(
     'com.ailimitstatus/windows_taskbar_status',
   );
@@ -41,6 +47,33 @@ class AppWindowService extends GetxService with WindowListener {
 
   Future<void> showPopover() async {
     _cancelPendingBlurHide();
+    if (Platform.isWindows && await _showPopoverNatively()) {
+      return;
+    }
+    await _showPopoverFromDart();
+  }
+
+  /// Asks the Windows runner to place and show the window next to the
+  /// taskbar indicators. Returns `false` when the runner predates native
+  /// popover support so the Dart positioning path can take over.
+  Future<bool> _showPopoverNatively() async {
+    prepareForNativeShow();
+    try {
+      final shown = await _windowsTaskbarChannel.invokeMethod<bool>(
+        'showPopover',
+      );
+      AppLog.log('window: native showPopover -> $shown');
+      return shown ?? true;
+    } on MissingPluginException {
+      AppLog.log('window: native showPopover unavailable, using Dart path');
+      return false;
+    } on PlatformException catch (error) {
+      AppLog.log('window: native showPopover failed: ${error.message}');
+      return false;
+    }
+  }
+
+  Future<void> _showPopoverFromDart() async {
     final cursor = await screenRetriever.getCursorScreenPoint();
     final windowSize = await windowManager.getSize();
     final displays = await screenRetriever.getAllDisplays();
@@ -61,12 +94,19 @@ class AppWindowService extends GetxService with WindowListener {
       preferredY.clamp(visibleRect.top, maxY).toDouble(),
     );
 
+    AppLog.log(
+      'window: Dart showPopover cursor=$cursor size=$windowSize '
+      'visible=$visibleRect position=$position',
+    );
     _isShowing = true;
     try {
       await windowManager.setPosition(position);
       await windowManager.show();
       await windowManager.focus();
       await Future<void>.delayed(const Duration(milliseconds: 250));
+    } on Object catch (error) {
+      AppLog.log('window: Dart showPopover failed: $error');
+      rethrow;
     } finally {
       _isShowing = false;
     }
@@ -74,19 +114,32 @@ class AppWindowService extends GetxService with WindowListener {
 
   Future<void> togglePopover() async {
     _cancelPendingBlurHide();
-    if (await windowManager.isVisible()) {
+    final isVisible = await windowManager.isVisible();
+    AppLog.log('window: togglePopover visible=$isVisible');
+    if (isVisible) {
       await windowManager.hide();
       return;
     }
     await showPopover();
   }
 
+  /// Suppresses blur-to-hide while a native (menu bar or taskbar) show is in
+  /// flight. Windows reports this through the taskbar channel just before
+  /// and after it shows the window; macOS calls it from the status bar.
   void prepareForNativeShow() {
+    _cancelPendingBlurHide();
     _nativeShowGuard?.cancel();
     _isShowing = true;
-    _nativeShowGuard = Timer(const Duration(milliseconds: 500), () {
+    _nativeShowGuard = Timer(_nativeShowGuardPeriod, () {
       _isShowing = false;
     });
+  }
+
+  /// Called when the Windows runner has hidden the window itself.
+  void onNativePopoverHidden() {
+    _cancelPendingBlurHide();
+    _nativeShowGuard?.cancel();
+    _isShowing = false;
   }
 
   Future<void> quit() async {
@@ -133,12 +186,14 @@ class AppWindowService extends GetxService with WindowListener {
         return;
       }
       if (await _isPointerOverWindowsTaskbarUi()) {
+        AppLog.log('window: blur ignored, pointer over taskbar UI');
         return;
       }
       if (!_isQuitting &&
           !_isShowing &&
           !_isModalOpen &&
           await windowManager.isVisible()) {
+        AppLog.log('window: hiding after blur');
         await windowManager.hide();
       }
     });

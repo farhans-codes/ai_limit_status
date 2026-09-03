@@ -5,6 +5,7 @@
 #include "flutter/generated_plugin_registrant.h"
 #include "windows_browser_session.h"
 #include "windows_notification_sound.h"
+#include "windows_secure_store.h"
 #include "windows_taskbar_status.h"
 
 FlutterWindow::FlutterWindow(const flutter::DartProject& project)
@@ -34,21 +35,23 @@ bool FlutterWindow::OnCreate() {
       flutter_controller_->engine()->messenger());
   windows_browser_session_ = std::make_unique<WindowsBrowserSession>(
       flutter_controller_->engine()->messenger());
+  windows_secure_store_ = std::make_unique<WindowsSecureStore>(
+      flutter_controller_->engine()->messenger());
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
 
-  flutter_controller_->engine()->SetNextFrameCallback([&]() {
-    this->Show();
-  });
-
-  // Flutter can complete the first frame before the "show window" callback is
-  // registered. The following call ensures a frame is pending to ensure the
-  // window is shown. It is a no-op if the first frame hasn't completed yet.
+  // The stock runner shows the window on the first frame. This app is a
+  // taskbar popover that must start hidden, and Dart's
+  // `windowManager.hide()` raced against that first-frame `Show()`, leaving
+  // the window's visibility (and therefore the click-to-toggle logic) in an
+  // undefined state on some launches. Visibility is now owned exclusively by
+  // WindowsTaskbarStatus (native click handling) and window_manager (Dart).
   flutter_controller_->ForceRedraw();
 
   return true;
 }
 
 void FlutterWindow::OnDestroy() {
+  windows_secure_store_.reset();
   windows_browser_session_.reset();
   windows_notification_sound_.reset();
   windows_taskbar_status_.reset();
