@@ -4,7 +4,6 @@ import 'package:ai_limit_status/features/settings/presentation/controllers/deskt
 import 'package:ai_limit_status/features/usage/domain/entities/provider_usage.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 
 class DesktopSettingsDialog extends StatelessWidget {
   const DesktopSettingsDialog({
@@ -15,10 +14,6 @@ class DesktopSettingsDialog extends StatelessWidget {
 
   final DesktopSettingsController controller;
   final bool firstRun;
-
-  static final Future<String> _version = PackageInfo.fromPlatform().then(
-    (info) => info.version,
-  );
 
   @override
   Widget build(BuildContext context) {
@@ -246,23 +241,7 @@ class DesktopSettingsDialog extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 14),
                 child: Row(
                   children: [
-                    Expanded(
-                      child: FutureBuilder<String>(
-                        future: _version,
-                        builder: (context, snapshot) {
-                          final version = snapshot.data;
-                          if (version == null) {
-                            return const SizedBox.shrink();
-                          }
-                          return Text(
-                            strings.appVersion(version),
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          );
-                        },
-                      ),
-                    ),
+                    const Spacer(),
                     Obx(
                       () => FilledButton(
                         onPressed: controller.isUpdating.value

@@ -103,7 +103,6 @@ class AppStrings {
   String get showClaudeTitle => 'Claude';
   String get providerVisibilityDescription =>
       'Only enabled providers are read and shown.';
-  String appVersion(String version) => 'Version $version';
   String get close => 'Close';
   String get finishSetup => 'Finish setup';
   String get done => 'Done';
