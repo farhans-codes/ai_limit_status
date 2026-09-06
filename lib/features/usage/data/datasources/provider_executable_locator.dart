@@ -194,6 +194,8 @@ class ProviderExecutableLocator {
           '$localAppData\\Volta\\bin\\$executableName.exe',
         ],
         if (roamingAppData != null) '$roamingAppData\\npm\\$executableName.cmd',
+        if (userProfile != null && provider == UsageProvider.claude)
+          ...await _windowsClaudeExtensionPaths(userProfile),
       ];
     }
 
@@ -222,6 +224,64 @@ class ProviderExecutableLocator {
         ...await _versionManagerBinPaths(home, executableName),
       ],
     ];
+  }
+
+  // The official VS Code extension bundles a CLI without putting it on PATH.
+  // Discover that install before offering to install a second standalone CLI.
+  Future<List<String>> _windowsClaudeExtensionPaths(String home) async {
+    final environment = Platform.environment;
+    final architecture =
+        environment['PROCESSOR_ARCHITEW6432'] ??
+        environment['PROCESSOR_ARCHITECTURE'];
+    final architectures = [
+      if (architecture?.toLowerCase() == 'arm64') 'arm64',
+      'x64',
+    ];
+    final packagePattern = RegExp(
+      r'^anthropic\.claude-code-(\d+)\.(\d+)\.(\d+)(?:-win32-(x64|arm64))?$',
+    );
+    final candidates = <String>[];
+    for (final editor in ['.vscode', '.vscode-insiders']) {
+      final packages = <({String path, List<int> version})>[];
+      try {
+        final root = Directory('$home\\$editor\\extensions');
+        await for (final entry in root.list(followLinks: false)) {
+          if (entry is! Directory) continue;
+          final name = entry.path.split(RegExp(r'[\\/]')).last;
+          final match = packagePattern.firstMatch(name);
+          if (match == null ||
+              (match.group(4) != null &&
+                  !architectures.contains(match.group(4)))) {
+            continue;
+          }
+          packages.add((
+            path: entry.path,
+            version: [
+              for (var part = 1; part <= 3; part++)
+                int.parse(match.group(part)!),
+            ],
+          ));
+        }
+      } on FileSystemException {
+        continue;
+      }
+      packages.sort((a, b) {
+        for (var part = 0; part < 3; part++) {
+          final order = b.version[part].compareTo(a.version[part]);
+          if (order != 0) return order;
+        }
+        return 0;
+      });
+      for (final package in packages) {
+        for (final arch in architectures) {
+          candidates.add(
+            '${package.path}\\resources\\native-binaries\\win32-$arch\\claude.exe',
+          );
+        }
+        candidates.add('${package.path}\\resources\\native-binary\\claude.exe');
+      }
+    }
+    return candidates;
   }
 
   /// nvm, fnm and mise keep per-version bin directories that never appear on
