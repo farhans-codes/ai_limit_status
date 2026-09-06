@@ -81,31 +81,31 @@ class AppStrings {
   String get settingsTooltip => 'Notification, shortcut, and startup settings';
   String get firstRunSetupTitle => 'Finish app setup';
   String get firstRunSetupDescription =>
-      'Allow alerts, choose your Claude shortcut limit, and decide whether '
-      'the app opens automatically when you sign in.';
-  String get settingsTitle => 'App settings';
+      'Choose how AI Limit Status should work for you.';
+  String get settingsTitle => 'Settings';
   String get settingsDescription =>
-      'You can change notification, shortcut, and startup preferences '
-      'at any time.';
+      'Control alerts, startup, and what appears in your status shortcut.';
+  String get generalSettingsSectionTitle => 'General';
   String get notificationAlertsTitle => 'Usage notifications';
   String get notificationAlertsDescription =>
-      'Usage alerts at 50%, 20%, and 10%; five-hour reminders at 1h, '
-      '30m, and 10m; weekly reminders at 1d, 12h, 5h, and 1h; '
-      'plus restored notices.';
+      'Alerts at 50%, 20%, and 10%, plus reset reminders.';
   String get launchAtStartupTitle => 'Launch at startup';
   String get launchAtStartupDescription =>
-      'Open AI Limit Status automatically when you sign in.';
-  String get claudeShortcutLimitTitle => 'Claude shortcut limit';
+      'Start automatically when you sign in.';
+  String get statusShortcutSectionTitle => 'Status shortcut';
+  String get claudeShortcutLimitTitle => 'Claude limit';
   String get claudeShortcutLimitDescription =>
-      'Choose the Claude limit shown in the menu bar or Windows taskbar.';
-  String get claudeFiveHourShortcut => '5-hour limit';
-  String get claudeFableShortcut => 'Fable weekly limit';
-  String get providersSectionTitle => 'Providers';
-  String get showCodexTitle => 'Show Codex';
-  String get showClaudeTitle => 'Show Claude';
+      'Choose the percentage shown in the menu bar or Windows taskbar.';
+  String get claudeFiveHourShortcut => '5-hour';
+  String get claudeFableShortcut => 'Fable weekly';
+  String get providersSectionTitle => 'Visible providers';
+  String get showCodexTitle => 'Codex';
+  String get showClaudeTitle => 'Claude';
   String get providerVisibilityDescription =>
-      'Hidden providers are not read, shown, or included in the shortcut.';
+      'Only enabled providers are read and shown.';
   String appVersion(String version) => 'Version $version';
+  String get close => 'Close';
+  String get finishSetup => 'Finish setup';
   String get done => 'Done';
   String get settingsUpdateFailedTitle => 'Setting not changed';
   String get settingsUpdateFailed =>
