@@ -9,7 +9,6 @@ class DesktopSettings {
     required this.onboardingCompleted,
     required this.claudeStatusLimitPreference,
     required this.visibleProviders,
-    required this.hasManualClaudeSessionKey,
   });
 
   final bool notificationsEnabled;
@@ -21,9 +20,6 @@ class DesktopSettings {
   /// Disconnected providers stay visible (with setup actions) unless hidden
   /// here explicitly.
   final Set<UsageProvider> visibleProviders;
-
-  /// Whether a claude.ai session key pasted by the user is stored locally.
-  final bool hasManualClaudeSessionKey;
 }
 
 enum DesktopSettingUpdateResult {

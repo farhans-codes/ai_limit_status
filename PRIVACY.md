@@ -59,13 +59,8 @@ to `https://claude.ai/api`, and is not written to AI Limit Status cache,
 settings, or logs.
 
 On Windows, the same provider request can use the in-memory session supplied by
-the optional browser extension described above, or a `claude.ai` session key the
-user pastes into **App settings**. A pasted session key is encrypted with the
-Windows Data Protection API (DPAPI) for the signed-in Windows account and stored
-as `claude_session.bin` in the app's local application-data directory; the
-**Clear** button deletes it. Browser sessions supplied by the extension or read
-from macOS browser profiles are never written to AI Limit Status cache,
-settings, diagnostic logs, or analytics.
+the optional browser extension described above. Neither browser session is
+written to AI Limit Status cache, settings, diagnostic logs, or analytics.
 
 ## Data stored locally
 
@@ -76,8 +71,6 @@ AI Limit Status can store:
 - The time of the last successful refresh.
 - Notification, startup, and provider-visibility preferences.
 - Identifiers used to avoid duplicate notifications.
-- An optional DPAPI-encrypted `claude.ai` session key (Windows only, only when
-  the user pastes one).
 - A small local diagnostic log (`logs/app.log`, capped at 512 KB plus one
   rotated copy) recording window and provider events such as "popover shown"
   or "OAuth usage read failed: notSignedIn". It never contains tokens,

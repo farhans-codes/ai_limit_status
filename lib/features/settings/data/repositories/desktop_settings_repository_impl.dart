@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:ai_limit_status/core/platform/desktop_notification_service.dart';
 import 'package:ai_limit_status/core/platform/desktop_startup_service.dart';
 import 'package:ai_limit_status/features/settings/data/datasources/desktop_settings_store.dart';
-import 'package:ai_limit_status/features/settings/data/datasources/manual_claude_session_store.dart';
 import 'package:ai_limit_status/features/settings/domain/entities/desktop_settings.dart';
 import 'package:ai_limit_status/features/settings/domain/repositories/desktop_settings_repository.dart';
 import 'package:ai_limit_status/features/usage/domain/entities/provider_usage.dart';
@@ -13,13 +12,11 @@ class DesktopSettingsRepositoryImpl implements DesktopSettingsRepository {
     this._store,
     this._notificationService,
     this._startupService,
-    this._manualClaudeSessionStore,
   );
 
   final DesktopSettingsStore _store;
   final DesktopNotificationService _notificationService;
   final DesktopStartupService _startupService;
-  final ManualClaudeSessionStore _manualClaudeSessionStore;
   final StreamController<ClaudeStatusLimitPreference>
   _claudeStatusLimitChanges = StreamController.broadcast();
   final StreamController<void> _providerConfigurationChanges =
@@ -55,7 +52,6 @@ class DesktopSettingsRepositoryImpl implements DesktopSettingsRepository {
       onboardingCompleted: stored.onboardingCompleted,
       claudeStatusLimitPreference: stored.claudeStatusLimitPreference,
       visibleProviders: stored.visibleProviders,
-      hasManualClaudeSessionKey: await _manualClaudeSessionStore.exists(),
     );
   }
 
@@ -83,24 +79,6 @@ class DesktopSettingsRepositoryImpl implements DesktopSettingsRepository {
     } on Object {
       return DesktopSettingUpdateResult.failed;
     }
-  }
-
-  @override
-  Future<DesktopSettingUpdateResult> setManualClaudeSessionKey(
-    String? sessionKey,
-  ) async {
-    if (!_manualClaudeSessionStore.isSupported) {
-      return DesktopSettingUpdateResult.unsupported;
-    }
-    final trimmed = sessionKey?.trim() ?? '';
-    final succeeded = trimmed.isEmpty
-        ? await _manualClaudeSessionStore.clear()
-        : await _manualClaudeSessionStore.write(trimmed);
-    if (!succeeded) {
-      return DesktopSettingUpdateResult.failed;
-    }
-    _providerConfigurationChanges.add(null);
-    return DesktopSettingUpdateResult.succeeded;
   }
 
   @override

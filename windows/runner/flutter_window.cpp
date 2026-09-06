@@ -5,7 +5,6 @@
 #include "flutter/generated_plugin_registrant.h"
 #include "windows_browser_session.h"
 #include "windows_notification_sound.h"
-#include "windows_secure_store.h"
 #include "windows_taskbar_status.h"
 
 FlutterWindow::FlutterWindow(const flutter::DartProject& project)
@@ -35,8 +34,6 @@ bool FlutterWindow::OnCreate() {
       flutter_controller_->engine()->messenger());
   windows_browser_session_ = std::make_unique<WindowsBrowserSession>(
       flutter_controller_->engine()->messenger());
-  windows_secure_store_ = std::make_unique<WindowsSecureStore>(
-      flutter_controller_->engine()->messenger());
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
 
   // The stock runner shows the window on the first frame. This app is a
@@ -51,7 +48,6 @@ bool FlutterWindow::OnCreate() {
 }
 
 void FlutterWindow::OnDestroy() {
-  windows_secure_store_.reset();
   windows_browser_session_.reset();
   windows_notification_sound_.reset();
   windows_taskbar_status_.reset();

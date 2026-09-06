@@ -1,13 +1,11 @@
 import 'package:get/get.dart';
 import 'package:ai_limit_status/core/platform/app_window_service.dart';
-import 'package:ai_limit_status/core/platform/browser_bridge_service.dart';
 import 'package:ai_limit_status/core/platform/desktop_notification_service.dart';
 import 'package:ai_limit_status/core/platform/desktop_startup_service.dart';
 import 'package:ai_limit_status/core/platform/mac_status_bar_service.dart';
 import 'package:ai_limit_status/core/platform/tray_service.dart';
 import 'package:ai_limit_status/core/platform/windows_taskbar_status_service.dart';
 import 'package:ai_limit_status/features/settings/data/datasources/desktop_settings_store.dart';
-import 'package:ai_limit_status/features/settings/data/datasources/manual_claude_session_store.dart';
 import 'package:ai_limit_status/features/settings/data/repositories/desktop_settings_repository_impl.dart';
 import 'package:ai_limit_status/features/settings/domain/repositories/desktop_settings_repository.dart';
 import 'package:ai_limit_status/features/settings/presentation/controllers/desktop_settings_controller.dart';
@@ -46,13 +44,11 @@ class UsageBinding extends Bindings {
     Get.lazyPut<DesktopNotificationService>(DesktopNotificationService.new);
     Get.lazyPut<DesktopStartupService>(DesktopStartupService.new);
     Get.lazyPut<DesktopSettingsStore>(DesktopSettingsStore.new);
-    Get.lazyPut<ManualClaudeSessionStore>(ManualClaudeSessionStore.new);
     Get.lazyPut<DesktopSettingsRepository>(
       () => DesktopSettingsRepositoryImpl(
         Get.find<DesktopSettingsStore>(),
         Get.find<DesktopNotificationService>(),
         Get.find<DesktopStartupService>(),
-        Get.find<ManualClaudeSessionStore>(),
       ),
     );
     Get.lazyPut<ProviderExecutableLocator>(ProviderExecutableLocator.new);
@@ -64,10 +60,7 @@ class UsageBinding extends Bindings {
       ),
     );
     Get.lazyPut<ClaudeUsageReader>(
-      () => ClaudeUsageReader(
-        Get.find<ProviderExecutableLocator>(),
-        Get.find<ManualClaudeSessionStore>(),
-      ),
+      () => ClaudeUsageReader(Get.find<ProviderExecutableLocator>()),
     );
     Get.lazyPut<UsageCacheStore>(UsageCacheStore.new);
     Get.lazyPut<UsageDataSource>(
@@ -98,13 +91,11 @@ class UsageBinding extends Bindings {
     Get.lazyPut<OpenProviderSetupGuide>(
       () => OpenProviderSetupGuide(Get.find<ProviderSetupRepository>()),
     );
-    Get.lazyPut<BrowserBridgeService>(BrowserBridgeService.new);
     Get.lazyPut<DesktopSettingsController>(
       () => DesktopSettingsController(
         Get.find<DesktopSettingsRepository>(),
         Get.find<AppWindowService>(),
         Get.find<TrayService>(),
-        Get.find<BrowserBridgeService>(),
       ),
     );
     Get.lazyPut<UsageWarningStateStore>(UsageWarningStateStore.new);

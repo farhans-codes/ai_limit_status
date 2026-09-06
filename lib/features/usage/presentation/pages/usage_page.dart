@@ -149,11 +149,6 @@ class UsagePage extends GetView<UsageController> {
                                 onOpenSetupGuide: () =>
                                     controller.openSetupGuide(usage.provider),
                                 onCheckAgain: controller.refreshUsage,
-                                onConnectBrowserSession:
-                                    settingsController
-                                        .supportsManualClaudeSession
-                                    ? () => settingsController.openSettings()
-                                    : null,
                               );
                             },
                           ),

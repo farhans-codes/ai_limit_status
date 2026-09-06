@@ -1,11 +1,9 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:ai_limit_status/core/constants/app_strings.dart';
 import 'package:ai_limit_status/core/platform/app_window_service.dart';
-import 'package:ai_limit_status/core/platform/browser_bridge_service.dart';
 import 'package:ai_limit_status/core/platform/tray_service.dart';
 import 'package:ai_limit_status/features/settings/domain/entities/desktop_settings.dart';
 import 'package:ai_limit_status/features/settings/domain/repositories/desktop_settings_repository.dart';
@@ -18,28 +16,17 @@ class DesktopSettingsController extends GetxController
     this._repository,
     this._windowService,
     this._trayService,
-    this._browserBridgeService,
   );
 
   final DesktopSettingsRepository _repository;
   final AppWindowService _windowService;
   final TrayService _trayService;
-  final BrowserBridgeService _browserBridgeService;
 
   final notificationsEnabled = false.obs;
   final launchAtStartupEnabled = false.obs;
   final claudeStatusLimitPreference = ClaudeStatusLimitPreference.fiveHour.obs;
   final visibleProviders = UsageProvider.values.toSet().obs;
-  final hasManualClaudeSessionKey = false.obs;
-
-  /// `null` until probed, or on platforms without a bridge.
-  final browserBridgeConnected = Rxn<bool>();
   final isUpdating = false.obs;
-
-  /// Whether the platform can store a pasted claude.ai session key.
-  bool get supportsManualClaudeSession => Platform.isWindows;
-
-  bool get supportsBrowserBridge => _browserBridgeService.isSupported;
 
   bool _isInitialized = false;
   bool _dialogOpen = false;
@@ -188,48 +175,6 @@ class DesktopSettingsController extends GetxController
     }
   }
 
-  /// Stores the pasted claude.ai `sessionKey`; an empty value clears it.
-  Future<bool> saveManualClaudeSessionKey(String sessionKey) async {
-    if (isUpdating.value) {
-      return false;
-    }
-    final trimmed = sessionKey.trim();
-    if (trimmed.isNotEmpty && !trimmed.startsWith('sk-ant-')) {
-      _showMessage(
-        AppStrings.instance.settingsUpdateFailedTitle,
-        AppStrings.instance.claudeSessionKeyInvalid,
-      );
-      return false;
-    }
-    isUpdating.value = true;
-    try {
-      final result = await _repository.setManualClaudeSessionKey(trimmed);
-      if (result == DesktopSettingUpdateResult.succeeded) {
-        hasManualClaudeSessionKey.value = trimmed.isNotEmpty;
-        return true;
-      }
-      _showUpdateFailure(result, isNotification: false);
-      return false;
-    } finally {
-      isUpdating.value = false;
-    }
-  }
-
-  Future<void> clearManualClaudeSessionKey() => saveManualClaudeSessionKey('');
-
-  Future<void> refreshBrowserBridgeStatus() async {
-    browserBridgeConnected.value = await _browserBridgeService.isConnected();
-  }
-
-  Future<void> openBrowserExtensionFolder() async {
-    if (!await _browserBridgeService.openExtensionFolder()) {
-      _showMessage(
-        AppStrings.instance.settingsUpdateFailedTitle,
-        AppStrings.instance.browserExtensionFolderMissing,
-      );
-    }
-  }
-
   Future<void> finish() async {
     if (!_onboardingCompleted) {
       await _repository.completeOnboarding();
@@ -250,18 +195,7 @@ class DesktopSettingsController extends GetxController
     launchAtStartupEnabled.value = settings.launchAtStartupEnabled;
     claudeStatusLimitPreference.value = settings.claudeStatusLimitPreference;
     visibleProviders.assignAll(settings.visibleProviders);
-    hasManualClaudeSessionKey.value = settings.hasManualClaudeSessionKey;
     _onboardingCompleted = settings.onboardingCompleted;
-    unawaited(refreshBrowserBridgeStatus());
-  }
-
-  void _showMessage(String title, String message) {
-    Get.snackbar(
-      title,
-      message,
-      snackPosition: SnackPosition.BOTTOM,
-      duration: const Duration(seconds: 6),
-    );
   }
 
   Future<bool> _reloadStartupStatus() async {
