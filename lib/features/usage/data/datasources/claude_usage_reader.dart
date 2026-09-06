@@ -8,6 +8,7 @@ import 'package:ai_limit_status/core/diagnostics/app_log.dart';
 import 'package:ai_limit_status/features/usage/data/datasources/browser_session_reader.dart';
 import 'package:ai_limit_status/features/usage/data/datasources/provider_executable_locator.dart';
 import 'package:ai_limit_status/features/usage/data/datasources/usage_read_exception.dart';
+import 'package:ai_limit_status/features/usage/data/datasources/windows_claude_credential_reader.dart';
 import 'package:ai_limit_status/features/usage/data/models/provider_usage_model.dart';
 import 'package:ai_limit_status/features/usage/domain/entities/provider_usage.dart';
 
@@ -16,7 +17,7 @@ import 'package:ai_limit_status/features/usage/domain/entities/provider_usage.da
 /// Sources, in order (mirroring CodexBar's planner):
 ///
 /// 1. The Claude Code OAuth credential (`claudeAiOauth.accessToken`) from the
-///    macOS keychain or `.credentials.json`, sent to
+///    macOS keychain, `.credentials.json`, or Windows Credential Manager, sent to
 ///    `https://api.anthropic.com/api/oauth/usage`. When the credential lives
 ///    in a file this reader can also refresh it shortly before it expires and
 ///    writes the rotated token back so the CLI stays signed in.
@@ -165,7 +166,10 @@ class ClaudeUsageReader {
   Future<_ClaudeCredentials?> _readCredentialsCached() async {
     final cached = _cachedCredentials;
     final readAt = _credentialsReadAt;
-    if (cached != null &&
+    // Windows stores are cheap to read and the CLI/IDE can rotate them while
+    // this app stays open. Only cache reads that may prompt on macOS.
+    if (!Platform.isWindows &&
+        cached != null &&
         readAt != null &&
         DateTime.now().difference(readAt) < _credentialsCacheTtl) {
       return cached;
@@ -177,14 +181,21 @@ class ClaudeUsageReader {
   }
 
   Future<_ClaudeCredentials?> _readCredentials() async {
+    if (Platform.isWindows) {
+      // Follow Claude's active store so a leftover file cannot mask an IDE
+      // sign-in after migration to Credential Manager.
+      if (await _windowsUsesSecureStore()) {
+        return await _readWindowsCredentials() ?? await _readCredentialsFile();
+      }
+      return await _readCredentialsFile() ?? await _readWindowsCredentials();
+    }
     final overrideConfigDir = Platform.environment['CLAUDE_CONFIG_DIR'];
     final hasOverride =
         overrideConfigDir != null && overrideConfigDir.isNotEmpty;
 
     // With a custom CLAUDE_CONFIG_DIR the credentials file is authoritative.
     // Otherwise, on macOS the CLI stores credentials in the keychain first
-    // and keeps the file as a fallback; on Windows the file is the only
-    // store. Reading both sides mirrors CodexBar.
+    // and keeps the file as a fallback. Reading both sides mirrors CodexBar.
     final sources = <Future<_ClaudeCredentials?> Function()>[
       if (hasOverride) _readCredentialsFile,
       if (Platform.isMacOS) _readMacKeychainCredentials,
@@ -197,6 +208,48 @@ class ClaudeUsageReader {
       }
     }
     return null;
+  }
+
+  Future<bool> _windowsUsesSecureStore() async {
+    final environment = Platform.environment;
+    if (environment['CLAUDE_CODE_FORCE_WINDOWS_CREDMAN'] == '1') return true;
+    final home = environment['USERPROFILE'];
+    if (home == null) return false;
+    final config = environment['CLAUDE_CONFIG_DIR'];
+    final customConfig = config != null && config.isNotEmpty;
+    final root = customConfig ? config : '$home\\.claude';
+    try {
+      // Claude reads the legacy config first if it exists; otherwise it uses
+      // .claude.json at the profile root (the home directory by default).
+      final legacy = File('$root\\.config.json');
+      final file = await legacy.exists()
+          ? legacy
+          : File('${customConfig ? config : home}\\.claude.json');
+      final features = _decodeMap(
+        await file.readAsString(),
+      )?['cachedGrowthBookFeatures'];
+      return features is Map && features['tengu_windows_credman'] == true;
+    } on FileSystemException {
+      return false;
+    }
+  }
+
+  Future<_ClaudeCredentials?> _readWindowsCredentials() async {
+    try {
+      final configDir =
+          Platform.environment['CLAUDE_SECURESTORAGE_CONFIG_DIR'] ??
+          Platform.environment['CLAUDE_CONFIG_DIR'];
+      final raw = await readWindowsClaudeCredentialDocument(
+        (part) => _keychainChannel.invokeMethod<Uint8List>(
+          'readClaudeWindowsCredential',
+          {'part': part, 'configDir': configDir},
+        ),
+      ).timeout(_requestTimeout);
+      // The CLI owns secure-store refreshes; never copy its secret to disk.
+      return _parseCredentials(raw, writableFile: null);
+    } on Object {
+      return null;
+    }
   }
 
   /// Reads the Claude CLI's keychain item the way CodexBar does: through
