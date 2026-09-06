@@ -14,12 +14,40 @@ namespace {
 constexpr UINT kOpenCommand = 1001;
 constexpr UINT kRefreshCommand = 1002;
 constexpr UINT kQuitCommand = 1003;
-constexpr int kSegmentWidth = 68;
+constexpr int kSegmentWidth = 88;
 constexpr int kOverlayHeight = 34;
 constexpr int kSegmentGap = 4;
 constexpr int kTaskbarPadding = 8;
+constexpr int kProviderIconSize = 20;
+constexpr int kProviderFontSize = 16;
+constexpr int kProviderContentPadding = 6;
+constexpr int kProviderIconGap = 6;
+constexpr COLORREF kProviderForeground = RGB(255, 255, 255);
+constexpr UINT kRefreshOverlayOrder = WM_APP + 42;
 constexpr DWORD kTransparentSentinelRgb = 0x00010203;
 constexpr BYTE kHitSurfaceAlpha = 1;
+
+bool IsWindowAbove(HWND window, HWND other) {
+  if (window == nullptr || other == nullptr || window == other) {
+    return false;
+  }
+  struct WindowOrder {
+    HWND window;
+    HWND other;
+    bool above = false;
+  } order{window, other};
+  EnumWindows(
+      [](HWND current, LPARAM data) -> BOOL {
+        auto& order = *reinterpret_cast<WindowOrder*>(data);
+        if (current == order.window) {
+          order.above = true;
+          return FALSE;
+        }
+        return current != order.other;
+      },
+      reinterpret_cast<LPARAM>(&order));
+  return order.above;
+}
 
 bool PointIsInsideWindow(HWND window, const POINT& point) {
   if (window == nullptr || !IsWindowVisible(window)) {
@@ -70,15 +98,14 @@ std::wstring RequiredString(const flutter::EncodableMap& arguments,
 }
 
 std::wstring DisplayValue(const std::wstring& value) {
-  std::wstring display = value;
-  display.erase(std::remove(display.begin(), display.end(), L'%'), display.end());
-  if (display.empty()) {
+  if (value.empty()) {
     return L"--";
   }
-  if (display.size() > 3) {
-    display.resize(3);
+  if (std::all_of(value.begin(), value.end(),
+                  [](wchar_t ch) { return ch >= L'0' && ch <= L'9'; })) {
+    return value + L'%';
   }
-  return display;
+  return value;
 }
 
 int ScaleForDpi(int value, UINT dpi) {
@@ -209,6 +236,20 @@ void WindowsTaskbarStatus::CreateOverlayIfNeeded() {
       nullptr, GetModuleHandleW(nullptr), this);
   if (overlay_window_ != nullptr) {
     SetTimer(overlay_window_, 1, 1000, nullptr);
+    // These callbacks only schedule a check on our own message loop. No
+    // injection, mouse hook, or repeated foreground activation is needed.
+    if (foreground_hook_ == nullptr) {
+      foreground_hook_ = SetWinEventHook(
+          EVENT_SYSTEM_FOREGROUND, EVENT_SYSTEM_FOREGROUND, nullptr,
+          OnShellWindowEvent, 0, 0,
+          WINEVENT_OUTOFCONTEXT | WINEVENT_SKIPOWNPROCESS);
+    }
+    if (reorder_hook_ == nullptr) {
+      reorder_hook_ = SetWinEventHook(
+          EVENT_OBJECT_REORDER, EVENT_OBJECT_REORDER, nullptr,
+          OnShellWindowEvent, 0, 0,
+          WINEVENT_OUTOFCONTEXT | WINEVENT_SKIPOWNPROCESS);
+    }
   }
 }
 
@@ -231,7 +272,7 @@ void WindowsTaskbarStatus::PositionOverlay() {
     return;
   }
   const HWND taskbar = FindWindowW(L"Shell_TrayWnd", nullptr);
-  if (taskbar == nullptr) {
+  if (taskbar == nullptr || !IsWindowVisible(taskbar)) {
     ShowWindow(overlay_window_, SW_HIDE);
     overlay_rendered_ = false;
     return;
@@ -291,8 +332,8 @@ void WindowsTaskbarStatus::PositionOverlay() {
                  bottom_anchor - height - padding);
   }
 
-  // Skip the work (and the z-order churn) when nothing changed since the
-  // last render; the timer calls this once per second.
+  // Drawing and window order are independent: an unchanged bitmap can still
+  // be behind Explorer after a taskbar click.
   const RECT bounds{x, y, x + width, y + height};
   std::wstring signature = tooltip_;
   signature += L'|';
@@ -304,19 +345,33 @@ void WindowsTaskbarStatus::PositionOverlay() {
   if (overlay_rendered_ && IsWindowVisible(overlay_window_) &&
       EqualRect(&bounds, &last_overlay_bounds_) &&
       signature == last_rendered_signature_) {
+    EnsureOverlayAboveTaskbar(taskbar);
     return;
   }
 
-  SetWindowPos(overlay_window_, HWND_TOPMOST, x, y, width, height,
-               SWP_NOACTIVATE | SWP_NOREDRAW);
-  if (RenderLayeredOverlay(x, y, width, height)) {
+  if (RenderLayeredOverlay(x, y, width, height, dpi)) {
     ShowWindow(overlay_window_, SW_SHOWNOACTIVATE);
     last_overlay_bounds_ = bounds;
     last_rendered_signature_ = std::move(signature);
     overlay_rendered_ = true;
+    EnsureOverlayAboveTaskbar(taskbar);
   } else {
     overlay_rendered_ = false;
   }
+}
+
+void WindowsTaskbarStatus::EnsureOverlayAboveTaskbar(HWND taskbar) {
+  if (!IsWindowAbove(taskbar, overlay_window_)) {
+    return;
+  }
+  // Keep our details window above the indicator when it is already above
+  // Explorer. Restore only lost order, without redrawing or stealing focus.
+  const HWND insert_after =
+      IsPopoverVisible() && IsWindowAbove(host_window_, taskbar)
+          ? host_window_
+          : HWND_TOPMOST;
+  SetWindowPos(overlay_window_, insert_after, 0, 0, 0, 0,
+               SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOOWNERZORDER);
 }
 
 bool WindowsTaskbarStatus::IsPopoverVisible() const {
@@ -435,7 +490,8 @@ void WindowsTaskbarStatus::TogglePopover() {
 bool WindowsTaskbarStatus::RenderLayeredOverlay(int x,
                                                 int y,
                                                 int width,
-                                                int height) {
+                                                int height,
+                                                UINT dpi) {
   if (overlay_window_ == nullptr || width <= 0 || height <= 0) {
     return false;
   }
@@ -468,7 +524,12 @@ bool WindowsTaskbarStatus::RenderLayeredOverlay(int x,
   std::fill_n(pixels, pixel_count, kTransparentSentinelRgb);
 
   const RECT client{0, 0, width, height};
-  PaintOverlay(buffer_dc, client);
+  PaintOverlay(buffer_dc, client, dpi);
+
+  // GDI batches writes to the DIB. Flush before reading or changing its
+  // pixels, otherwise a late draw can erase alpha and make visible glyphs
+  // pass mouse clicks through to the taskbar below.
+  GdiFlush();
 
   for (size_t index = 0; index < pixel_count; ++index) {
     const DWORD rgb = pixels[index] & 0x00FFFFFF;
@@ -495,7 +556,7 @@ bool WindowsTaskbarStatus::RenderLayeredOverlay(int x,
   return updated != FALSE;
 }
 
-void WindowsTaskbarStatus::PaintOverlay(HDC dc, const RECT& client) {
+void WindowsTaskbarStatus::PaintOverlay(HDC dc, const RECT& client, UINT dpi) {
   std::array<std::pair<std::wstring, bool>, 2> providers{};
   int provider_count = 0;
   if (codex_value_.has_value()) {
@@ -506,11 +567,10 @@ void WindowsTaskbarStatus::PaintOverlay(HDC dc, const RECT& client) {
   }
 
   if (provider_count == 0) {
-    PaintProvider(dc, client, L"AI", false);
+    PaintProvider(dc, client, L"AI", false, dpi);
   } else {
     const int gap = provider_count == 2
-                        ? ScaleForDpi(kSegmentGap,
-                                      DpiForWindowOrDefault(overlay_window_))
+                        ? ScaleForDpi(kSegmentGap, dpi)
                         : 0;
     const int segment_width =
         ((client.right - client.left) - gap) / provider_count;
@@ -522,7 +582,7 @@ void WindowsTaskbarStatus::PaintOverlay(HDC dc, const RECT& client) {
           client.bottom,
       };
       PaintProvider(dc, segment, providers[index].first,
-                    providers[index].second);
+                    providers[index].second, dpi);
     }
   }
 }
@@ -530,31 +590,29 @@ void WindowsTaskbarStatus::PaintOverlay(HDC dc, const RECT& client) {
 void WindowsTaskbarStatus::PaintProvider(HDC dc,
                                          const RECT& bounds,
                                          const std::wstring& value,
-                                         bool is_claude) const {
-  const int height = bounds.bottom - bounds.top;
-  RECT content_bounds = bounds;
-  content_bounds.top += std::max(1, height / 12);
-  content_bounds.bottom -= std::max(1, height / 12);
-
-  RECT mark_bounds = content_bounds;
-  mark_bounds.left += std::max(5, height / 7);
-  mark_bounds.right = mark_bounds.left + std::max(14, height / 2);
+                                         bool is_claude,
+                                         UINT dpi) const {
+  const int icon_size = ScaleForDpi(kProviderIconSize, dpi);
+  const int padding = ScaleForDpi(kProviderContentPadding, dpi);
+  const int center_y = (bounds.top + bounds.bottom) / 2;
+  RECT mark_bounds{bounds.left + padding, center_y - icon_size / 2,
+                   bounds.left + padding + icon_size,
+                   center_y - icon_size / 2 + icon_size};
   PaintProviderMark(dc, mark_bounds, is_claude);
 
-  RECT text_bounds = content_bounds;
-  text_bounds.left = mark_bounds.right + std::max(2, height / 16);
-  text_bounds.right -= std::max(4, height / 8);
-  const int font_height = value.size() >= 3 ? height * 38 / 100
-                                            : height * 44 / 100;
+  RECT text_bounds = bounds;
+  text_bounds.left = mark_bounds.right + ScaleForDpi(kProviderIconGap, dpi);
+  text_bounds.right -= padding;
+  const int font_height = ScaleForDpi(kProviderFontSize, dpi);
   HFONT font = CreateFontW(-font_height, 0, 0, 0, FW_BOLD, FALSE, FALSE,
                            FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS,
                            CLIP_DEFAULT_PRECIS, ANTIALIASED_QUALITY,
                            DEFAULT_PITCH, L"Segoe UI");
   const HGDIOBJ old_font = SelectObject(dc, font);
   SetBkMode(dc, TRANSPARENT);
-  SetTextColor(dc, RGB(255, 255, 255));
+  SetTextColor(dc, kProviderForeground);
   DrawTextW(dc, value.c_str(), -1, &text_bounds,
-            DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+            DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
   SelectObject(dc, old_font);
   DeleteObject(font);
 }
@@ -580,9 +638,9 @@ void WindowsTaskbarStatus::PaintProviderMark(HDC dc,
   }
 
   const int radius = std::max(
-      4, static_cast<int>(bounds.bottom - bounds.top) / 4);
+      4, static_cast<int>(bounds.bottom - bounds.top) / 2 - 1);
   HPEN pen = CreatePen(PS_SOLID, std::max(1, radius / 3),
-                       RGB(255, 255, 255));
+                       kProviderForeground);
   const HGDIOBJ old_pen = SelectObject(dc, pen);
   const HGDIOBJ old_brush = SelectObject(dc, GetStockObject(NULL_BRUSH));
 
@@ -678,12 +736,35 @@ std::optional<std::wstring> WindowsTaskbarStatus::ReadOptionalValue(
 }
 
 void WindowsTaskbarStatus::Destroy() {
+  if (foreground_hook_ != nullptr) {
+    UnhookWinEvent(foreground_hook_);
+    foreground_hook_ = nullptr;
+  }
+  if (reorder_hook_ != nullptr) {
+    UnhookWinEvent(reorder_hook_);
+    reorder_hook_ = nullptr;
+  }
   if (overlay_window_ != nullptr) {
     KillTimer(overlay_window_, 1);
     DestroyWindow(overlay_window_);
     overlay_window_ = nullptr;
   }
   initialized_ = false;
+}
+
+void CALLBACK WindowsTaskbarStatus::OnShellWindowEvent(
+    HWINEVENTHOOK, DWORD event, HWND window, LONG object_id, LONG,
+    DWORD, DWORD) {
+  // Ignore list/tree reorders inside other applications. Foreground changes
+  // and top-level window reorders can change Explorer's stacking order.
+  if (event == EVENT_OBJECT_REORDER && object_id != OBJID_WINDOW &&
+      window != GetDesktopWindow()) {
+    return;
+  }
+  const HWND overlay = FindWindowW(kOverlayClassName, nullptr);
+  if (overlay != nullptr) {
+    PostMessageW(overlay, kRefreshOverlayOrder, 0, 0);
+  }
 }
 
 LRESULT CALLBACK WindowsTaskbarStatus::OverlayWindowProc(HWND window,
@@ -714,6 +795,7 @@ LRESULT CALLBACK WindowsTaskbarStatus::OverlayWindowProc(HWND window,
         status->ShowContextMenu();
         return 0;
       case WM_TIMER:
+      case kRefreshOverlayOrder:
         status->PositionOverlay();
         return 0;
       case WM_MOUSEACTIVATE:

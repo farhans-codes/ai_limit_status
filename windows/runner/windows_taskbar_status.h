@@ -28,6 +28,13 @@ class WindowsTaskbarStatus {
                                              UINT message,
                                              WPARAM wparam,
                                              LPARAM lparam);
+  static void CALLBACK OnShellWindowEvent(HWINEVENTHOOK hook,
+                                          DWORD event,
+                                          HWND window,
+                                          LONG object_id,
+                                          LONG child_id,
+                                          DWORD thread_id,
+                                          DWORD timestamp);
 
   void HandleMethodCall(
       const flutter::MethodCall<flutter::EncodableValue>& method_call,
@@ -35,7 +42,8 @@ class WindowsTaskbarStatus {
   void CreateOverlayIfNeeded();
   void UpdateOverlay();
   void PositionOverlay();
-  bool RenderLayeredOverlay(int x, int y, int width, int height);
+  void EnsureOverlayAboveTaskbar(HWND taskbar);
+  bool RenderLayeredOverlay(int x, int y, int width, int height, UINT dpi);
 
   // The details window is shown, hidden, and positioned natively, from the
   // same thread and input event that clicked the overlay, so Windows still
@@ -46,11 +54,12 @@ class WindowsTaskbarStatus {
   void HidePopover();
   void TogglePopover();
   RECT PopoverBoundsAnchoredToTaskbar(int width, int height) const;
-  void PaintOverlay(HDC dc, const RECT& bounds);
+  void PaintOverlay(HDC dc, const RECT& bounds, UINT dpi);
   void PaintProvider(HDC dc,
                      const RECT& bounds,
                      const std::wstring& value,
-                     bool is_claude) const;
+                     bool is_claude,
+                     UINT dpi) const;
   void PaintProviderMark(HDC dc,
                          const RECT& bounds,
                          bool is_claude) const;
@@ -64,6 +73,8 @@ class WindowsTaskbarStatus {
 
   HWND host_window_;
   HWND overlay_window_ = nullptr;
+  HWINEVENTHOOK foreground_hook_ = nullptr;
+  HWINEVENTHOOK reorder_hook_ = nullptr;
   UINT taskbar_created_message_;
   std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>> channel_;
   std::optional<std::wstring> codex_value_;
@@ -74,8 +85,8 @@ class WindowsTaskbarStatus {
   std::wstring quit_label_;
   bool initialized_ = false;
   // Last overlay placement and content that were actually rendered, so the
-  // one-second reposition timer is a no-op unless something changed and
-  // never re-asserts HWND_TOPMOST above the open details window.
+  // one-second reposition timer does not repaint unchanged content. Z-order
+  // is checked separately because Explorer can cover an otherwise visible HWND.
   RECT last_overlay_bounds_{};
   std::wstring last_rendered_signature_;
   bool overlay_rendered_ = false;
