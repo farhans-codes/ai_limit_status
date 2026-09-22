@@ -301,6 +301,14 @@ before opening a pull request.
 Security vulnerabilities must not be posted in public issues. Follow
 [SECURITY.md](SECURITY.md) instead.
 
+## Acknowledgements
+
+This project was independently conceived and developed by the author.
+
+Special thanks to my colleagues and mentors for their valuable ideas,
+feedback, and suggestions throughout different stages of the project. Their
+guidance has helped improve the project in many ways.
+
 ## License and trademarks
 
 The source code is available under the [MIT License](LICENSE).
