@@ -17,7 +17,7 @@ class StoredDesktopSettings {
     : notificationsEnabled = false,
       notificationPreferenceConfigured = false,
       onboardingCompleted = false,
-      claudeStatusLimitPreference = ClaudeStatusLimitPreference.fiveHour,
+      claudeStatusLimitPreference = ClaudeStatusLimitPreference.weekly,
       hiddenProviders = const {};
 
   final bool notificationsEnabled;
@@ -88,9 +88,11 @@ class DesktopSettingsStore {
   }
 
   ClaudeStatusLimitPreference _parseClaudeStatusLimitPreference(Object? value) {
+    // The retired `fiveHour` preference and unknown values use the overall
+    // weekly allowance. An existing Fable preference is preserved.
     return ClaudeStatusLimitPreference.values.firstWhere(
       (preference) => preference.name == value,
-      orElse: () => ClaudeStatusLimitPreference.fiveHour,
+      orElse: () => ClaudeStatusLimitPreference.weekly,
     );
   }
 

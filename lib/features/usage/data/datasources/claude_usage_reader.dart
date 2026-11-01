@@ -126,6 +126,10 @@ class ClaudeUsageReader {
     }
 
     final limits = _parseLimits(payload);
+    AppLog.log(
+      'claude: parsed weekly limits: '
+      '${limits.map((limit) => limit.type.name).join(', ')}',
+    );
     if (limits.isEmpty) {
       throw const UsageReadException(UsageConnectionIssue.unavailable);
     }
@@ -914,7 +918,8 @@ class ClaudeUsageReader {
       }
     }
 
-    add(_parseLimit(payload, 'five_hour', UsageLimitType.session));
+    // Claude's weekly-only allowance (including Ultra) no longer uses a
+    // five-hour window. Ignore legacy session fields from either endpoint.
     add(_parseLimit(payload, 'seven_day', UsageLimitType.weekly));
     add(_parseLimit(payload, 'seven_day_opus', UsageLimitType.opusWeekly));
     add(_parseLimit(payload, 'seven_day_sonnet', UsageLimitType.sonnetWeekly));
@@ -941,7 +946,6 @@ class ClaudeUsageReader {
     }
 
     return const [
-      UsageLimitType.session,
       UsageLimitType.weekly,
       UsageLimitType.fableWeekly,
       UsageLimitType.opusWeekly,
@@ -969,9 +973,6 @@ class ClaudeUsageReader {
 
   UsageLimitType? _genericLimitType(Map<String, dynamic> rawLimit) {
     final kind = rawLimit['kind']?.toString().toLowerCase();
-    if (kind == 'session' || kind == 'five_hour') {
-      return UsageLimitType.session;
-    }
     if (kind == 'weekly_all' || kind == 'seven_day') {
       return UsageLimitType.weekly;
     }

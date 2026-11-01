@@ -1,6 +1,13 @@
 import 'package:ai_limit_status/features/usage/domain/entities/provider_usage.dart';
 
-enum ClaudeStatusLimitPreference { fiveHour, fableWeekly }
+enum ClaudeStatusLimitPreference {
+  weekly,
+  fableWeekly;
+
+  /// Source compatibility for callers using the retired shortcut preference.
+  /// Persisted `fiveHour` values are also read as [weekly].
+  static const fiveHour = weekly;
+}
 
 class DesktopSettings {
   const DesktopSettings({

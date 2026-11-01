@@ -57,8 +57,9 @@ or [download SHA-256 checksums](https://github.com/farhans-codes/ai_limit_status
 
 - Shows only providers available through an installed CLI or existing provider
   credentials on the current computer.
-- Displays available five-hour, weekly, Fable, Opus, and Sonnet usage windows.
-- Lets users choose whether the Claude shortcut shows the five-hour or Fable
+- Displays available Codex usage windows and Claude's weekly, Fable, Opus, and
+  Sonnet allowances, including weekly-only Ultra usage.
+- Lets users choose whether the Claude shortcut shows the overall weekly or Fable
   weekly limit.
 - Keeps Codex and the selected Claude percentages visible in the macOS menu bar
   or side by side in the Windows taskbar.
@@ -84,12 +85,16 @@ or [download SHA-256 checksums](https://github.com/farhans-codes/ai_limit_status
 Open **App settings** to choose the Claude value shown in the macOS menu bar or
 Windows taskbar:
 
-- **5-hour limit** shows the normal rolling Claude usage window.
+- **Weekly limit** shows the overall Claude weekly allowance (the default).
 - **Fable weekly limit** shows the scoped Fable allowance reported by Claude.
 
 The Codex indicator remains visible beside the selected Claude value. If Claude
 does not report the selected limit, the shortcut shows `—` instead of silently
 substituting a different limit.
+
+Existing five-hour shortcut preferences automatically use the overall weekly
+limit. Claude's retired five-hour window is ignored in live and cached usage.
+Usage is read from the provider without depending on the subscription plan name.
 
 ## Notification rules
 
@@ -100,13 +105,6 @@ providers:
 - 20% remaining: an extra-caution warning.
 - 10% remaining: a warning to reduce usage.
 
-Claude five-hour notifications:
-
-- Five-hour limit restored.
-- One hour before reset.
-- 30 minutes before reset.
-- 10 minutes before reset.
-
 Claude and Codex weekly notifications:
 
 - Weekly limit restored.
@@ -115,7 +113,7 @@ Claude and Codex weekly notifications:
 - Five hours before reset.
 - One hour before reset.
 
-Codex does not receive five-hour restored or countdown notifications. Each
+Five-hour restored or countdown notifications are not sent. Each
 notification is shown only once for a specific reset window.
 
 ## Install and first launch
@@ -148,7 +146,7 @@ run a copy downloaded from an untrusted source.
 The live Codex and Claude indicators appear together in the taskbar immediately
 to the left of the Windows notification area. Left-click the indicators to open
 the details window, or right-click them to open the app menu. The Claude value
-can be changed between the five-hour and Fable weekly limits from **App
+can be changed between the overall weekly and Fable weekly limits from **App
 settings**.
 
 Unsigned public beta builds can trigger Microsoft Defender SmartScreen. Verify

@@ -28,6 +28,13 @@ class UsageCacheStore {
           .whereType<Map<String, dynamic>>()
           .map(_decodeLimit)
           .nonNulls
+          // Do not resurrect Claude's retired five-hour window from a cache
+          // written by an earlier app version during a network failure.
+          .where(
+            (limit) =>
+                provider != UsageProvider.claude ||
+                limit.type != UsageLimitType.session,
+          )
           .toList();
       if (limits.isEmpty) {
         return null;

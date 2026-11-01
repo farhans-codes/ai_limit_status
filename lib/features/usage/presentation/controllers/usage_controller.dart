@@ -50,7 +50,7 @@ class UsageController extends GetxController {
   _claudeStatusLimitSubscription;
   StreamSubscription<void>? _providerConfigurationSubscription;
   ClaudeStatusLimitPreference _claudeStatusLimitPreference =
-      ClaudeStatusLimitPreference.fiveHour;
+      ClaudeStatusLimitPreference.weekly;
   bool _isRefreshing = false;
 
   bool get supportsAutomaticInstall => _installProvider.isSupported;
@@ -331,7 +331,7 @@ class UsageController extends GetxController {
     final claude = _usageFor(UsageProvider.claude);
     final codexValue = codex == null ? null : _compactValue(l10n, codex);
     final claudeLimitType = switch (_claudeStatusLimitPreference) {
-      ClaudeStatusLimitPreference.fiveHour => UsageLimitType.session,
+      ClaudeStatusLimitPreference.weekly => UsageLimitType.weekly,
       ClaudeStatusLimitPreference.fableWeekly => UsageLimitType.fableWeekly,
     };
     final claudeLimitName = _limitName(l10n, claudeLimitType);
