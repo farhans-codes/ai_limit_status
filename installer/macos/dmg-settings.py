@@ -14,7 +14,8 @@ symlinks = {"Applications": "/Applications"}
 # Do not create a standalone PNG that appears when hidden files are visible.
 background = None
 # Finder stores outer bounds; allow 32 points for the macOS title bar above
-# the 720 x 440 design area. These bounds set the initial size, not a lock.
+# the 720 x 440 design area. The background canvas extends beyond this area
+# to cover resized windows. These bounds set the initial size, not a lock.
 window_rect = ((120, 120), (720, 472))
 default_view = "icon-view"
 
