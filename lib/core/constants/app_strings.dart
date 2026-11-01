@@ -75,8 +75,8 @@ class AppStrings {
       'Open its official setup guide and try again.';
 
   String get warningThresholdsTooltip =>
-      'Usage alerts at 50%, 20%, and 10%; five-hour reminders at 1h, '
-      '30m, and 10m; weekly reminders at 1d, 12h, 5h, and 1h; '
+      'Usage alerts at 50%, 20%, and 10%; '
+      'weekly reminders at 1d, 12h, 5h, and 1h; '
       'plus restored notices';
   String get settingsTooltip => 'Notification, shortcut, and startup settings';
   String get firstRunSetupTitle => 'Finish app setup';
@@ -96,7 +96,7 @@ class AppStrings {
   String get claudeShortcutLimitTitle => 'Claude limit';
   String get claudeShortcutLimitDescription =>
       'Choose the percentage shown in the menu bar or Windows taskbar.';
-  String get claudeFiveHourShortcut => '5-hour';
+  String get claudeWeeklyShortcut => 'Weekly';
   String get claudeFableShortcut => 'Fable weekly';
   String get providersSectionTitle => 'Visible providers';
   String get showCodexTitle => 'Codex';

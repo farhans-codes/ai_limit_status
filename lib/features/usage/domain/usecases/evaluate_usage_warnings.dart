@@ -5,7 +5,6 @@ class EvaluateUsageWarnings {
   const EvaluateUsageWarnings();
 
   static const remainingThresholds = [10, 20, 50];
-  static const fiveHourResetThresholdMinutes = [10, 30, 60];
   static const weeklyResetThresholdMinutes = [60, 300, 720, 1440];
   static const _minimumRestoredIncrease = 5;
 
@@ -25,6 +24,10 @@ class EvaluateUsageWarnings {
     )) {
       final previousUsage = previousByProvider[usage.provider];
       for (final limit in usage.limits) {
+        if (usage.provider == UsageProvider.claude &&
+            limit.type == UsageLimitType.session) {
+          continue;
+        }
         final previousLimit = _findLimit(previousUsage, limit.type);
         final remainingThreshold = _firstMatchingThreshold(
           remainingThresholds,
@@ -44,7 +47,7 @@ class EvaluateUsageWarnings {
           );
         }
 
-        final resetThresholds = _resetThresholdsFor(usage.provider, limit.type);
+        final resetThresholds = _resetThresholdsFor(limit.type);
         if (resetThresholds.isNotEmpty && _wasRestored(previousLimit, limit)) {
           warnings.add(
             UsageWarning(
@@ -131,13 +134,8 @@ class EvaluateUsageWarnings {
         Duration(minutes: thresholdMinutes);
   }
 
-  List<int> _resetThresholdsFor(
-    UsageProvider provider,
-    UsageLimitType limitType,
-  ) {
+  List<int> _resetThresholdsFor(UsageLimitType limitType) {
     return switch (limitType) {
-      UsageLimitType.session when provider == UsageProvider.claude =>
-        fiveHourResetThresholdMinutes,
       UsageLimitType.session => const [],
       UsageLimitType.weekly ||
       UsageLimitType.fableWeekly ||

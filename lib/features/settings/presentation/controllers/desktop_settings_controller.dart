@@ -24,7 +24,7 @@ class DesktopSettingsController extends GetxController
 
   final notificationsEnabled = false.obs;
   final launchAtStartupEnabled = false.obs;
-  final claudeStatusLimitPreference = ClaudeStatusLimitPreference.fiveHour.obs;
+  final claudeStatusLimitPreference = ClaudeStatusLimitPreference.weekly.obs;
   final visibleProviders = UsageProvider.values.toSet().obs;
   final isUpdating = false.obs;
 

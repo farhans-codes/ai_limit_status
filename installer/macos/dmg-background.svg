@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg"
-     width="720"
-     height="440"
-     viewBox="0 0 720 440">
+     width="4096"
+     height="4096"
+     viewBox="0 0 4096 4096">
+  <!-- Keep the installer design at 720 x 440 while extending the dark
+       canvas beyond it so resized Finder windows do not expose white. -->
   <defs>
     <linearGradient id="background" x1="40" y1="20" x2="680" y2="420" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#111827"/>
@@ -30,9 +32,9 @@
     </filter>
   </defs>
 
-  <rect width="720" height="440" fill="url(#background)"/>
-  <rect width="720" height="440" fill="url(#purpleGlow)"/>
-  <rect width="720" height="440" fill="url(#cyanGlow)"/>
+  <rect width="4096" height="4096" fill="url(#background)"/>
+  <rect width="4096" height="4096" fill="url(#purpleGlow)"/>
+  <rect width="4096" height="4096" fill="url(#cyanGlow)"/>
 
   <g opacity="0.32">
     <circle cx="664" cy="52" r="76" fill="none" stroke="#ffffff" stroke-opacity="0.12"/>

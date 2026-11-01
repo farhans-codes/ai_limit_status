@@ -152,9 +152,9 @@ class DesktopSettingsDialog extends StatelessWidget {
                                       segments: [
                                         ButtonSegment(
                                           value: ClaudeStatusLimitPreference
-                                              .fiveHour,
+                                              .weekly,
                                           label: Text(
-                                            strings.claudeFiveHourShortcut,
+                                            strings.claudeWeeklyShortcut,
                                           ),
                                         ),
                                         ButtonSegment(
