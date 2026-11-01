@@ -233,6 +233,11 @@ AI Limit Status does not ask users to paste an API key into the app.
   Code's own OAuth client and write the rotated credential back to the same
   `.credentials.json` file so the Claude CLI stays in sync. Keychain-held
   credentials are never rewritten.
+- If Claude rejects a saved login, the app rereads the provider-owned
+  credential and retries once when it has changed. If a secure-store login
+  still needs renewal, the Claude card shows **Sign in**. Complete that
+  provider-owned login to reconnect without restarting the app. A previous
+  credential's rate-limit cooldown does not block the new login.
 - The Claude access token is held in memory only long enough to request usage
   from `https://api.anthropic.com/api/oauth/usage`. AI Limit Status does not
   write the token to its own files or logs.

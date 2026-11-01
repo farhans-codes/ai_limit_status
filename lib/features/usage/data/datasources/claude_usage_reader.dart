@@ -62,6 +62,7 @@ class ClaudeUsageReader {
 
   final ProviderExecutableLocator _executableLocator;
   DateTime? _rateLimitedUntil;
+  String? _rateLimitedAccessToken;
   String? _cachedUserAgent;
   ProviderUsageModel? _lastSuccessfulUsage;
   DateTime? _keychainDeniedAt;
@@ -88,6 +89,9 @@ class ClaudeUsageReader {
         payload = await _fetchUsageWithRefresh(credentials);
         AppLog.log('claude: OAuth usage read succeeded');
       } on UsageReadException catch (error) {
+        if (error.issue == UsageConnectionIssue.notSignedIn) {
+          _cachedCredentials = null;
+        }
         directIssue = error.issue;
         AppLog.log('claude: OAuth usage read failed: ${error.issue.name}');
       } on Object catch (error) {
@@ -175,6 +179,8 @@ class ClaudeUsageReader {
     if (!Platform.isWindows &&
         cached != null &&
         readAt != null &&
+        !cached.isExpiringWithin(_refreshLeeway) &&
+        _rateLimitedAccessToken != cached.accessToken &&
         DateTime.now().difference(readAt) < _credentialsCacheTtl) {
       return cached;
     }
@@ -450,22 +456,28 @@ class ClaudeUsageReader {
     try {
       return await _fetchUsage(current);
     } on _UnauthorizedException {
-      // Re-read the store on the next poll instead of retrying a token the
-      // server has already rejected.
+      // The CLI may already have rotated its credential while this app
+      // retained the old one. Retry a changed credential once.
       _cachedCredentials = null;
-      final refreshed = await _refreshCredentials(current);
+      final latest = await _readCredentials();
+      final refreshed =
+          latest != null && latest.accessToken != current.accessToken
+          ? latest
+          : await _refreshCredentials(current);
       if (refreshed != null) {
+        _cachedCredentials = refreshed;
+        _credentialsReadAt = DateTime.now();
         try {
           return await _fetchUsage(refreshed);
         } on _UnauthorizedException {
-          // Fall through to the classification below.
+          _cachedCredentials = null;
+          throw const UsageReadException(UsageConnectionIssue.notSignedIn);
         }
       }
-      // A rejected token alongside a refresh token usually means the access
-      // token lapsed and the CLI will repair it on its next run; keep the
-      // cached snapshot meanwhile. Without one the user must sign in again.
+      // Only file-backed credentials can be refreshed here. A rejected
+      // secure-store token needs the existing provider-owned sign-in flow.
       throw UsageReadException(
-        current.refreshToken != null
+        current.writableFile != null && current.refreshToken != null
             ? UsageConnectionIssue.unavailable
             : UsageConnectionIssue.notSignedIn,
       );
@@ -620,6 +632,10 @@ class ClaudeUsageReader {
     _ClaudeCredentials credentials,
   ) async {
     final now = DateTime.now();
+    if (_rateLimitedAccessToken != credentials.accessToken) {
+      _rateLimitedUntil = null;
+      _rateLimitedAccessToken = null;
+    }
     final rateLimitedUntil = _rateLimitedUntil;
     if (rateLimitedUntil != null && now.isBefore(rateLimitedUntil)) {
       throw const UsageReadException(UsageConnectionIssue.unavailable);
@@ -659,6 +675,7 @@ class ClaudeUsageReader {
         );
       }
       if (response.statusCode == HttpStatus.tooManyRequests) {
+        _rateLimitedAccessToken = credentials.accessToken;
         _rateLimitedUntil =
             _parseRetryAfter(response.headers.value('retry-after')) ??
             now.add(_rateLimitCooldown);
@@ -681,6 +698,7 @@ class ClaudeUsageReader {
         throw const UsageReadException(UsageConnectionIssue.unavailable);
       }
       _rateLimitedUntil = null;
+      _rateLimitedAccessToken = null;
       return payload;
     } finally {
       client.close(force: true);

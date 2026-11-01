@@ -6,6 +6,13 @@ The project follows Semantic Versioning for public releases.
 
 ## [Unreleased]
 
+### Fixed
+
+- Show Claude's sign-in action when a secure-store credential is rejected,
+  instead of leaving usage temporarily unavailable indefinitely.
+- Retry a credential already rotated by Claude Code and reconnect after
+  sign-in without restarting the app or waiting for an old token's cooldown.
+
 ## [0.9.1] - 2026-11-01
 
 ### Changed
