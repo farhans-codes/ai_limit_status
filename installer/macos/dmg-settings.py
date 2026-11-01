@@ -36,5 +36,7 @@ icon_size = 96
 icon_locations = {
     app_name: (183, 171),
     "Applications": (537, 171),
-    ".background.png": (0, 0),
+    # Finder shifts the entire canvas if a visible hidden item's bounds
+    # extend past the top-left corner. Keep the background icon inside it.
+    ".background.png": (360, 320),
 }
