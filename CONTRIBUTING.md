@@ -12,7 +12,7 @@ Thank you for helping improve AI Limit Status.
 
 ## Development setup
 
-1. Fork the repository and create a focused branch from `develop`.
+1. Fork the repository and create a focused branch from `main`.
 2. Install Flutter `3.44.2` or a compatible stable version.
 3. Run:
 
@@ -44,8 +44,8 @@ Studio with the Desktop development with C++ workload.
 
 ## Pull requests
 
-Open contributor pull requests against `develop`. Maintainers promote verified
-changes from `develop` to the protected `main` branch for releases.
+Open contributor pull requests against the protected `main` branch. Maintainers
+merge verified changes directly into `main` and delete merged feature branches.
 
 A pull request should include:
 
