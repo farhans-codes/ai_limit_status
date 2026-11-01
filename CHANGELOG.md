@@ -6,6 +6,8 @@ The project follows Semantic Versioning for public releases.
 
 ## [Unreleased]
 
+## [0.9.2] - 2026-11-01
+
 ### Fixed
 
 - Show Claude's sign-in action when a secure-store credential is rejected,
