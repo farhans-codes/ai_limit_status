@@ -6,6 +6,30 @@ The project follows Semantic Versioning for public releases.
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-11-01
+
+### Changed
+
+- Show Claude's overall weekly allowance by default, with Weekly and Fable
+  weekly choices for the menu bar and Windows taskbar shortcut.
+- Migrate existing five-hour shortcut preferences to Weekly while preserving
+  Fable preferences.
+- Stop displaying Claude's five-hour allowance and sending its usage or reset
+  notifications, including when reading cached data. Codex limits and Claude
+  weekly notifications are unchanged.
+
+### Fixed
+
+- Align the macOS DMG installer icons with the background artwork.
+- Keep the installer background inside the signed application bundle so no
+  standalone background image appears in Finder.
+- Extend the DMG background to cover resized Finder windows.
+
+### Maintenance
+
+- Update flutter_local_notifications to 22.3.2 and refresh the GitHub Actions
+  artifact upload and download actions.
+
 ## [0.8.1] - 2026-09-03
 
 ### Fixed
