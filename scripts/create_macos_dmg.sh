@@ -78,11 +78,67 @@ mkdir -p "$(dirname "$output_dmg")"
   --quiet \
   --requirement "$requirements_path"
 
-"$venv_path/bin/dmgbuild" \
-  -s "$settings_path" \
-  -D "app=$app_path" \
-  -D "background=$background_png" \
-  "AI Limit Status" \
-  "$output_dmg"
+"$venv_path/bin/python" - \
+  "$settings_path" "$app_path" "$output_dmg" "$background_png" <<'PY'
+import filecmp
+from pathlib import Path
+import sys
+
+from dmgbuild import build_dmg
+from ds_store import DSStore
+from mac_alias import Alias
+
+
+settings_path, app_path, output_dmg, background_png = sys.argv[1:]
+app_name = "AI Limit Status.app"
+resource = Path("Contents/Resources/dmg-background.png")
+bundled_background = Path(app_path) / resource
+if not bundled_background.is_file():
+    raise SystemExit("Rebuild the macOS app to include the DMG background resource.")
+if not filecmp.cmp(bundled_background, background_png, shallow=False):
+    raise SystemExit("The bundled DMG background is outdated; rebuild the macOS app.")
+
+mount_point = None
+
+
+def configure_background(event):
+    global mount_point
+    if (
+        event.get("type") == "command::finished"
+        and event.get("command") == "hdiutil::attach"
+    ):
+        if event.get("ret") == 0:
+            mount_point = next(
+                Path(item["mount-point"])
+                for item in event["output"]["system-entities"]
+                if "mount-point" in item
+            )
+    if (
+        event.get("type") == "operation::finished"
+        and event.get("operation") == "dsstore::create"
+    ):
+        if mount_point is None:
+            raise RuntimeError("The DMG mount point is unavailable.")
+        # The resource is included before Xcode signs the app. Updating only
+        # Finder metadata preserves that signature and leaves no PNG at root.
+        background = mount_point / app_name / resource
+        with DSStore.open(str(mount_point / ".DS_Store"), "r+") as store:
+            icon_view = store["."]["icvp"]
+            icon_view["backgroundType"] = 2
+            alias = Alias.for_file(str(background))
+            icon_view["backgroundImageAlias"] = alias.to_bytes()
+            store["."]["icvp"] = icon_view
+    if event.get("type", "").startswith("error::"):
+        print(event.get("message", "DMG creation failed."), file=sys.stderr)
+
+
+build_dmg(
+    output_dmg,
+    "AI Limit Status",
+    settings_file=settings_path,
+    defines={"app": app_path},
+    callback=configure_background,
+)
+PY
 
 hdiutil verify "$output_dmg"

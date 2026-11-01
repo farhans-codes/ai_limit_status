@@ -2,7 +2,6 @@ import os
 
 
 application = os.path.abspath(defines["app"])  # noqa: F821
-background_image = os.path.abspath(defines["background"])  # noqa: F821
 app_name = "AI Limit Status.app"
 
 format = "UDZO"
@@ -11,10 +10,12 @@ compression_level = 9
 
 files = [(application, app_name)]
 symlinks = {"Applications": "/Applications"}
-hide = [".background.png"]
-
-background = background_image
-window_rect = ((120, 120), (720, 440))
+# The packaging script points Finder at the background inside the signed app.
+# Do not create a standalone PNG that appears when hidden files are visible.
+background = None
+# Finder stores outer bounds; allow 32 points for the macOS title bar above
+# the 720 x 440 design area. These bounds set the initial size, not a lock.
+window_rect = ((120, 120), (720, 472))
 default_view = "icon-view"
 
 show_status_bar = False
@@ -36,7 +37,4 @@ icon_size = 96
 icon_locations = {
     app_name: (183, 171),
     "Applications": (537, 171),
-    # Finder shifts the entire canvas if a visible hidden item's bounds
-    # extend past the top-left corner. Keep the background icon inside it.
-    ".background.png": (360, 320),
 }
