@@ -6,6 +6,13 @@ The project follows Semantic Versioning for public releases.
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-11-09
+
+### Added
+
+- Check for updates in Settings and download the latest macOS DMG or Windows
+  installer when a newer version is available.
+
 ## [0.10.0] - 2026-11-09
 
 ### Added

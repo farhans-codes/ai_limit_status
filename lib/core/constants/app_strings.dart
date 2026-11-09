@@ -107,6 +107,17 @@ class AppStrings {
   String get providerVisibilityDescription =>
       'Only enabled providers are read and shown.';
   String appVersion(String version) => 'Version $version';
+  String get checkForAppUpdates => 'Check for updates';
+  String get checkingForAppUpdates => 'Checking for updates…';
+  String get appIsUpToDate => 'You’re up to date.';
+  String appUpdateAvailable(String version) => 'Version $version is available.';
+  String appUpdateInstallerUnavailable(String version) =>
+      'Version $version is available. The installer isn’t ready yet.';
+  String get appUpdateCheckFailed => 'Couldn’t check for updates. Try again.';
+  String get downloadMacUpdate => 'Download macOS DMG';
+  String get downloadWindowsUpdate => 'Download Windows Setup';
+  String get appUpdateDownloadFailed =>
+      'Couldn’t open the download. Try again.';
   String get close => 'Close';
   String get finishSetup => 'Finish setup';
   String get done => 'Done';
