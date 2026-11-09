@@ -321,9 +321,7 @@ class _LimitMetric extends StatelessWidget {
             const SizedBox(width: 5),
             Expanded(
               child: Text(
-                limit.resetsAt == null
-                    ? l10n.resetTimeUnavailable
-                    : _resetLabel(l10n, limit.resetsAt!),
+                _resetLabel(context, l10n, limit.resetsAt),
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -560,9 +558,31 @@ Color _indicatorColor(
   return providerAccent;
 }
 
-String _resetLabel(AppStrings l10n, DateTime resetsAt) {
-  final remaining = resetsAt.difference(DateTime.now());
-  if (remaining.isNegative || remaining.inMinutes == 0) {
+String _resetLabel(BuildContext context, AppStrings l10n, DateTime? resetsAt) {
+  if (resetsAt == null) {
+    return l10n.resetTimeUnavailable;
+  }
+
+  final now = DateTime.now();
+  final localReset = resetsAt.toLocal();
+  final remaining = localReset.difference(now);
+  if (remaining <= Duration.zero) {
+    return l10n.resettingSoon;
+  }
+
+  final String day;
+  if (DateUtils.isSameDay(localReset, now)) {
+    day = l10n.resetToday;
+  } else if (DateUtils.isSameDay(localReset, DateUtils.addDaysToDate(now, 1))) {
+    day = l10n.resetTomorrow;
+  } else {
+    day = MaterialLocalizations.of(context).formatMediumDate(localReset);
+  }
+  return l10n.resetWithDay(_resetCountdown(l10n, remaining), day);
+}
+
+String _resetCountdown(AppStrings l10n, Duration remaining) {
+  if (remaining.inMinutes == 0) {
     return l10n.resettingSoon;
   }
   if (remaining.inDays > 0) {

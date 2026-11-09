@@ -27,6 +27,9 @@ class AppStrings {
 
   String get resettingSoon => 'Resetting soon';
   String get resetTimeUnavailable => 'Reset time unavailable';
+  String get resetToday => 'Today';
+  String get resetTomorrow => 'Tomorrow';
+  String resetWithDay(String countdown, String day) => '$countdown · $day';
   String get lastUpdatedNow => 'Updated just now';
   String lastUpdatedMinutes(int minutes) => 'Updated ${minutes}m ago';
   String get refresh => 'Refresh';
