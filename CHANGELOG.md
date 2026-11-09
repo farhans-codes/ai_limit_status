@@ -6,6 +6,13 @@ The project follows Semantic Versioning for public releases.
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-11-09
+
+### Added
+
+- Show the local reset time alongside the reset day and countdown in Codex
+  and Claude usage cards.
+
 ## [0.11.0] - 2026-11-09
 
 ### Added
