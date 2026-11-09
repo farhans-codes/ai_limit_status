@@ -6,6 +6,13 @@ The project follows Semantic Versioning for public releases.
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-11-09
+
+### Added
+
+- Show the local reset day alongside each Codex and Claude limit countdown,
+  using Today or Tomorrow when applicable.
+
 ## [0.9.2] - 2026-11-01
 
 ### Fixed
