@@ -570,15 +570,20 @@ String _resetLabel(BuildContext context, AppStrings l10n, DateTime? resetsAt) {
     return l10n.resettingSoon;
   }
 
+  final localizations = MaterialLocalizations.of(context);
   final String day;
   if (DateUtils.isSameDay(localReset, now)) {
     day = l10n.resetToday;
   } else if (DateUtils.isSameDay(localReset, DateUtils.addDaysToDate(now, 1))) {
     day = l10n.resetTomorrow;
   } else {
-    day = MaterialLocalizations.of(context).formatMediumDate(localReset);
+    day = localizations.formatMediumDate(localReset);
   }
-  return l10n.resetWithDay(_resetCountdown(l10n, remaining), day);
+  final time = localizations.formatTimeOfDay(
+    TimeOfDay.fromDateTime(localReset),
+    alwaysUse24HourFormat: MediaQuery.alwaysUse24HourFormatOf(context),
+  );
+  return l10n.resetWithDateAndTime(_resetCountdown(l10n, remaining), day, time);
 }
 
 String _resetCountdown(AppStrings l10n, Duration remaining) {
