@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:ai_limit_status/core/platform/open_external_url.dart';
 import 'package:ai_limit_status/features/usage/data/datasources/provider_executable_locator.dart';
 import 'package:ai_limit_status/features/usage/domain/entities/provider_setup_result.dart';
 import 'package:ai_limit_status/features/usage/domain/entities/provider_usage.dart';
@@ -116,21 +117,9 @@ class ProviderSetupRepositoryImpl implements ProviderSetupRepository {
       UsageProvider.codex => _codexGuideUrl,
       UsageProvider.claude => _claudeGuideUrl,
     };
-    try {
-      final ProcessResult result;
-      if (Platform.isWindows) {
-        result = await Process.run('cmd.exe', ['/d', '/c', 'start', '', url]);
-      } else if (Platform.isMacOS) {
-        result = await Process.run('/usr/bin/open', [url]);
-      } else {
-        result = await Process.run('xdg-open', [url]);
-      }
-      return result.exitCode == 0
-          ? ProviderSetupResult.succeeded
-          : ProviderSetupResult.failed;
-    } on Object {
-      return ProviderSetupResult.failed;
-    }
+    return await openExternalUrl(Uri.parse(url))
+        ? ProviderSetupResult.succeeded
+        : ProviderSetupResult.failed;
   }
 
   Future<String?> _findWinget() async {

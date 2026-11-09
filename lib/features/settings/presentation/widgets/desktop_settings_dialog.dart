@@ -1,6 +1,8 @@
 import 'package:ai_limit_status/core/constants/app_strings.dart';
+import 'package:ai_limit_status/features/settings/data/app_updates.dart';
 import 'package:ai_limit_status/features/settings/domain/entities/desktop_settings.dart';
 import 'package:ai_limit_status/features/settings/presentation/controllers/desktop_settings_controller.dart';
+import 'package:ai_limit_status/features/settings/presentation/widgets/app_updates_card.dart';
 import 'package:ai_limit_status/features/usage/domain/entities/provider_usage.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -25,6 +27,7 @@ class DesktopSettingsDialog extends StatelessWidget {
     final strings = AppStrings.instance;
     final theme = Theme.of(context);
     final availableHeight = MediaQuery.sizeOf(context).height - 32;
+    final updatePlatform = AppUpdatePlatform.current;
 
     return PopScope(
       canPop: !firstRun,
@@ -95,6 +98,13 @@ class DesktopSettingsDialog extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      if (!firstRun && updatePlatform != null) ...[
+                        AppUpdatesCard(
+                          installedVersion: _version,
+                          platform: updatePlatform,
+                        ),
+                        const SizedBox(height: 20),
+                      ],
                       _SectionLabel(strings.generalSettingsSectionTitle),
                       const SizedBox(height: 8),
                       Card(
