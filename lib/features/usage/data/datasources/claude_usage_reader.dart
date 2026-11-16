@@ -29,10 +29,13 @@ class ClaudeUsageReader {
 
   static const _requestTimeout = Duration(seconds: 8);
 
+  /// The usage endpoint can take a while to answer; keep it well clear of the
+  /// short timeout the local credential tools use.
+  static const _usageRequestTimeout = Duration(seconds: 30);
   static const _versionTimeout = Duration(seconds: 3);
   static const _rateLimitCooldown = Duration(minutes: 5);
-  static const _minimumFetchInterval = Duration(minutes: 2);
-  static const _fallbackUserAgent = 'claude-code/2.1.0';
+  static const _minimumFetchInterval = Duration(minutes: 5);
+  static const _fallbackVersion = '2.1.0';
 
   /// The keychain access prompt needs time for the user to respond.
   static const _keychainPromptTimeout = Duration(seconds: 45);
@@ -721,11 +724,11 @@ class ClaudeUsageReader {
       throw const UsageReadException(UsageConnectionIssue.unavailable);
     }
 
-    final client = HttpClient()..connectionTimeout = _requestTimeout;
+    final client = HttpClient()..connectionTimeout = _usageRequestTimeout;
     try {
       final request = await client
           .getUrl(Uri.https('api.anthropic.com', '/api/oauth/usage'))
-          .timeout(_requestTimeout);
+          .timeout(_usageRequestTimeout);
       request.headers
         ..set(
           HttpHeaders.authorizationHeader,
@@ -735,7 +738,7 @@ class ClaudeUsageReader {
         ..set(HttpHeaders.contentTypeHeader, 'application/json')
         ..set(HttpHeaders.userAgentHeader, await _claudeCodeUserAgent())
         ..set('anthropic-beta', 'oauth-2025-04-20');
-      final response = await request.close().timeout(_requestTimeout);
+      final response = await request.close().timeout(_usageRequestTimeout);
       if (response.statusCode == HttpStatus.unauthorized) {
         await response.drain<void>();
         throw const _UnauthorizedException();
@@ -744,7 +747,7 @@ class ClaudeUsageReader {
         final body = await utf8.decoder
             .bind(response)
             .join()
-            .timeout(_requestTimeout);
+            .timeout(_usageRequestTimeout);
         AppLog.log('claude: OAuth usage forbidden (403)');
         // A token without the profile scope is a sign-in problem the user
         // can fix; anything else is treated as temporary.
@@ -772,7 +775,7 @@ class ClaudeUsageReader {
       final body = await utf8.decoder
           .bind(response)
           .join()
-          .timeout(_requestTimeout);
+          .timeout(_usageRequestTimeout);
       final payload = _decodeMap(body);
       if (payload == null) {
         throw const UsageReadException(UsageConnectionIssue.unavailable);
@@ -943,6 +946,11 @@ class ClaudeUsageReader {
     return id is String && id.isNotEmpty ? id : null;
   }
 
+  /// The usage endpoint is called as an external client, not as Claude Code
+  /// itself, so it is identified the way CodexBar identifies itself.
+  static String _userAgentFor(String version) =>
+      'claude-cli/$version (external, cli)';
+
   Future<String> _claudeCodeUserAgent() async {
     final cachedUserAgent = _cachedUserAgent;
     if (cachedUserAgent != null) {
@@ -952,7 +960,7 @@ class ClaudeUsageReader {
     try {
       final executable = await _executableLocator.find(UsageProvider.claude);
       if (executable == null) {
-        return _cachedUserAgent = _fallbackUserAgent;
+        return _cachedUserAgent = _userAgentFor(_fallbackVersion);
       }
       final process = await executable.start(const ['--version']);
       final outputFuture = process.stdout.transform(utf8.decoder).join();
@@ -970,14 +978,14 @@ class ClaudeUsageReader {
           r'\b\d+\.\d+\.\d+\b',
         ).firstMatch(output)?.group(0);
         if (version != null) {
-          return _cachedUserAgent = 'claude-code/$version';
+          return _cachedUserAgent = _userAgentFor(version);
         }
       }
     } on Object {
-      return _cachedUserAgent = _fallbackUserAgent;
+      return _cachedUserAgent = _userAgentFor(_fallbackVersion);
     }
 
-    return _cachedUserAgent = _fallbackUserAgent;
+    return _cachedUserAgent = _userAgentFor(_fallbackVersion);
   }
 
   DateTime? _parseRetryAfter(String? value) {
