@@ -6,6 +6,17 @@ The project follows Semantic Versioning for public releases.
 
 ## [Unreleased]
 
+## [0.12.1] - 2026-11-16
+
+### Fixed
+
+- Read Claude Code's macOS keychain credential without asking for the login
+  password, and pick up a token rotated by Claude Code on the next refresh.
+- Keep Claude connected after its token expires by letting Claude Code refresh
+  its own sign-in, and only show the sign-in action when Claude Code itself
+  reports being signed out.
+- Poll Claude usage less often to avoid being rate limited.
+
 ## [0.12.0] - 2026-11-09
 
 ### Added
