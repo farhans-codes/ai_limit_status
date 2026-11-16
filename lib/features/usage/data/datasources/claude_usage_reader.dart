@@ -28,10 +28,14 @@ class ClaudeUsageReader {
   ClaudeUsageReader(this._executableLocator);
 
   static const _requestTimeout = Duration(seconds: 8);
+
+  /// The usage endpoint can take a while to answer; keep it well clear of the
+  /// short timeout the local credential tools use.
+  static const _usageRequestTimeout = Duration(seconds: 30);
   static const _versionTimeout = Duration(seconds: 3);
   static const _rateLimitCooldown = Duration(minutes: 5);
-  static const _minimumFetchInterval = Duration(minutes: 2);
-  static const _fallbackUserAgent = 'claude-code/2.1.0';
+  static const _minimumFetchInterval = Duration(minutes: 5);
+  static const _fallbackVersion = '2.1.0';
 
   /// The keychain access prompt needs time for the user to respond.
   static const _keychainPromptTimeout = Duration(seconds: 45);
@@ -40,7 +44,6 @@ class ClaudeUsageReader {
   /// prompt does not reappear on every two-minute refresh.
   static const _keychainDenialCooldown = Duration(minutes: 30);
 
-  static const _credentialsCacheTtl = Duration(minutes: 10);
   static const _webSessionCacheTtl = Duration(minutes: 30);
 
   /// Refresh a file-backed OAuth token this long before it expires so the
@@ -49,6 +52,14 @@ class ClaudeUsageReader {
 
   /// Back-off after a refresh attempt fails for a transient reason.
   static const _refreshFailureCooldown = Duration(minutes: 10);
+
+  /// Running the CLI to make it rotate its own stored token is the only way to
+  /// refresh a keychain- or secure-store-backed credential, but it costs a
+  /// process launch, so it is rate limited.
+  static const _cliRefreshTimeout = Duration(seconds: 15);
+  static const _cliRefreshSuccessCooldown = Duration(minutes: 5);
+  static const _cliRefreshFailureCooldown = Duration(seconds: 20);
+  static const _authStatusTimeout = Duration(seconds: 5);
 
   static const _keychainChannel = MethodChannel('com.ailimitstatus/keychain');
   static const _keychainService = 'Claude Code-credentials';
@@ -66,9 +77,8 @@ class ClaudeUsageReader {
   String? _cachedUserAgent;
   ProviderUsageModel? _lastSuccessfulUsage;
   DateTime? _keychainDeniedAt;
-  _ClaudeCredentials? _cachedCredentials;
-  DateTime? _credentialsReadAt;
   DateTime? _refreshBlockedUntil;
+  DateTime? _cliRefreshBlockedUntil;
   String? _cachedWebSessionKey;
   String? _cachedWebOrganizationId;
   DateTime? _webSessionReadAt;
@@ -83,15 +93,12 @@ class ClaudeUsageReader {
 
     Map<String, dynamic>? payload;
     UsageConnectionIssue? directIssue;
-    final credentials = await _readCredentialsCached();
+    final credentials = await _readCredentials();
     if (credentials != null) {
       try {
         payload = await _fetchUsageWithRefresh(credentials);
         AppLog.log('claude: OAuth usage read succeeded');
       } on UsageReadException catch (error) {
-        if (error.issue == UsageConnectionIssue.notSignedIn) {
-          _cachedCredentials = null;
-        }
         directIssue = error.issue;
         AppLog.log('claude: OAuth usage read failed: ${error.issue.name}');
       } on Object catch (error) {
@@ -171,25 +178,9 @@ class ClaudeUsageReader {
     return directIssue ?? webIssue ?? UsageConnectionIssue.unavailable;
   }
 
-  Future<_ClaudeCredentials?> _readCredentialsCached() async {
-    final cached = _cachedCredentials;
-    final readAt = _credentialsReadAt;
-    // Windows stores are cheap to read and the CLI/IDE can rotate them while
-    // this app stays open. Only cache reads that may prompt on macOS.
-    if (!Platform.isWindows &&
-        cached != null &&
-        readAt != null &&
-        !cached.isExpiringWithin(_refreshLeeway) &&
-        _rateLimitedAccessToken != cached.accessToken &&
-        DateTime.now().difference(readAt) < _credentialsCacheTtl) {
-      return cached;
-    }
-    final credentials = await _readCredentials();
-    _cachedCredentials = credentials;
-    _credentialsReadAt = DateTime.now();
-    return credentials;
-  }
-
+  /// Reads the stored credential on every poll. Every source is cheap and
+  /// silent (a file read, the `security` tool, or the Windows secure store),
+  /// and re-reading is what lets a token the CLI rotated be picked up.
   Future<_ClaudeCredentials?> _readCredentials() async {
     if (Platform.isWindows) {
       // Follow Claude's active store so a leftover file cannot mask an IDE
@@ -262,12 +253,21 @@ class ClaudeUsageReader {
     }
   }
 
-  /// Reads the Claude CLI's keychain item the way CodexBar does: through
-  /// Security.framework under this app's own identity, so macOS shows its
-  /// access prompt once and "Always Allow" keeps every later read silent.
-  /// The `security` command-line tool remains a fallback for older builds
-  /// whose runner does not implement the channel yet.
+  /// Reads the Claude CLI's keychain item with the `/usr/bin/security` tool
+  /// first. The item was written by the CLI through that same tool, so it is
+  /// already on the item's access list and the read is silent; going through
+  /// Security.framework under this app's own identity instead makes macOS ask
+  /// the user for their login password. The method channel stays as a
+  /// fallback for the case where the tool is unavailable.
   Future<_ClaudeCredentials?> _readMacKeychainCredentials() async {
+    final viaTool = _parseCredentials(
+      await _readKeychainCredentials(),
+      writableFile: null,
+    );
+    if (viaTool != null) {
+      return viaTool;
+    }
+
     final deniedAt = _keychainDeniedAt;
     if (deniedAt != null &&
         DateTime.now().difference(deniedAt) < _keychainDenialCooldown) {
@@ -297,9 +297,9 @@ class ClaudeUsageReader {
         return null;
       }
     } on Object {
-      // The channel is unavailable (old runner build) or timed out; try the
-      // command-line fallback once.
-      raw = await _readKeychainCredentials();
+      // The channel is unavailable (old runner build) or timed out, and the
+      // command-line tool already failed above; nothing left to try.
+      return null;
     }
     // Keychain credentials belong to the CLI, which refreshes them itself;
     // never rotate them from here.
@@ -451,37 +451,125 @@ class ClaudeUsageReader {
       throw const UsageReadException(UsageConnectionIssue.notSignedIn);
     }
     if (current.isExpiringWithin(_refreshLeeway)) {
-      current = await _refreshCredentials(current) ?? current;
+      // A file-backed token this app can rotate itself; anything else (the
+      // macOS keychain, the Windows secure store) only the CLI can rotate.
+      current =
+          await _refreshCredentials(current) ??
+          await _refreshViaCli(current) ??
+          current;
     }
     try {
       return await _fetchUsage(current);
     } on _UnauthorizedException {
       // The CLI may already have rotated its credential while this app
       // retained the old one. Retry a changed credential once.
-      _cachedCredentials = null;
       final latest = await _readCredentials();
       final refreshed =
           latest != null && latest.accessToken != current.accessToken
           ? latest
-          : await _refreshCredentials(current);
+          : await _refreshCredentials(current) ?? await _refreshViaCli(current);
       if (refreshed != null) {
-        _cachedCredentials = refreshed;
-        _credentialsReadAt = DateTime.now();
         try {
           return await _fetchUsage(refreshed);
         } on _UnauthorizedException {
-          _cachedCredentials = null;
-          throw const UsageReadException(UsageConnectionIssue.notSignedIn);
+          throw UsageReadException(await _rejectedTokenIssue());
         }
       }
       // Only file-backed credentials can be refreshed here. A rejected
       // secure-store token needs the existing provider-owned sign-in flow.
-      throw UsageReadException(
-        current.writableFile != null && current.refreshToken != null
-            ? UsageConnectionIssue.unavailable
-            : UsageConnectionIssue.notSignedIn,
-      );
+      if (current.writableFile != null && current.refreshToken != null) {
+        throw const UsageReadException(UsageConnectionIssue.unavailable);
+      }
+      throw UsageReadException(await _rejectedTokenIssue());
     }
+  }
+
+  /// Decides what a still-rejected token means. If the CLI itself reports a
+  /// live sign-in, the token is only unusable from here, so report a
+  /// temporary problem and keep the cached snapshot instead of telling the
+  /// user to sign in again.
+  Future<UsageConnectionIssue> _rejectedTokenIssue() async {
+    return await _cliReportsLoggedIn()
+        ? UsageConnectionIssue.unavailable
+        : UsageConnectionIssue.notSignedIn;
+  }
+
+  Future<bool> _cliReportsLoggedIn() async {
+    try {
+      final output = await _runClaude(const [
+        'auth',
+        'status',
+      ], _authStatusTimeout);
+      final loggedIn = _decodeMap(output)?['loggedIn'];
+      AppLog.log('claude: CLI auth status loggedIn=$loggedIn');
+      return loggedIn == true;
+    } on Object {
+      AppLog.log('claude: CLI auth status unavailable');
+      return false;
+    }
+  }
+
+  /// Makes the CLI refresh its own stored token by running a read-only
+  /// command: the CLI rotates the credential on startup, and only the CLI can
+  /// write to the keychain or the Windows secure store.
+  Future<_ClaudeCredentials?> _refreshViaCli(_ClaudeCredentials stale) async {
+    final blockedUntil = _cliRefreshBlockedUntil;
+    if (blockedUntil != null && DateTime.now().isBefore(blockedUntil)) {
+      AppLog.log('claude: CLI-delegated token refresh skipped (cooldown)');
+      return null;
+    }
+    _cliRefreshBlockedUntil = DateTime.now().add(_cliRefreshFailureCooldown);
+
+    try {
+      await _runClaude(const [
+        '--strict-mcp-config',
+        '--settings',
+        '{"remoteControlAtStartup":false,"disableAllHooks":true}',
+        '/usage',
+      ], _cliRefreshTimeout);
+    } on Object {
+      // The CLI may still have rotated the token before failing or timing
+      // out, so fall through to the re-read instead of giving up here.
+      AppLog.log('claude: CLI-delegated refresh command did not finish');
+    }
+
+    final refreshed = await _readCredentials();
+    if (refreshed == null || refreshed.accessToken == stale.accessToken) {
+      AppLog.log('claude: CLI-delegated token refresh failed');
+      return null;
+    }
+    _cliRefreshBlockedUntil = DateTime.now().add(_cliRefreshSuccessCooldown);
+    AppLog.log('claude: CLI-delegated token refresh succeeded');
+    return refreshed;
+  }
+
+  /// Runs the Claude CLI with stdin closed and both streams drained, and
+  /// returns its stdout. Throws when the CLI is missing, fails, or times out.
+  Future<String> _runClaude(List<String> arguments, Duration timeout) async {
+    final executable = await _executableLocator.find(UsageProvider.claude);
+    if (executable == null) {
+      throw const UsageReadException(UsageConnectionIssue.cliNotFound);
+    }
+    final process = await executable.start(
+      arguments,
+      workingDirectory: Directory.systemTemp.path,
+    );
+    // The CLI waits for input on a TTY-less stdin unless it is closed.
+    unawaited(process.stdin.close());
+    final outputFuture = process.stdout.transform(utf8.decoder).join();
+    unawaited(process.stderr.drain<void>());
+    final exitCode = await process.exitCode.timeout(
+      timeout,
+      onTimeout: () {
+        unawaited(terminateProviderProcess(process));
+        return -1;
+      },
+    );
+    final output = await outputFuture.timeout(timeout);
+    if (exitCode != 0) {
+      throw const UsageReadException(UsageConnectionIssue.unavailable);
+    }
+    return output;
   }
 
   /// Refreshes a file-backed OAuth credential through Claude Code's own
@@ -532,14 +620,11 @@ class ClaudeUsageReader {
           'claude: token refresh rejected (${response.statusCode}, $error)',
         );
         if (error == 'invalid_grant') {
-          _cachedCredentials = null;
           // The CLI may have rotated the token concurrently; prefer whatever
           // it wrote before declaring the sign-in dead.
           final latest = await _readCredentialsFile();
           if (latest != null && latest.accessToken != credentials.accessToken) {
             AppLog.log('claude: using credential rotated by the CLI');
-            _cachedCredentials = latest;
-            _credentialsReadAt = DateTime.now();
             return latest;
           }
           throw const UsageReadException(UsageConnectionIssue.notSignedIn);
@@ -576,8 +661,6 @@ class ClaudeUsageReader {
         ),
       );
       await _writeCredentials(refreshed);
-      _cachedCredentials = refreshed;
-      _credentialsReadAt = DateTime.now();
       _refreshBlockedUntil = null;
       AppLog.log('claude: OAuth token refreshed and written back');
       return refreshed;
@@ -641,11 +724,11 @@ class ClaudeUsageReader {
       throw const UsageReadException(UsageConnectionIssue.unavailable);
     }
 
-    final client = HttpClient()..connectionTimeout = _requestTimeout;
+    final client = HttpClient()..connectionTimeout = _usageRequestTimeout;
     try {
       final request = await client
           .getUrl(Uri.https('api.anthropic.com', '/api/oauth/usage'))
-          .timeout(_requestTimeout);
+          .timeout(_usageRequestTimeout);
       request.headers
         ..set(
           HttpHeaders.authorizationHeader,
@@ -655,7 +738,7 @@ class ClaudeUsageReader {
         ..set(HttpHeaders.contentTypeHeader, 'application/json')
         ..set(HttpHeaders.userAgentHeader, await _claudeCodeUserAgent())
         ..set('anthropic-beta', 'oauth-2025-04-20');
-      final response = await request.close().timeout(_requestTimeout);
+      final response = await request.close().timeout(_usageRequestTimeout);
       if (response.statusCode == HttpStatus.unauthorized) {
         await response.drain<void>();
         throw const _UnauthorizedException();
@@ -664,7 +747,7 @@ class ClaudeUsageReader {
         final body = await utf8.decoder
             .bind(response)
             .join()
-            .timeout(_requestTimeout);
+            .timeout(_usageRequestTimeout);
         AppLog.log('claude: OAuth usage forbidden (403)');
         // A token without the profile scope is a sign-in problem the user
         // can fix; anything else is treated as temporary.
@@ -692,7 +775,7 @@ class ClaudeUsageReader {
       final body = await utf8.decoder
           .bind(response)
           .join()
-          .timeout(_requestTimeout);
+          .timeout(_usageRequestTimeout);
       final payload = _decodeMap(body);
       if (payload == null) {
         throw const UsageReadException(UsageConnectionIssue.unavailable);
@@ -863,6 +946,11 @@ class ClaudeUsageReader {
     return id is String && id.isNotEmpty ? id : null;
   }
 
+  /// The usage endpoint is called as an external client, not as Claude Code
+  /// itself, so it is identified the way CodexBar identifies itself.
+  static String _userAgentFor(String version) =>
+      'claude-cli/$version (external, cli)';
+
   Future<String> _claudeCodeUserAgent() async {
     final cachedUserAgent = _cachedUserAgent;
     if (cachedUserAgent != null) {
@@ -872,7 +960,7 @@ class ClaudeUsageReader {
     try {
       final executable = await _executableLocator.find(UsageProvider.claude);
       if (executable == null) {
-        return _cachedUserAgent = _fallbackUserAgent;
+        return _cachedUserAgent = _userAgentFor(_fallbackVersion);
       }
       final process = await executable.start(const ['--version']);
       final outputFuture = process.stdout.transform(utf8.decoder).join();
@@ -890,14 +978,14 @@ class ClaudeUsageReader {
           r'\b\d+\.\d+\.\d+\b',
         ).firstMatch(output)?.group(0);
         if (version != null) {
-          return _cachedUserAgent = 'claude-code/$version';
+          return _cachedUserAgent = _userAgentFor(version);
         }
       }
     } on Object {
-      return _cachedUserAgent = _fallbackUserAgent;
+      return _cachedUserAgent = _userAgentFor(_fallbackVersion);
     }
 
-    return _cachedUserAgent = _fallbackUserAgent;
+    return _cachedUserAgent = _userAgentFor(_fallbackVersion);
   }
 
   DateTime? _parseRetryAfter(String? value) {
