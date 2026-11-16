@@ -50,6 +50,14 @@ class ClaudeUsageReader {
   /// Back-off after a refresh attempt fails for a transient reason.
   static const _refreshFailureCooldown = Duration(minutes: 10);
 
+  /// Running the CLI to make it rotate its own stored token is the only way to
+  /// refresh a keychain- or secure-store-backed credential, but it costs a
+  /// process launch, so it is rate limited.
+  static const _cliRefreshTimeout = Duration(seconds: 15);
+  static const _cliRefreshSuccessCooldown = Duration(minutes: 5);
+  static const _cliRefreshFailureCooldown = Duration(seconds: 20);
+  static const _authStatusTimeout = Duration(seconds: 5);
+
   static const _keychainChannel = MethodChannel('com.ailimitstatus/keychain');
   static const _keychainService = 'Claude Code-credentials';
 
@@ -67,6 +75,7 @@ class ClaudeUsageReader {
   ProviderUsageModel? _lastSuccessfulUsage;
   DateTime? _keychainDeniedAt;
   DateTime? _refreshBlockedUntil;
+  DateTime? _cliRefreshBlockedUntil;
   String? _cachedWebSessionKey;
   String? _cachedWebOrganizationId;
   DateTime? _webSessionReadAt;
@@ -439,7 +448,12 @@ class ClaudeUsageReader {
       throw const UsageReadException(UsageConnectionIssue.notSignedIn);
     }
     if (current.isExpiringWithin(_refreshLeeway)) {
-      current = await _refreshCredentials(current) ?? current;
+      // A file-backed token this app can rotate itself; anything else (the
+      // macOS keychain, the Windows secure store) only the CLI can rotate.
+      current =
+          await _refreshCredentials(current) ??
+          await _refreshViaCli(current) ??
+          current;
     }
     try {
       return await _fetchUsage(current);
@@ -450,22 +464,109 @@ class ClaudeUsageReader {
       final refreshed =
           latest != null && latest.accessToken != current.accessToken
           ? latest
-          : await _refreshCredentials(current);
+          : await _refreshCredentials(current) ?? await _refreshViaCli(current);
       if (refreshed != null) {
         try {
           return await _fetchUsage(refreshed);
         } on _UnauthorizedException {
-          throw const UsageReadException(UsageConnectionIssue.notSignedIn);
+          throw UsageReadException(await _rejectedTokenIssue());
         }
       }
       // Only file-backed credentials can be refreshed here. A rejected
       // secure-store token needs the existing provider-owned sign-in flow.
-      throw UsageReadException(
-        current.writableFile != null && current.refreshToken != null
-            ? UsageConnectionIssue.unavailable
-            : UsageConnectionIssue.notSignedIn,
-      );
+      if (current.writableFile != null && current.refreshToken != null) {
+        throw const UsageReadException(UsageConnectionIssue.unavailable);
+      }
+      throw UsageReadException(await _rejectedTokenIssue());
     }
+  }
+
+  /// Decides what a still-rejected token means. If the CLI itself reports a
+  /// live sign-in, the token is only unusable from here, so report a
+  /// temporary problem and keep the cached snapshot instead of telling the
+  /// user to sign in again.
+  Future<UsageConnectionIssue> _rejectedTokenIssue() async {
+    return await _cliReportsLoggedIn()
+        ? UsageConnectionIssue.unavailable
+        : UsageConnectionIssue.notSignedIn;
+  }
+
+  Future<bool> _cliReportsLoggedIn() async {
+    try {
+      final output = await _runClaude(const [
+        'auth',
+        'status',
+      ], _authStatusTimeout);
+      final loggedIn = _decodeMap(output)?['loggedIn'];
+      AppLog.log('claude: CLI auth status loggedIn=$loggedIn');
+      return loggedIn == true;
+    } on Object {
+      AppLog.log('claude: CLI auth status unavailable');
+      return false;
+    }
+  }
+
+  /// Makes the CLI refresh its own stored token by running a read-only
+  /// command: the CLI rotates the credential on startup, and only the CLI can
+  /// write to the keychain or the Windows secure store.
+  Future<_ClaudeCredentials?> _refreshViaCli(_ClaudeCredentials stale) async {
+    final blockedUntil = _cliRefreshBlockedUntil;
+    if (blockedUntil != null && DateTime.now().isBefore(blockedUntil)) {
+      AppLog.log('claude: CLI-delegated token refresh skipped (cooldown)');
+      return null;
+    }
+    _cliRefreshBlockedUntil = DateTime.now().add(_cliRefreshFailureCooldown);
+
+    try {
+      await _runClaude(const [
+        '--strict-mcp-config',
+        '--settings',
+        '{"remoteControlAtStartup":false,"disableAllHooks":true}',
+        '/usage',
+      ], _cliRefreshTimeout);
+    } on Object {
+      // The CLI may still have rotated the token before failing or timing
+      // out, so fall through to the re-read instead of giving up here.
+      AppLog.log('claude: CLI-delegated refresh command did not finish');
+    }
+
+    final refreshed = await _readCredentials();
+    if (refreshed == null || refreshed.accessToken == stale.accessToken) {
+      AppLog.log('claude: CLI-delegated token refresh failed');
+      return null;
+    }
+    _cliRefreshBlockedUntil = DateTime.now().add(_cliRefreshSuccessCooldown);
+    AppLog.log('claude: CLI-delegated token refresh succeeded');
+    return refreshed;
+  }
+
+  /// Runs the Claude CLI with stdin closed and both streams drained, and
+  /// returns its stdout. Throws when the CLI is missing, fails, or times out.
+  Future<String> _runClaude(List<String> arguments, Duration timeout) async {
+    final executable = await _executableLocator.find(UsageProvider.claude);
+    if (executable == null) {
+      throw const UsageReadException(UsageConnectionIssue.cliNotFound);
+    }
+    final process = await executable.start(
+      arguments,
+      workingDirectory: Directory.systemTemp.path,
+    );
+    // The CLI waits for input on a TTY-less stdin unless it is closed.
+    unawaited(process.stdin.close());
+    final outputFuture = process.stdout.transform(utf8.decoder).join();
+    unawaited(process.stderr.drain<void>());
+    final exitCode = await process.exitCode.timeout(
+      timeout,
+      onTimeout: () {
+        unawaited(terminateProviderProcess(process));
+        return -1;
+      },
+    );
+    final output = await outputFuture.timeout(timeout);
+    if (exitCode != 0) {
+      throw const UsageReadException(UsageConnectionIssue.unavailable);
+    }
+    return output;
   }
 
   /// Refreshes a file-backed OAuth credential through Claude Code's own

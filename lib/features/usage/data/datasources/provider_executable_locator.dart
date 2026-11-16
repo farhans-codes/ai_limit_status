@@ -14,7 +14,7 @@ class ProviderExecutable {
     return lowerPath.endsWith('.cmd') || lowerPath.endsWith('.bat');
   }
 
-  Future<Process> start(List<String> arguments) {
+  Future<Process> start(List<String> arguments, {String? workingDirectory}) {
     if (Platform.isWindows && _isWindowsScript) {
       // Batch scripts (for example npm shims) only run through cmd.exe.
       // Running the bare script name from its own directory keeps every
@@ -36,7 +36,7 @@ class ProviderExecutable {
         ...arguments,
       ], workingDirectory: directory);
     }
-    return Process.start(path, arguments);
+    return Process.start(path, arguments, workingDirectory: workingDirectory);
   }
 
   String posixCommand(List<String> arguments) {
