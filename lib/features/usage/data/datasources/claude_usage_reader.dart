@@ -567,6 +567,8 @@ class ClaudeUsageReader {
     );
     final output = await outputFuture.timeout(timeout);
     if (exitCode != 0) {
+      // Name the copy that ran: a stale second install is the usual cause.
+      AppLog.log('claude: ${executable.path} exited with $exitCode');
       throw const UsageReadException(UsageConnectionIssue.unavailable);
     }
     return output;

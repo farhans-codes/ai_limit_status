@@ -14,7 +14,10 @@ class ProviderExecutable {
     return lowerPath.endsWith('.cmd') || lowerPath.endsWith('.bat');
   }
 
-  Future<Process> start(List<String> arguments, {String? workingDirectory}) {
+  Future<Process> start(
+    List<String> arguments, {
+    String? workingDirectory,
+  }) async {
     if (Platform.isWindows && _isWindowsScript) {
       // Batch scripts (for example npm shims) only run through cmd.exe.
       // Running the bare script name from its own directory keeps every
@@ -36,7 +39,29 @@ class ProviderExecutable {
         ...arguments,
       ], workingDirectory: directory);
     }
-    return Process.start(path, arguments, workingDirectory: workingDirectory);
+    return Process.start(
+      path,
+      arguments,
+      workingDirectory: workingDirectory,
+      environment: await _terminalPathEnvironment(),
+    );
+  }
+
+  /// GUI apps start with a minimal PATH, so a CLI installed as a Node script
+  /// (npm, Homebrew) cannot find `node` and exits immediately. Give it the
+  /// lookup path a terminal would have.
+  Future<Map<String, String>?> _terminalPathEnvironment() async {
+    if (Platform.isWindows) {
+      return null;
+    }
+    final directories = <String>{
+      File(path).parent.path,
+      ...await ProviderExecutableLocator._loginShellPath(),
+      ...?Platform.environment['PATH']?.split(':'),
+      if (Platform.isMacOS) '/opt/homebrew/bin',
+      '/usr/local/bin',
+    }..remove('');
+    return {'PATH': directories.join(':')};
   }
 
   String posixCommand(List<String> arguments) {
