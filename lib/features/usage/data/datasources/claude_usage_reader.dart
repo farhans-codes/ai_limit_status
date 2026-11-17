@@ -35,6 +35,15 @@ class ClaudeUsageReader {
   static const _versionTimeout = Duration(seconds: 3);
   static const _rateLimitCooldown = Duration(minutes: 5);
   static const _minimumFetchInterval = Duration(minutes: 5);
+
+  /// A user-requested refresh still reuses a result this recent, so repeated
+  /// clicks cannot run into the usage endpoint's rate limit.
+  static const _minimumUserFetchInterval = Duration(seconds: 30);
+
+  /// Set by a refresh the user asked for, so the next read skips the
+  /// background polling throttle. Static so it stays out of the reader's
+  /// interface.
+  static bool freshReadRequested = false;
   static const _fallbackVersion = '2.1.0';
 
   /// The keychain access prompt needs time for the user to respond.
@@ -85,9 +94,12 @@ class ClaudeUsageReader {
 
   Future<ProviderUsageModel> read() async {
     final cachedUsage = _lastSuccessfulUsage;
+    final minimumInterval = freshReadRequested
+        ? _minimumUserFetchInterval
+        : _minimumFetchInterval;
+    freshReadRequested = false;
     if (cachedUsage != null &&
-        DateTime.now().difference(cachedUsage.fetchedAt) <
-            _minimumFetchInterval) {
+        DateTime.now().difference(cachedUsage.fetchedAt) < minimumInterval) {
       return cachedUsage;
     }
 

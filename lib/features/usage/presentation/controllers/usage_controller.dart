@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:get/get.dart';
 import 'package:ai_limit_status/core/constants/app_strings.dart';
 import 'package:ai_limit_status/core/diagnostics/app_log.dart';
+import 'package:ai_limit_status/features/usage/data/datasources/claude_usage_reader.dart';
 import 'package:ai_limit_status/core/platform/tray_service.dart';
 import 'package:ai_limit_status/features/settings/domain/entities/desktop_settings.dart';
 import 'package:ai_limit_status/features/settings/domain/repositories/desktop_settings_repository.dart';
@@ -85,16 +86,21 @@ class UsageController extends GetxController {
         quit: l10n.quit,
         initialTooltip: l10n.appTitle,
       ),
-      onRefresh: refreshUsage,
+      onRefresh: () => refreshUsage(userInitiated: true),
     );
     await _showUsageWarning.initialize(l10n.appTitle);
     await refreshUsage();
     _refreshTimer = Timer.periodic(refreshInterval, (_) => refreshUsage());
   }
 
-  Future<void> refreshUsage() async {
+  /// [userInitiated] refreshes read Claude again instead of reusing the
+  /// result the background poll keeps for a few minutes.
+  Future<void> refreshUsage({bool userInitiated = false}) async {
     if (_isRefreshing) {
       return;
+    }
+    if (userInitiated) {
+      ClaudeUsageReader.freshReadRequested = true;
     }
 
     _isRefreshing = true;

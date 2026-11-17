@@ -132,7 +132,9 @@ class UsagePage extends GetView<UsageController> {
                                 refreshTooltip: l10n.refresh,
                                 isRefreshing: controller.isLoading.value,
                                 onSettings: settingsController.openSettings,
-                                onRefresh: controller.refreshUsage,
+                                onRefresh: () => controller.refreshUsage(
+                                  userInitiated: true,
+                                ),
                               ),
                             ),
                             const SizedBox(height: 10),
@@ -165,7 +167,9 @@ class UsagePage extends GetView<UsageController> {
                                     ),
                                     onOpenSetupGuide: () => controller
                                         .openSetupGuide(usage.provider),
-                                    onCheckAgain: controller.refreshUsage,
+                                    onCheckAgain: () => controller.refreshUsage(
+                                      userInitiated: true,
+                                    ),
                                   );
                                 },
                               ),
