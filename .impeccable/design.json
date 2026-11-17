@@ -1,0 +1,446 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-17T05:00:32.937531Z",
+  "title": "Design System: AI Limit Status",
+  "extensions": {
+    "colorMeta": {
+      "housing": {
+        "role": "neutral",
+        "displayName": "Housing",
+        "canonical": "#141518",
+        "tonalRamp": [
+          "oklch(15% 0.006 271)",
+          "oklch(26% 0.006 271)",
+          "oklch(38% 0.006 271)",
+          "oklch(49% 0.006 271)",
+          "oklch(61% 0.006 271)",
+          "oklch(72% 0.006 271)",
+          "oklch(84% 0.006 271)",
+          "oklch(95% 0.006 271)"
+        ]
+      },
+      "housing-edge": {
+        "role": "neutral",
+        "displayName": "Housing Edge",
+        "canonical": "#26282d",
+        "tonalRamp": [
+          "oklch(15% 0.010 268)",
+          "oklch(26% 0.010 268)",
+          "oklch(38% 0.010 268)",
+          "oklch(49% 0.010 268)",
+          "oklch(61% 0.010 268)",
+          "oklch(72% 0.010 268)",
+          "oklch(84% 0.010 268)",
+          "oklch(95% 0.010 268)"
+        ]
+      },
+      "board-face": {
+        "role": "neutral",
+        "displayName": "Board Face",
+        "canonical": "#0f1012",
+        "tonalRamp": [
+          "oklch(15% 0.004 264)",
+          "oklch(26% 0.004 264)",
+          "oklch(38% 0.004 264)",
+          "oklch(49% 0.004 264)",
+          "oklch(61% 0.004 264)",
+          "oklch(72% 0.004 264)",
+          "oklch(84% 0.004 264)",
+          "oklch(95% 0.004 264)"
+        ]
+      },
+      "tile-top": {
+        "role": "neutral",
+        "displayName": "Tile Top",
+        "canonical": "#26292e",
+        "tonalRamp": [
+          "oklch(15% 0.010 261)",
+          "oklch(26% 0.010 261)",
+          "oklch(38% 0.010 261)",
+          "oklch(49% 0.010 261)",
+          "oklch(61% 0.010 261)",
+          "oklch(72% 0.010 261)",
+          "oklch(84% 0.010 261)",
+          "oklch(95% 0.010 261)"
+        ]
+      },
+      "tile-bottom": {
+        "role": "neutral",
+        "displayName": "Tile Bottom",
+        "canonical": "#1c1e22",
+        "tonalRamp": [
+          "oklch(15% 0.008 264)",
+          "oklch(26% 0.008 264)",
+          "oklch(38% 0.008 264)",
+          "oklch(49% 0.008 264)",
+          "oklch(61% 0.008 264)",
+          "oklch(72% 0.008 264)",
+          "oklch(84% 0.008 264)",
+          "oklch(95% 0.008 264)"
+        ]
+      },
+      "tile-split": {
+        "role": "neutral",
+        "displayName": "Tile Split",
+        "canonical": "#0b0c0e",
+        "tonalRamp": [
+          "oklch(15% 0.005 264)",
+          "oklch(26% 0.005 264)",
+          "oklch(38% 0.005 264)",
+          "oklch(49% 0.005 264)",
+          "oklch(61% 0.005 264)",
+          "oklch(72% 0.005 264)",
+          "oklch(84% 0.005 264)",
+          "oklch(95% 0.005 264)"
+        ]
+      },
+      "flap": {
+        "role": "primary",
+        "displayName": "Flap",
+        "canonical": "#f2c14e",
+        "tonalRamp": [
+          "oklch(15% 0.141 85)",
+          "oklch(26% 0.141 85)",
+          "oklch(38% 0.141 85)",
+          "oklch(49% 0.141 85)",
+          "oklch(61% 0.141 85)",
+          "oklch(72% 0.141 85)",
+          "oklch(84% 0.141 85)",
+          "oklch(95% 0.141 85)"
+        ]
+      },
+      "flap-dim": {
+        "role": "primary",
+        "displayName": "Flap Dim",
+        "canonical": "#b8913a",
+        "tonalRamp": [
+          "oklch(15% 0.114 84)",
+          "oklch(26% 0.114 84)",
+          "oklch(38% 0.114 84)",
+          "oklch(49% 0.114 84)",
+          "oklch(61% 0.114 84)",
+          "oklch(72% 0.114 84)",
+          "oklch(84% 0.114 84)",
+          "oklch(95% 0.114 84)"
+        ]
+      },
+      "board-white": {
+        "role": "neutral",
+        "displayName": "Board White",
+        "canonical": "#ece8dd",
+        "tonalRamp": [
+          "oklch(15% 0.015 90)",
+          "oklch(26% 0.015 90)",
+          "oklch(38% 0.015 90)",
+          "oklch(49% 0.015 90)",
+          "oklch(61% 0.015 90)",
+          "oklch(72% 0.015 90)",
+          "oklch(84% 0.015 90)",
+          "oklch(95% 0.015 90)"
+        ]
+      },
+      "board-muted": {
+        "role": "neutral",
+        "displayName": "Board Muted",
+        "canonical": "#a7a398",
+        "tonalRamp": [
+          "oklch(15% 0.016 90)",
+          "oklch(26% 0.016 90)",
+          "oklch(38% 0.016 90)",
+          "oklch(49% 0.016 90)",
+          "oklch(61% 0.016 90)",
+          "oklch(72% 0.016 90)",
+          "oklch(84% 0.016 90)",
+          "oklch(95% 0.016 90)"
+        ]
+      },
+      "enamel": {
+        "role": "neutral",
+        "displayName": "Enamel",
+        "canonical": "#e9ebe6",
+        "tonalRamp": [
+          "oklch(15% 0.007 124)",
+          "oklch(26% 0.007 124)",
+          "oklch(38% 0.007 124)",
+          "oklch(49% 0.007 124)",
+          "oklch(61% 0.007 124)",
+          "oklch(72% 0.007 124)",
+          "oklch(84% 0.007 124)",
+          "oklch(95% 0.007 124)"
+        ]
+      },
+      "enamel-raised": {
+        "role": "neutral",
+        "displayName": "Enamel Raised",
+        "canonical": "#f4f5f1",
+        "tonalRamp": [
+          "oklch(15% 0.005 118)",
+          "oklch(26% 0.005 118)",
+          "oklch(38% 0.005 118)",
+          "oklch(49% 0.005 118)",
+          "oklch(61% 0.005 118)",
+          "oklch(72% 0.005 118)",
+          "oklch(84% 0.005 118)",
+          "oklch(95% 0.005 118)"
+        ]
+      },
+      "enamel-ink": {
+        "role": "neutral",
+        "displayName": "Enamel Ink",
+        "canonical": "#121315",
+        "tonalRamp": [
+          "oklch(15% 0.004 264)",
+          "oklch(26% 0.004 264)",
+          "oklch(38% 0.004 264)",
+          "oklch(49% 0.004 264)",
+          "oklch(61% 0.004 264)",
+          "oklch(72% 0.004 264)",
+          "oklch(84% 0.004 264)",
+          "oklch(95% 0.004 264)"
+        ]
+      },
+      "enamel-muted": {
+        "role": "neutral",
+        "displayName": "Enamel Muted",
+        "canonical": "#4c4f55",
+        "tonalRamp": [
+          "oklch(15% 0.011 264)",
+          "oklch(26% 0.011 264)",
+          "oklch(38% 0.011 264)",
+          "oklch(49% 0.011 264)",
+          "oklch(61% 0.011 264)",
+          "oklch(72% 0.011 264)",
+          "oklch(84% 0.011 264)",
+          "oklch(95% 0.011 264)"
+        ]
+      },
+      "enamel-rule": {
+        "role": "neutral",
+        "displayName": "Enamel Rule",
+        "canonical": "#c9ccc5",
+        "tonalRamp": [
+          "oklch(15% 0.010 126)",
+          "oklch(26% 0.010 126)",
+          "oklch(38% 0.010 126)",
+          "oklch(49% 0.010 126)",
+          "oklch(61% 0.010 126)",
+          "oklch(72% 0.010 126)",
+          "oklch(84% 0.010 126)",
+          "oklch(95% 0.010 126)"
+        ]
+      },
+      "signal": {
+        "role": "secondary",
+        "displayName": "Signal",
+        "canonical": "#b8361f",
+        "tonalRamp": [
+          "oklch(15% 0.170 32)",
+          "oklch(26% 0.170 32)",
+          "oklch(38% 0.170 32)",
+          "oklch(49% 0.170 32)",
+          "oklch(61% 0.170 32)",
+          "oklch(72% 0.170 32)",
+          "oklch(84% 0.170 32)",
+          "oklch(95% 0.170 32)"
+        ]
+      },
+      "signal-lit": {
+        "role": "secondary",
+        "displayName": "Signal Lit",
+        "canonical": "#ff6a4d",
+        "tonalRamp": [
+          "oklch(15% 0.188 33)",
+          "oklch(26% 0.188 33)",
+          "oklch(38% 0.188 33)",
+          "oklch(49% 0.188 33)",
+          "oklch(61% 0.188 33)",
+          "oklch(72% 0.188 33)",
+          "oklch(84% 0.188 33)",
+          "oklch(95% 0.188 33)"
+        ]
+      },
+      "signal-ink": {
+        "role": "secondary",
+        "displayName": "Signal Ink",
+        "canonical": "#fff7f2",
+        "tonalRamp": [
+          "oklch(15% 0.011 55)",
+          "oklch(26% 0.011 55)",
+          "oklch(38% 0.011 55)",
+          "oklch(49% 0.011 55)",
+          "oklch(61% 0.011 55)",
+          "oklch(72% 0.011 55)",
+          "oklch(84% 0.011 55)",
+          "oklch(95% 0.011 55)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Board Title",
+        "purpose": "The board headline only."
+      },
+      "headline": {
+        "displayName": "Sign Name",
+        "purpose": "Platform sign names and ledger numerals."
+      },
+      "title": {
+        "displayName": "Item Title",
+        "purpose": "Ledger and notes item headings."
+      },
+      "body": {
+        "displayName": "Reading",
+        "purpose": "Running text, tabular digits, max 68ch."
+      },
+      "label": {
+        "displayName": "Signage Label",
+        "purpose": "Column labels, clock label, copy button; uppercase."
+      },
+      "mono": {
+        "displayName": "Command",
+        "purpose": "Brew command and inline code."
+      }
+    },
+    "shadows": [
+      {
+        "name": "board-panel",
+        "value": "0 18px 28px -18px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.04)",
+        "purpose": "Board recessed in housing."
+      },
+      {
+        "name": "flap-tile",
+        "value": "0 2px 3px rgba(0,0,0,0.55)",
+        "purpose": "Each flap tile."
+      },
+      {
+        "name": "enamel-sign",
+        "value": "inset 0 0 0 3px #e9ebe6, inset 0 0 0 5px #121315, 0 10px 18px -12px rgba(0,0,0,0.7)",
+        "purpose": "Platform sign rim and bezel."
+      },
+      {
+        "name": "screenshot",
+        "value": "0 24px 48px -24px rgba(18,19,21,0.45)",
+        "purpose": "Product screenshot on enamel."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Hover color and lift, 0.2s."
+      },
+      {
+        "name": "flap-turn",
+        "value": "70ms linear, perspective(200px) rotateX(-55deg) to none",
+        "purpose": "One split-flap character turn; disabled under reduced motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "stack",
+        "value": "960px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Section Plate",
+      "kind": "chip",
+      "refersTo": "plate",
+      "description": "Enamel ink plate used as section heading.",
+      "html": "<span class=\"ds-plate\">How it works</span>",
+      "css": ".ds-plate{display:inline-block;font-family:'Barlow Condensed','Arial Narrow',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.06em;line-height:1;padding:.38em .6em .32em;border-radius:6px;background:#121315;color:#e9ebe6;font-size:1.8rem}"
+    },
+    {
+      "name": "Platform Sign",
+      "kind": "button",
+      "refersTo": "platform-sign",
+      "description": "Primary download action as an enamel platform sign.",
+      "html": "<a class=\"ds-sign\" href=\"#\"><span class=\"ds-sign__name\"><span class=\"ds-sign__no\">1</span>macOS</span><span class=\"ds-sign__act\">Download DMG</span><span class=\"ds-sign__meta\">macOS 13 or newer</span></a>",
+      "css": ".ds-sign{display:grid;grid-template-columns:1fr auto;grid-template-areas:'name name' 'act meta';row-gap:10px;column-gap:16px;align-items:end;padding:22px 26px;border-radius:16px;background:#e9ebe6;color:#121315;text-decoration:none;font-family:Barlow,'Helvetica Neue',Arial,sans-serif;box-shadow:inset 0 0 0 3px #e9ebe6,inset 0 0 0 5px #121315,0 10px 18px -12px rgba(0,0,0,.7);transition:background-color .2s cubic-bezier(.16,1,.3,1),transform .2s cubic-bezier(.16,1,.3,1)}.ds-sign:hover{background:#f2c14e;transform:translateY(-2px);box-shadow:inset 0 0 0 3px #f2c14e,inset 0 0 0 5px #121315,0 14px 22px -12px rgba(0,0,0,.75)}.ds-sign:active{background:#121315;color:#e9ebe6;transform:none}.ds-sign:focus-visible{outline:3px solid #f2c14e;outline-offset:3px}.ds-sign__name{grid-area:name;display:flex;align-items:center;gap:.35em;font-family:'Barlow Condensed','Arial Narrow',sans-serif;font-weight:700;font-size:3rem;line-height:.95;text-transform:uppercase}.ds-sign__no{display:inline-grid;place-items:center;width:1.05em;height:1.05em;border-radius:50%;background:#121315;color:#e9ebe6;font-size:.82em}.ds-sign__act{grid-area:act;font-weight:600;font-size:1.1rem}.ds-sign__meta{grid-area:meta;font-size:.9rem;font-weight:500;color:#4c4f55}"
+    },
+    {
+      "name": "Split-Flap Tiles",
+      "kind": "custom",
+      "refersTo": "flap-tile",
+      "description": "Signature board characters; red when the limit is low.",
+      "html": "<div class=\"ds-board\"><span class=\"ds-flap\">6</span><span class=\"ds-flap\">8</span><span class=\"ds-flap\">%</span> <span class=\"ds-flap ds-low\">9</span><span class=\"ds-flap ds-low\">%</span></div>",
+      "css": ".ds-board{display:flex;gap:6px;background:#0f1012;padding:18px;border-radius:10px}.ds-flap{position:relative;display:inline-grid;place-items:center;width:26px;height:37px;border-radius:3px;background:linear-gradient(to bottom,#26292e 0 50%,#1c1e22 50% 100%);box-shadow:0 2px 3px rgba(0,0,0,.55);font:600 28px/1 'Barlow Condensed','Arial Narrow',sans-serif;color:#f2c14e;overflow:hidden}.ds-flap::after{content:'';position:absolute;inset:50% 0 auto;height:1px;background:#0b0c0e}.ds-low{color:#ff6a4d}"
+    },
+    {
+      "name": "Copy Button",
+      "kind": "button",
+      "refersTo": "button-copy",
+      "description": "Ghost button on the dark housing.",
+      "html": "<button class=\"ds-copy\" type=\"button\">Copy</button>",
+      "css": ".ds-copy{font:600 .85rem/1 'Barlow Condensed','Arial Narrow',sans-serif;letter-spacing:.1em;text-transform:uppercase;background:#141518;color:#f2c14e;border:1px solid #b8913a;border-radius:4px;padding:8px 12px;cursor:pointer;transition:background-color .15s,color .15s}.ds-copy:hover{background:#2a2619}.ds-copy:active{background:#f2c14e;color:#141518}.ds-copy:focus-visible{outline:3px solid #f2c14e;outline-offset:3px}"
+    },
+    {
+      "name": "Station Nav",
+      "kind": "nav",
+      "refersTo": "",
+      "description": "Header strip in the housing.",
+      "html": "<header class=\"ds-nav\"><a class=\"ds-nav__name\" href=\"#\">AI Limit Status</a><nav><a href=\"#\">How it works</a><a href=\"#\">Features</a><a href=\"#\">GitHub</a></nav></header>",
+      "css": ".ds-nav{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:18px 32px;background:#141518;color:#ece8dd;border-bottom:1px solid #26282d}.ds-nav__name{font:700 1.35rem 'Barlow Condensed','Arial Narrow',sans-serif;color:inherit;text-decoration:none}.ds-nav nav{display:flex;gap:28px;font:600 1.05rem 'Barlow Condensed','Arial Narrow',sans-serif;letter-spacing:.04em;text-transform:uppercase}.ds-nav nav a{color:#a7a398;text-decoration:none;transition:color .2s cubic-bezier(.16,1,.3,1)}.ds-nav nav a:hover{color:#f2c14e}.ds-nav a:focus-visible{outline:3px solid #f2c14e;outline-offset:3px}"
+    },
+    {
+      "name": "Ledger Row",
+      "kind": "card",
+      "refersTo": "",
+      "description": "Ruled numbered list replacing card grids.",
+      "html": "<ol class=\"ds-ledger\"><li><span class=\"ds-ledger__no\">1</span><div><h3>Install</h3><p>Download for your platform.</p></div></li></ol>",
+      "css": ".ds-ledger{list-style:none;margin:0;padding:0;border-top:2px solid #121315;background:#e9ebe6;font-family:Barlow,'Helvetica Neue',Arial,sans-serif}.ds-ledger li{display:grid;grid-template-columns:80px 1fr;gap:20px;padding:22px 0;border-bottom:1px solid #c9ccc5}.ds-ledger__no{font:700 3.2rem/.9 'Barlow Condensed','Arial Narrow',sans-serif;color:#121315}.ds-ledger h3{margin:0 0 6px;font:700 1.6rem/1.1 'Barlow Condensed','Arial Narrow',sans-serif;text-transform:uppercase;color:#121315}.ds-ledger p{margin:0;color:#4c4f55}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Departure Hall",
+    "overview": "Usage limits are read like a station departure board. Each provider is a service, each reset is a scheduled time, and macOS and Windows are the two platforms you board from. The top of the page is the hall: a black board housing with split-flap tiles in flap yellow. Everything below it is station enamel signage: off-white enamel, black lettering, rounded plate corners, ruled ledgers.\n\nDensity is high and orderly, like a timetable. Hierarchy comes from condensed uppercase signage and heavy rules, not from cards or gradients. Colour is literal to the world: yellow is flap ink, red is a low-limit signal, and nothing glows without a reason.",
+    "keyCharacteristics": [
+      "Two material zones: dark housing (board, header, footer) and light enamel (content).",
+      "Split-flap tiles with a lighter top leaf, darker bottom leaf and a hairline split.",
+      "Condensed signage grotesque for every heading and label, its regular cut for reading text.",
+      "Tabular digits throughout.",
+      "Ruled ledgers (2px ink top rule, 1px enamel-rule dividers) instead of card grids."
+    ],
+    "rules": [
+      {
+        "name": "The Signal Only Rule",
+        "body": "Red appears only to mean a low limit or an alert. Never decorative.",
+        "section": "colors"
+      },
+      {
+        "name": "The Flap Ink Rule",
+        "body": "Yellow is the colour of characters on the board and of interaction (hover, focus, selection). It is not a fill for large enamel areas, except a platform sign under the pointer.",
+        "section": "colors"
+      },
+      {
+        "name": "The Tabular Rule",
+        "body": "Every digit on the page is tabular; times and percentages must not shift when they change.",
+        "section": "typography"
+      },
+      {
+        "name": "The Signage Case Rule",
+        "body": "Condensed type is set uppercase; Barlow reading text is never uppercase.",
+        "section": "typography"
+      },
+      {
+        "name": "The Object Depth Rule",
+        "body": "Only things that exist physically in a station cast shadows. Text blocks, ledgers and sections stay flat.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do keep the housing / enamel split: dark for the board, header and footer; enamel for content.",
+      "Do set headings as uppercase Barlow Condensed and reading text in Barlow with tabular digits.",
+      "Do use flap yellow (`#f2c14e`) for board characters, hover and focus (3px outline, 3px offset).",
+      "Do structure lists with ruled ledgers (2px ink top, 1px dividers).",
+      "Do honour reduced motion: no flap riffle, no sign lift."
+    ],
+    "donts": [
+      "Don't use signal red for anything but a low limit or an alert.",
+      "Don't add shadows to text blocks, sections or lists; depth belongs to board objects and signs.",
+      "Don't set Barlow reading text in uppercase or condensed type in sentence-case body.",
+      "Don't apply this system to the Flutter app in `lib/`."
+    ]
+  }
+}
