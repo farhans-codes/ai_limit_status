@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Limit Status · Claude Code and Codex usage limits in your menu bar and taskbar</title>
+  <meta name="description" content="Free, open-source app that shows your remaining Claude Code and Codex usage limits and reset times in the macOS menu bar and the Windows taskbar.">
+  <link rel="canonical" href="https://farhans-codes.github.io/ai_limit_status/">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="AI Limit Status">
+  <meta property="og:description" content="Claude Code and Codex usage limits in your macOS menu bar and Windows taskbar. Free and open source.">
+  <meta property="og:url" content="https://farhans-codes.github.io/ai_limit_status/">
+  <meta property="og:image" content="https://farhans-codes.github.io/ai_limit_status/img/social-preview.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="theme-color" content="#141518">
+  <link rel="icon" href="img/app-icon.png">
+  <link rel="preload" href="fonts/BarlowCondensed-700.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="styles.css">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "AI Limit Status",
+    "operatingSystem": "macOS 13+, Windows 10/11 x64",
+    "applicationCategory": "DeveloperApplication",
+    "description": "Shows remaining Claude Code and Codex usage limits and reset times in the macOS menu bar and the Windows taskbar.",
+    "license": "https://opensource.org/licenses/MIT",
+    "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"},
+    "downloadUrl": "https://github.com/farhans-codes/ai_limit_status/releases/latest",
+    "url": "https://farhans-codes.github.io/ai_limit_status/"
+  }
+  </script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+
+  <header class="station">
+    <a class="station__name" href="./" aria-label="AI Limit Status home">
+      <img src="img/app-icon.png" alt="" width="28" height="28">
+      <span>AI Limit Status</span>
+    </a>
+    <nav class="station__nav" aria-label="Sections">
+      <a href="#how">How it works</a>
+      <a href="#features">Features</a>
+      <a href="#faq">FAQ</a>
+      <a href="https://github.com/farhans-codes/ai_limit_status">GitHub</a>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section class="board-hall" aria-labelledby="title">
+      <div class="board">
+        <div class="board__head">
+          <h1 id="title" class="board__title">Know what’s left before you run out.</h1>
+          <p class="board__clock" aria-label="Local time"><span class="board__clock-label">Local time</span> <time id="clock">--:--</time></p>
+        </div>
+
+        <div class="board__table" role="table" aria-label="Sample usage limits">
+          <div class="board__row board__row--labels" role="row">
+            <span role="columnheader">Service</span>
+            <span role="columnheader">Limit</span>
+            <span role="columnheader">Remaining</span>
+            <span role="columnheader">Resets</span>
+          </div>
+          <div class="board__row" role="row">
+            <span role="cell" data-flap="CODEX" data-width="6"></span>
+            <span role="cell" data-flap="WEEKLY" data-width="12"></span>
+            <span role="cell" class="cell--num" data-flap="68%" data-width="3"></span>
+            <span role="cell" class="cell--num" data-flap="THU 16:36" data-width="9"></span>
+          </div>
+          <div class="board__row" role="row">
+            <span role="cell" data-flap="CLAUDE" data-width="6"></span>
+            <span role="cell" data-flap="WEEKLY" data-width="12"></span>
+            <span role="cell" class="cell--num" data-flap="58%" data-width="3"></span>
+            <span role="cell" class="cell--num" data-flap="FRI 01:00" data-width="9"></span>
+          </div>
+          <div class="board__row" role="row">
+            <span role="cell" data-flap="CLAUDE" data-width="6"></span>
+            <span role="cell" data-flap="FABLE WEEKLY" data-width="12"></span>
+            <span role="cell" class="cell--num cell--low" data-flap="9%" data-width="3"></span>
+            <span role="cell" class="cell--num" data-flap="FRI 01:00" data-width="9"></span>
+          </div>
+        </div>
+
+        <p class="board__notice">Desktop alerts at 50%, 20% and 10% remaining, and before each reset.</p>
+      </div>
+
+      <p class="board__lede">Codex and Claude usage limits, always in your <strong>macOS menu bar</strong> or <strong>Windows taskbar</strong>. Free and open source. <span class="board__sample">Board shows sample numbers; the app shows yours.</span></p>
+
+      <div class="platforms" aria-label="Download">
+        <a class="platform" href="https://github.com/farhans-codes/ai_limit_status/releases/latest/download/AI-Limit-Status-macOS.dmg">
+          <span class="platform__name"><span class="platform__no" aria-label="Platform 1">1</span>macOS</span>
+          <span class="platform__action">Download DMG
+            <svg aria-hidden="true" viewBox="0 0 20 20" width="18" height="18"><path d="M10 3v10m0 0-4-4m4 4 4-4M4 16h12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+          <span class="platform__meta">macOS 13 or newer</span>
+        </a>
+        <a class="platform" href="https://github.com/farhans-codes/ai_limit_status/releases/latest/download/AI-Limit-Status-Windows-x64-Setup.exe">
+          <span class="platform__name"><span class="platform__no" aria-label="Platform 2">2</span>Windows</span>
+          <span class="platform__action">Download installer
+            <svg aria-hidden="true" viewBox="0 0 20 20" width="18" height="18"><path d="M10 3v10m0 0-4-4m4 4 4-4M4 16h12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+          <span class="platform__meta">Windows 10 and 11, x64</span>
+        </a>
+      </div>
+
+      <div class="brew">
+        <span class="brew__label">Or with Homebrew</span>
+        <code class="brew__cmd" id="brew-cmd">brew install --cask farhans-codes/tap/ai-limit-status</code>
+        <button class="brew__copy" type="button" data-copy="brew-cmd">Copy</button>
+      </div>
+    </section>
+
+    <section class="section" id="how" aria-labelledby="how-title">
+      <h2 class="section__title" id="how-title"><span class="plate">How it works</span></h2>
+      <ol class="ledger">
+        <li class="ledger__row">
+          <span class="ledger__no">1</span>
+          <div>
+            <h3>Install for your platform</h3>
+            <p>Download the DMG for macOS or the installer for Windows. After that, updates install in one click from Settings.</p>
+          </div>
+        </li>
+        <li class="ledger__row">
+          <span class="ledger__no">2</span>
+          <div>
+            <h3>Use the sign-in you already have</h3>
+            <p>If <code>claude</code> or <code>codex login</code> works in your terminal, you’re done. AI Limit Status reads that sign-in. No API key, no extra account.</p>
+          </div>
+        </li>
+        <li class="ledger__row">
+          <span class="ledger__no">3</span>
+          <div>
+            <h3>Glance, don’t check</h3>
+            <p>The remaining percentage sits next to the clock. Open it for every limit, model-specific Claude limits included, and the exact local time each one resets.</p>
+          </div>
+        </li>
+      </ol>
+    </section>
+
+    <section class="section section--platform" aria-labelledby="shot-title">
+      <h2 class="section__title" id="shot-title"><span class="plate">On the platform</span></h2>
+      <div class="shot">
+        <figure class="shot__frame">
+          <img src="img/macos-popover.png" width="448" height="588" loading="lazy" alt="AI Limit Status popover on macOS: Codex weekly limit 68% remaining, marked cached; Claude connected with weekly limit 39% and Fable weekly limit 60% remaining, each with its reset countdown">
+          <figcaption>macOS popover, real screenshot from an earlier version.</figcaption>
+        </figure>
+        <div class="shot__notes">
+          <p class="shot__big">Mac <span>and</span> Windows.</p>
+          <p>On macOS the numbers live in the menu bar. On Windows they sit on the taskbar, next to the system tray (still marked experimental). Same popover, same alerts, on both.</p>
+          <p>Most tools like this are macOS-only. This one isn’t.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="features" aria-labelledby="features-title">
+      <h2 class="section__title" id="features-title"><span class="plate">Service notes</span></h2>
+      <dl class="notes">
+        <div class="notes__item">
+          <dt>Alerts before you hit the wall</dt>
+          <dd>Desktop notifications at 50%, 20% and 10% remaining, plus reminders a day, 12 hours, 5 hours and 1 hour before a reset.</dd>
+        </div>
+        <div class="notes__item">
+          <dt>Every limit, not just one</dt>
+          <dd>Codex weekly, Claude weekly, and Claude’s model-specific weekly limits, each with its own reset time.</dd>
+        </div>
+        <div class="notes__item">
+          <dt>Honest about freshness</dt>
+          <dd>Every card says when it was updated. If a provider can’t be reached, you see the last known number, marked as cached.</dd>
+        </div>
+        <div class="notes__item">
+          <dt>One-click updates</dt>
+          <dd>New versions show a dot on Settings and install themselves when you say so.</dd>
+        </div>
+        <div class="notes__item">
+          <dt>Only what you use</dt>
+          <dd>Hide Codex or Claude. Hidden providers are never read.</dd>
+        </div>
+        <div class="notes__item">
+          <dt>Nothing leaves your machine</dt>
+          <dd>No analytics, no telemetry, no account. MIT-licensed and open source.</dd>
+        </div>
+      </dl>
+    </section>
+
+    <section class="section" id="faq" aria-labelledby="faq-title">
+      <h2 class="section__title" id="faq-title"><span class="plate">Questions</span></h2>
+      <div class="faq">
+        <details>
+          <summary>How do I check my Claude Code usage limit?</summary>
+          <p>Install AI Limit Status and sign in to Claude Code once with <code>claude</code>. The remaining weekly limit, and any model-specific weekly limit, appears in the menu bar or taskbar, with the exact reset time in the popover.</p>
+        </details>
+        <details>
+          <summary>How do I see how much of my Codex weekly limit is left?</summary>
+          <p>Sign in to the Codex CLI with <code>codex login</code>. AI Limit Status shows the remaining percentage of the Codex weekly limit and when it resets, next to Claude if you use both.</p>
+        </details>
+        <details>
+          <summary>Is there a CodexBar alternative for Windows?</summary>
+          <p>Yes. AI Limit Status runs on both macOS and Windows and shows Codex and Claude side by side. CodexBar, a similar menu bar tool, is macOS-only.</p>
+        </details>
+        <details>
+          <summary>Does it need an API key or send my data anywhere?</summary>
+          <p>No. It reuses the sign-in your Claude Code and Codex CLIs already created, asks the providers for your usage directly, and has no analytics or telemetry.</p>
+        </details>
+        <details>
+          <summary>macOS says the app can’t be opened. What now?</summary>
+          <p>The app isn’t notarized by Apple yet. Open it once from System Settings → Privacy &amp; Security → Open Anyway. After that it opens normally.</p>
+        </details>
+      </div>
+    </section>
+  </main>
+
+  <footer class="terminus">
+    <div class="terminus__line">
+      <a href="https://github.com/farhans-codes/ai_limit_status">Source on GitHub</a>
+      <a href="https://github.com/farhans-codes/ai_limit_status/releases/latest">Release notes</a>
+      <a href="https://github.com/farhans-codes/homebrew-tap">Homebrew tap</a>
+      <a href="https://github.com/farhans-codes/ai_limit_status/blob/main/LICENSE">MIT License</a>
+    </div>
+    <p class="terminus__legal">AI Limit Status is an independent community project. It is not affiliated with, endorsed by, or sponsored by OpenAI or Anthropic. OpenAI, Codex, Anthropic and Claude are trademarks of their respective owners.</p>
+  </footer>
+
+  <script src="board.js" defer></script>
+</body>
+</html>
