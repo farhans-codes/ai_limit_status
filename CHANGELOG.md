@@ -6,6 +6,20 @@ The project follows Semantic Versioning for public releases.
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-17
+
+### Added
+
+- Install app updates in one click from Settings: the app downloads the new
+  version, replaces itself, and restarts.
+- Troubleshooting guide in the README for duplicate Claude or Codex installs.
+
+### Fixed
+
+- Find the right Claude or Codex CLI after a slow login instead of falling back
+  to a stale second install, and run CLIs installed through npm or Homebrew.
+- Size the popover to its content so hiding a provider leaves no empty space.
+
 ## [0.12.1] - 2026-11-16
 
 ### Fixed
