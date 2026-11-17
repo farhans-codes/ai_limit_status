@@ -102,6 +102,7 @@ class DesktopSettingsDialog extends StatelessWidget {
                         AppUpdatesCard(
                           installedVersion: _version,
                           platform: updatePlatform,
+                          knownUpdate: controller.availableUpdate.value,
                         ),
                         const SizedBox(height: 20),
                       ],
