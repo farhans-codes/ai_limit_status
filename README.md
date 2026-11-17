@@ -292,6 +292,43 @@ The app log shows which step failed:
 - macOS: `~/Library/Logs/AI Limit Status/app.log`
 - Windows: `%LOCALAPPDATA%\AI Limit Status\logs\app.log`
 
+## FAQ
+
+### How do I check my Claude Code usage limit?
+
+Install AI Limit Status and sign in to Claude Code once with `claude`. The
+remaining weekly limit, and any model-specific weekly limit such as Opus or
+Sonnet, appears in the macOS menu bar or the Windows taskbar, with the exact
+reset time in the popover.
+
+### How do I see how much of my Codex weekly limit is left?
+
+Sign in to the Codex CLI with `codex login`. AI Limit Status shows the
+remaining percentage of the Codex weekly limit and when it resets, next to
+Claude if you use both.
+
+### When does my Claude or Codex limit reset?
+
+Each card in the popover shows the reset as a countdown plus the local day and
+time, for example "Resets in 2d 16h · Fri, Nov 20 at 1:00 AM".
+
+### Can I get a warning before I run out?
+
+Yes. AI Limit Status sends a desktop notification when a limit drops to 50%,
+20% and 10%, and reminders before it resets. Turn them off in Settings.
+
+### Is there a CodexBar alternative for Windows?
+
+AI Limit Status runs on both macOS and Windows and shows Codex and Claude
+limits side by side. [CodexBar](https://github.com/steipete/CodexBar), a
+similar menu bar tool, is macOS-only.
+
+### Does it need an API key or send my data anywhere?
+
+No. It reuses the sign-in your Claude Code and Codex CLIs already created, asks
+the providers for your usage directly, and has no analytics or telemetry. See
+[Privacy and credential handling](#privacy-and-credential-handling).
+
 ## Known limitations
 
 - Provider CLIs and usage endpoints can change without notice and temporarily
