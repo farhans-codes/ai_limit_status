@@ -115,6 +115,11 @@ class AppStrings {
   String appUpdateInstallerUnavailable(String version) =>
       'Version $version is available. The installer isn’t ready yet.';
   String get appUpdateCheckFailed => 'Couldn’t check for updates. Try again.';
+  String get installAppUpdate => 'Install update';
+  String get installingAppUpdate =>
+      'Downloading and installing… The app will restart.';
+  String get appUpdateInstallFailed =>
+      'Couldn’t install the update automatically. Download it instead.';
   String get downloadMacUpdate => 'Download macOS DMG';
   String get downloadWindowsUpdate => 'Download Windows Setup';
   String get appUpdateDownloadFailed =>
