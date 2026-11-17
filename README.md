@@ -50,6 +50,12 @@ connected providers automatically, and does not include analytics or telemetry.
 | macOS | [Download DMG](https://github.com/farhans-codes/ai_limit_status/releases/latest/download/AI-Limit-Status-macOS.dmg) | [Download ZIP](https://github.com/farhans-codes/ai_limit_status/releases/latest/download/AI-Limit-Status-macOS.zip) |
 | Windows x64 | [Download Setup EXE](https://github.com/farhans-codes/ai_limit_status/releases/latest/download/AI-Limit-Status-Windows-x64-Setup.exe) | [Download portable ZIP](https://github.com/farhans-codes/ai_limit_status/releases/latest/download/AI-Limit-Status-Windows-x64-portable.zip) |
 
+On macOS you can also install it with [Homebrew](https://brew.sh):
+
+```bash
+brew install --cask farhans-codes/tap/ai-limit-status
+```
+
 [View the latest release notes](https://github.com/farhans-codes/ai_limit_status/releases/latest)
 or [download SHA-256 checksums](https://github.com/farhans-codes/ai_limit_status/releases/latest/download/AI-Limit-Status-SHA256SUMS.txt).
 
