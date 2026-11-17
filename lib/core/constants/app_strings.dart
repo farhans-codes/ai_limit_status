@@ -116,6 +116,9 @@ class AppStrings {
       'Version $version is available. The installer isn’t ready yet.';
   String get appUpdateCheckFailed => 'Couldn’t check for updates. Try again.';
   String get installAppUpdate => 'Install update';
+  String get appUpdateNotificationTitle => 'Update available';
+  String appUpdateNotificationBody(String version) =>
+      'AI Limit Status $version is ready. Open Settings to install it.';
   String get installingAppUpdate =>
       'Downloading and installing… The app will restart.';
   String get appUpdateInstallFailed =>

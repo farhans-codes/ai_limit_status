@@ -2,9 +2,12 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:ai_limit_status/core/constants/app_strings.dart';
 import 'package:ai_limit_status/core/platform/app_window_service.dart';
+import 'package:ai_limit_status/core/platform/desktop_notification_service.dart';
 import 'package:ai_limit_status/core/platform/tray_service.dart';
+import 'package:ai_limit_status/features/settings/data/app_updates.dart';
 import 'package:ai_limit_status/features/settings/domain/entities/desktop_settings.dart';
 import 'package:ai_limit_status/features/settings/domain/repositories/desktop_settings_repository.dart';
 import 'package:ai_limit_status/features/settings/presentation/widgets/desktop_settings_dialog.dart';
@@ -16,11 +19,21 @@ class DesktopSettingsController extends GetxController
     this._repository,
     this._windowService,
     this._trayService,
+    this._notificationService,
   );
+
+  static const _updateCheckInterval = Duration(hours: 6);
 
   final DesktopSettingsRepository _repository;
   final AppWindowService _windowService;
   final TrayService _trayService;
+  final DesktopNotificationService _notificationService;
+
+  /// A newer release found by the background check; drives the red dot on
+  /// the Settings button and the update shown when Settings opens.
+  final availableUpdate = Rxn<AppUpdate>();
+  Timer? _updateTimer;
+  String? _notifiedUpdateVersion;
 
   final notificationsEnabled = false.obs;
   final launchAtStartupEnabled = false.obs;
@@ -55,6 +68,7 @@ class DesktopSettingsController extends GetxController
 
   @override
   void onClose() {
+    _updateTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.onClose();
   }
@@ -63,11 +77,44 @@ class DesktopSettingsController extends GetxController
     await _repository.initialize(AppStrings.instance.appTitle);
     await _reload();
     _isInitialized = true;
+    unawaited(_checkForUpdate());
+    _updateTimer = Timer.periodic(
+      _updateCheckInterval,
+      (_) => unawaited(_checkForUpdate()),
+    );
 
     if (!_onboardingCompleted) {
       await _windowService.whenReady;
       await _trayService.showDashboard();
       await openSettings(firstRun: true);
+    }
+  }
+
+  Future<void> _checkForUpdate() async {
+    final platform = AppUpdatePlatform.current;
+    if (platform == null) {
+      return;
+    }
+    try {
+      final installed = (await PackageInfo.fromPlatform()).version;
+      final update = await checkForAppUpdate(installed, platform);
+      availableUpdate.value = update;
+      // Announce each new version once per run, and only to users who keep
+      // notifications on.
+      if (update != null &&
+          update.version != _notifiedUpdateVersion &&
+          notificationsEnabled.value) {
+        final strings = AppStrings.instance;
+        // Retry on the next check if notifications weren't ready yet.
+        if (await _notificationService.show(
+          title: strings.appUpdateNotificationTitle,
+          body: strings.appUpdateNotificationBody(update.version),
+        )) {
+          _notifiedUpdateVersion = update.version;
+        }
+      }
+    } on Object {
+      // Offline or GitHub unavailable; the next check will retry.
     }
   }
 

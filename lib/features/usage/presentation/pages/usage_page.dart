@@ -132,7 +132,12 @@ class UsagePage extends GetView<UsageController> {
                                 refreshTooltip: l10n.refresh,
                                 isRefreshing: controller.isLoading.value,
                                 onSettings: settingsController.openSettings,
-                                onRefresh: controller.refreshUsage,
+                                hasUpdate:
+                                    settingsController.availableUpdate.value !=
+                                    null,
+                                onRefresh: () => controller.refreshUsage(
+                                  userInitiated: true,
+                                ),
                               ),
                             ),
                             const SizedBox(height: 10),
@@ -165,7 +170,9 @@ class UsagePage extends GetView<UsageController> {
                                     ),
                                     onOpenSetupGuide: () => controller
                                         .openSetupGuide(usage.provider),
-                                    onCheckAgain: controller.refreshUsage,
+                                    onCheckAgain: () => controller.refreshUsage(
+                                      userInitiated: true,
+                                    ),
                                   );
                                 },
                               ),
@@ -320,6 +327,7 @@ class _Header extends StatelessWidget {
     required this.isRefreshing,
     required this.onSettings,
     required this.onRefresh,
+    required this.hasUpdate,
   });
 
   final String title;
@@ -328,6 +336,9 @@ class _Header extends StatelessWidget {
   final bool isRefreshing;
   final VoidCallback onSettings;
   final VoidCallback onRefresh;
+
+  /// Shows a red dot on the Settings button when a newer version exists.
+  final bool hasUpdate;
 
   @override
   Widget build(BuildContext context) {
@@ -367,7 +378,11 @@ class _Header extends StatelessWidget {
         _GlassHeaderButton(
           tooltip: settingsTooltip,
           onPressed: onSettings,
-          child: const Icon(Icons.tune_rounded, size: 18),
+          child: Badge(
+            isLabelVisible: hasUpdate,
+            smallSize: 8,
+            child: const Icon(Icons.tune_rounded, size: 18),
+          ),
         ),
         const SizedBox(width: 7),
         _GlassHeaderButton(

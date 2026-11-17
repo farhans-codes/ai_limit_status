@@ -7,11 +7,16 @@ class AppUpdatesCard extends StatefulWidget {
   const AppUpdatesCard({
     required this.installedVersion,
     required this.platform,
+    this.knownUpdate,
     super.key,
   });
 
   final Future<String> installedVersion;
   final AppUpdatePlatform platform;
+
+  /// An update the background check already found, shown without waiting
+  /// for the user to check again.
+  final AppUpdate? knownUpdate;
 
   @override
   State<AppUpdatesCard> createState() => _AppUpdatesCardState();
@@ -22,6 +27,15 @@ class _AppUpdatesCardState extends State<AppUpdatesCard> {
   bool _downloadFailed = false;
   bool _installing = false;
   bool _installFailed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final knownUpdate = widget.knownUpdate;
+    if (knownUpdate != null) {
+      _check = Future.value(knownUpdate);
+    }
+  }
 
   void _checkForUpdates() {
     setState(() {

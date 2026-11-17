@@ -96,6 +96,7 @@ class UsageBinding extends Bindings {
         Get.find<DesktopSettingsRepository>(),
         Get.find<AppWindowService>(),
         Get.find<TrayService>(),
+        Get.find<DesktopNotificationService>(),
       ),
     );
     Get.lazyPut<UsageWarningStateStore>(UsageWarningStateStore.new);
