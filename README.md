@@ -254,6 +254,38 @@ AI Limit Status does not ask users to paste an API key into the app.
 Read the complete [privacy statement](PRIVACY.md) and
 [security policy](SECURITY.md) before installing the app.
 
+## Troubleshooting
+
+### Claude or Codex shows "—", "Cached", or asks you to sign in again
+
+Check whether more than one copy of the provider CLI is installed. An old copy
+(for example a Homebrew or npm install next to the native installer) can be
+picked up instead of the one your terminal uses.
+
+On macOS:
+
+```bash
+which -a claude
+which -a codex
+```
+
+On Windows (PowerShell):
+
+```powershell
+where.exe claude
+where.exe codex
+```
+
+If a command lists more than one path, keep the one your terminal uses (the
+first line) and uninstall the others, then quit and reopen AI Limit Status. To
+pin a specific copy instead, set `CLAUDE_CLI_PATH` or `CODEX_CLI_PATH` to its
+full path.
+
+The app log shows which step failed:
+
+- macOS: `~/Library/Logs/AI Limit Status/app.log`
+- Windows: `%LOCALAPPDATA%\AI Limit Status\logs\app.log`
+
 ## Known limitations
 
 - Provider CLIs and usage endpoints can change without notice and temporarily
