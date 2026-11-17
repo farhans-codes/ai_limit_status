@@ -47,4 +47,4 @@ Root: HKCU; Subkey: "Software\Microsoft\Edge\NativeMessagingHosts\com.ailimitsta
 Root: HKCU; Subkey: "Software\Mozilla\NativeMessagingHosts\com.ailimitstatus.browser_bridge"; ValueType: string; ValueName: ""; ValueData: "{app}\browser_bridge\firefox-host.json"; Flags: uninsdeletekey
 
 [Run]
-Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall

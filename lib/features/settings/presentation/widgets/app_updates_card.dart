@@ -20,14 +20,34 @@ class AppUpdatesCard extends StatefulWidget {
 class _AppUpdatesCardState extends State<AppUpdatesCard> {
   Future<AppUpdate?>? _check;
   bool _downloadFailed = false;
+  bool _installing = false;
+  bool _installFailed = false;
 
   void _checkForUpdates() {
     setState(() {
       _downloadFailed = false;
+      _installFailed = false;
       _check = widget.installedVersion.then(
         (version) => checkForAppUpdate(version, widget.platform),
       );
     });
+  }
+
+  Future<void> _install(Uri url) async {
+    setState(() {
+      _installing = true;
+      _installFailed = false;
+    });
+    try {
+      await installAppUpdate(url, widget.platform);
+    } on Object {
+      if (mounted) {
+        setState(() {
+          _installing = false;
+          _installFailed = true;
+        });
+      }
+    }
   }
 
   Future<void> _openDownload(Uri url) async {
@@ -52,6 +72,8 @@ class _AppUpdatesCardState extends State<AppUpdatesCard> {
           snapshot.hasError,
           update,
         )) {
+          _ when _installing => strings.installingAppUpdate,
+          _ when _installFailed => strings.appUpdateInstallFailed,
           (ConnectionState.waiting, _, _) => strings.checkingForAppUpdates,
           (_, true, _) => strings.appUpdateCheckFailed,
           (_, _, (version: final version, downloadUrl: null)) =>
@@ -74,9 +96,18 @@ class _AppUpdatesCardState extends State<AppUpdatesCard> {
                     ? null
                     : Semantics(liveRegion: true, child: Text(message)),
                 trailing: const Icon(Icons.refresh_rounded),
-                onTap: checking ? null : _checkForUpdates,
+                onTap: checking || _installing ? null : _checkForUpdates,
               ),
-              if (downloadUrl != null)
+              if (downloadUrl != null && !_installFailed)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                  child: FilledButton.icon(
+                    onPressed: _installing ? null : () => _install(downloadUrl),
+                    icon: const Icon(Icons.system_update_alt_rounded),
+                    label: Text(strings.installAppUpdate),
+                  ),
+                ),
+              if (downloadUrl != null && _installFailed)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                   child: OutlinedButton.icon(
