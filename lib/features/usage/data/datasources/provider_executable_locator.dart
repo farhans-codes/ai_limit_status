@@ -127,8 +127,15 @@ class ProviderExecutableLocator {
 
   /// Captures the login shell's PATH once per app run, the same trick
   /// CodexBar uses so version-manager installs (nvm, fnm, mise) resolve.
-  static Future<List<String>> _loginShellPath() {
-    return _loginShellPathFuture ??= _captureLoginShellPath();
+  /// A failed capture is not kept: right after login the shell can be too slow
+  /// to answer, and caching that empty result would make every later lookup
+  /// fall back to well-known paths, which may hold a stale second install.
+  static Future<List<String>> _loginShellPath() async {
+    final path = await (_loginShellPathFuture ??= _captureLoginShellPath());
+    if (path.isEmpty) {
+      _loginShellPathFuture = null;
+    }
+    return path;
   }
 
   static Future<List<String>> _captureLoginShellPath() async {
