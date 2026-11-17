@@ -25,7 +25,8 @@ Future<void> main() async {
 
   const windowOptions = WindowOptions(
     size: Size(380, 520),
-    minimumSize: Size(380, 520),
+    // The popover shrinks to its content; see AppWindowService.
+    minimumSize: Size(380, 120),
     maximumSize: Size(380, 520),
     backgroundColor: Colors.transparent,
     skipTaskbar: true,

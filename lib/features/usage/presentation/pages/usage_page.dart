@@ -2,8 +2,10 @@ import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:get/get.dart';
 import 'package:ai_limit_status/core/constants/app_strings.dart';
+import 'package:ai_limit_status/core/platform/app_window_service.dart';
 import 'package:ai_limit_status/features/settings/presentation/controllers/desktop_settings_controller.dart';
 import 'package:ai_limit_status/features/usage/domain/entities/provider_usage.dart';
 import 'package:ai_limit_status/features/usage/presentation/controllers/usage_controller.dart';
@@ -71,91 +73,108 @@ class UsagePage extends GetView<UsageController> {
                     size: 250,
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(14, 11, 6, 14),
-                  child: Obx(() {
-                    if (controller.isLoading.value &&
-                        controller.usages.isEmpty) {
-                      return _LoadingState(label: l10n.loadingUsage);
-                    }
+                // Measure the content at full popover height so the window
+                // can grow as well as shrink to fit it.
+                OverflowBox(
+                  alignment: Alignment.topCenter,
+                  minHeight: 0,
+                  maxHeight: AppWindowService.maxPopoverHeight,
+                  child: _HeightReporter(
+                    onHeight: Get.find<AppWindowService>().setContentHeight,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(14, 11, 6, 14),
+                      child: Obx(() {
+                        if (controller.isLoading.value &&
+                            controller.usages.isEmpty) {
+                          return _LoadingState(label: l10n.loadingUsage);
+                        }
 
-                    if (controller.hasError.value &&
-                        controller.usages.isEmpty) {
-                      return _ErrorState(
-                        message: l10n.unableToLoadUsage,
-                        retryLabel: l10n.retry,
-                        onRetry: controller.refreshUsage,
-                      );
-                    }
+                        if (controller.hasError.value &&
+                            controller.usages.isEmpty) {
+                          return _ErrorState(
+                            message: l10n.unableToLoadUsage,
+                            retryLabel: l10n.retry,
+                            onRetry: controller.refreshUsage,
+                          );
+                        }
 
-                    if (controller.usages.isEmpty) {
-                      return _NoProvidersState(
-                        title: l10n.noProvidersDetected,
-                        message: l10n.noProvidersDetectedDescription,
-                        codexLabel: l10n.setUpProvider(l10n.providerCodex),
-                        claudeLabel: l10n.setUpProvider(l10n.providerClaude),
-                        isCodexLoading: controller.isSettingUp(
-                          UsageProvider.codex,
-                        ),
-                        isClaudeLoading: controller.isSettingUp(
-                          UsageProvider.claude,
-                        ),
-                        onSetupCodex: () =>
-                            controller.installProvider(UsageProvider.codex),
-                        onSetupClaude: () =>
-                            controller.installProvider(UsageProvider.claude),
-                      );
-                    }
+                        if (controller.usages.isEmpty) {
+                          return _NoProvidersState(
+                            title: l10n.noProvidersDetected,
+                            message: l10n.noProvidersDetectedDescription,
+                            codexLabel: l10n.setUpProvider(l10n.providerCodex),
+                            claudeLabel: l10n.setUpProvider(
+                              l10n.providerClaude,
+                            ),
+                            isCodexLoading: controller.isSettingUp(
+                              UsageProvider.codex,
+                            ),
+                            isClaudeLoading: controller.isSettingUp(
+                              UsageProvider.claude,
+                            ),
+                            onSetupCodex: () =>
+                                controller.installProvider(UsageProvider.codex),
+                            onSetupClaude: () => controller.installProvider(
+                              UsageProvider.claude,
+                            ),
+                          );
+                        }
 
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: _Header(
-                            title: l10n.appTitle,
-                            settingsTooltip: l10n.settingsTooltip,
-                            refreshTooltip: l10n.refresh,
-                            isRefreshing: controller.isLoading.value,
-                            onSettings: settingsController.openSettings,
-                            onRefresh: controller.refreshUsage,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        const Padding(
-                          padding: EdgeInsets.only(right: 8),
-                          child: _GlassDivider(),
-                        ),
-                        const SizedBox(height: 10),
-                        Expanded(
-                          child: ListView.separated(
-                            padding: const EdgeInsets.only(right: 8),
-                            itemCount: controller.usages.length,
-                            separatorBuilder: (_, _) =>
-                                const SizedBox(height: 11),
-                            itemBuilder: (context, index) {
-                              final usage = controller.usages[index];
-                              return ProviderDetailsCard(
-                                usage: usage,
-                                automaticSetupAvailable:
-                                    controller.supportsAutomaticInstall,
-                                isSetupInProgress: controller.isSettingUp(
-                                  usage.provider,
-                                ),
-                                onInstall: () =>
-                                    controller.installProvider(usage.provider),
-                                onSignIn: () =>
-                                    controller.signInProvider(usage.provider),
-                                onOpenSetupGuide: () =>
-                                    controller.openSetupGuide(usage.provider),
-                                onCheckAgain: controller.refreshUsage,
-                              );
-                            },
-                          ),
-                        ),
-                      ],
-                    );
-                  }),
+                        return Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: _Header(
+                                title: l10n.appTitle,
+                                settingsTooltip: l10n.settingsTooltip,
+                                refreshTooltip: l10n.refresh,
+                                isRefreshing: controller.isLoading.value,
+                                onSettings: settingsController.openSettings,
+                                onRefresh: controller.refreshUsage,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            const Padding(
+                              padding: EdgeInsets.only(right: 8),
+                              child: _GlassDivider(),
+                            ),
+                            const SizedBox(height: 10),
+                            Flexible(
+                              child: ListView.separated(
+                                shrinkWrap: true,
+                                padding: const EdgeInsets.only(right: 8),
+                                itemCount: controller.usages.length,
+                                separatorBuilder: (_, _) =>
+                                    const SizedBox(height: 11),
+                                itemBuilder: (context, index) {
+                                  final usage = controller.usages[index];
+                                  return ProviderDetailsCard(
+                                    usage: usage,
+                                    automaticSetupAvailable:
+                                        controller.supportsAutomaticInstall,
+                                    isSetupInProgress: controller.isSettingUp(
+                                      usage.provider,
+                                    ),
+                                    onInstall: () => controller.installProvider(
+                                      usage.provider,
+                                    ),
+                                    onSignIn: () => controller.signInProvider(
+                                      usage.provider,
+                                    ),
+                                    onOpenSetupGuide: () => controller
+                                        .openSetupGuide(usage.provider),
+                                    onCheckAgain: controller.refreshUsage,
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
+                        );
+                      }),
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -163,6 +182,42 @@ class UsagePage extends GetView<UsageController> {
         ),
       ),
     );
+  }
+}
+
+/// Reports its child's laid-out height after each layout that changes it.
+class _HeightReporter extends SingleChildRenderObjectWidget {
+  const _HeightReporter({required this.onHeight, super.child});
+
+  final ValueChanged<double> onHeight;
+
+  @override
+  RenderObject createRenderObject(BuildContext context) =>
+      _RenderHeightReporter(onHeight);
+
+  @override
+  void updateRenderObject(
+    BuildContext context,
+    _RenderHeightReporter renderObject,
+  ) {
+    renderObject.onHeight = onHeight;
+  }
+}
+
+class _RenderHeightReporter extends RenderProxyBox {
+  _RenderHeightReporter(this.onHeight);
+
+  ValueChanged<double> onHeight;
+  double? _reported;
+
+  @override
+  void performLayout() {
+    super.performLayout();
+    final height = size.height;
+    if (height != _reported) {
+      _reported = height;
+      WidgetsBinding.instance.addPostFrameCallback((_) => onHeight(height));
+    }
   }
 }
 

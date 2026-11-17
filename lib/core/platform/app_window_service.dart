@@ -43,6 +43,51 @@ class AppWindowService extends GetxService with WindowListener {
     if (isOpen) {
       _cancelPendingBlurHide();
     }
+    // Dialogs such as Settings need the full popover height.
+    unawaited(_fitHeight());
+  }
+
+  /// Tallest the popover may grow; longer content scrolls.
+  static const maxPopoverHeight = 520.0;
+  double _contentHeight = maxPopoverHeight;
+  double? _appliedHeight;
+
+  /// Sizes the popover to [height] so it has no empty space below its cards.
+  void setContentHeight(double height) {
+    _contentHeight = height;
+    unawaited(_fitHeight());
+  }
+
+  Future<void> _fitHeight() async {
+    final height = _isModalOpen
+        ? maxPopoverHeight
+        : _contentHeight.clamp(120.0, maxPopoverHeight).ceilToDouble();
+    if (height == _appliedHeight) {
+      return;
+    }
+    _appliedHeight = height;
+    try {
+      // Keep the edge next to the menu bar or taskbar in place, so a popover
+      // that opens upward from a bottom taskbar shrinks toward it.
+      final bounds = await windowManager.getBounds();
+      final displays = await screenRetriever.getAllDisplays();
+      final display = _displayContaining(bounds.center, displays);
+      final area =
+          (display.visiblePosition ?? Offset.zero) &
+          (display.visibleSize ?? display.size);
+      final keepTop = bounds.top - area.top <= area.bottom - bounds.bottom;
+      await windowManager.setBounds(
+        Rect.fromLTWH(
+          bounds.left,
+          keepTop ? bounds.top : bounds.bottom - height,
+          bounds.width,
+          height,
+        ),
+      );
+    } on Object catch (error) {
+      _appliedHeight = null;
+      AppLog.log('window: fit height failed: $error');
+    }
   }
 
   Future<void> showPopover() async {
