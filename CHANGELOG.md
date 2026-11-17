@@ -6,6 +6,18 @@ The project follows Semantic Versioning for public releases.
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-11-17
+
+### Added
+
+- Check for new versions in the background and show a red dot on the Settings
+  button, plus one notification, when an update is available.
+
+### Fixed
+
+- Refresh now reads Claude again instead of showing a result from a few
+  minutes earlier.
+
 ## [1.0.0] - 2026-11-17
 
 ### Added
