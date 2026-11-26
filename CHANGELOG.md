@@ -4,8 +4,6 @@ All notable changes to AI Limit Status are documented here.
 
 The project follows Semantic Versioning for public releases.
 
-## [Unreleased]
-
 ## [1.0.1] - 2026-11-17
 
 ### Added
