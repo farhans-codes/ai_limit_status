@@ -83,8 +83,8 @@ or [download SHA-256 checksums](https://github.com/farhans-codes/ai_limit_status
 - Lets users choose whether the Claude shortcut shows the overall weekly or Fable
   weekly limit.
 - Keeps each provider's percentage visible in the macOS menu bar or side by
-  side in the Windows taskbar, and lets users choose which providers appear
-  there separately from which ones are read.
+  side in the Windows taskbar. A pin on each provider card chooses which
+  ones appear there, up to three at a time.
 - Shows the Windows taskbar indicators on a transparent, fully clickable
   status surface, including the space between each icon and percentage.
 - Keeps the Windows details window open during taskbar and notification-area
@@ -110,7 +110,7 @@ Windows taskbar:
 - **Weekly limit** shows the overall Claude weekly allowance (the default).
 - **Fable weekly limit** shows the scoped Fable allowance reported by Claude.
 
-The Codex indicator remains visible beside the selected Claude value. If Claude
+Other pinned providers remain visible beside the selected Claude value. If Claude
 does not report the selected limit, the shortcut shows `—` instead of silently
 substituting a different limit.
 
@@ -189,8 +189,9 @@ Claude card stays visible and offers **Install & sign in**, which installs
 `Anthropic.ClaudeCode` through WinGet and starts `claude auth login`. After
 that one-time sign-in the app keeps the token fresh itself.
 
-Use **Show Codex** / **Show Claude** in App settings to hide a provider you do
-not use.
+Use the pin on a provider's card to keep it in the status shortcut or take it
+out. The shortcut shows up to three providers; unpinned providers stay in the
+details window.
 
 ### Optional Windows browser fallback
 
