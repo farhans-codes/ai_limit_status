@@ -29,24 +29,61 @@ jobs:
           EVENT: ${{ github.event.workflow_run.event }}
           BRANCH: ${{ github.event.workflow_run.head_branch }}
           COMMIT_TITLE: ${{ github.event.workflow_run.display_title }}
-          ACTOR: ${{ github.event.workflow_run.actor.login }}
           RUN_URL: ${{ github.event.workflow_run.html_url }}
         run: |
           if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
             echo "Telegram secrets are not set; skipping." >&2
             exit 0
           fi
-          case "$CONCLUSION" in
-            success) icon="✅" ;;
-            failure) icon="❌" ;;
-            *) icon="⚠️" ;;
+          # Say what happened in plain words instead of workflow jargon.
+          case "$WORKFLOW" in
+            "CI") what="Code check"; badge="🧪" ;;
+            "Publish release") what="Release workflow"; badge="🚀" ;;
+            "Publish website") what="Website update"; badge="🌐" ;;
+            "Build Windows installer") what="Windows installer"; badge="🪟" ;;
+            *) what="$WORKFLOW"; badge="⚙️" ;;
           esac
-          text="$(printf '%s %s: %s\n%s\n%s on %s, by %s\n%s' \
-            "$icon" "$WORKFLOW" "$CONCLUSION" \
-            "$COMMIT_TITLE" "$EVENT" "$BRANCH" "$ACTOR" "$RUN_URL")"
+          # A few lines per outcome, picked at random, so the chat stays fun.
+          pick() { shift $((RANDOM % $#)); printf '%s' "$1"; }
+          case "$CONCLUSION" in
+            success)
+              headline="🎉 <b>$what passed!</b> $badge✅"
+              note="$(pick \
+                "☕ All green. Go grab a chai, you earned it." \
+                "🤖💚 Clean run. The robots are pleased." \
+                "😎 Nothing broke. Suspicious, but we'll take it." \
+                "🌈 Smooth as butter. Carry on, captain.")" ;;
+            failure)
+              headline="🚨 <b>$what failed</b> $badge💥"
+              note="$(pick \
+                "🕵️ Something broke. Time to put the detective hat on." \
+                "👟 Oops, the build tripped over its own shoelaces." \
+                "🐛 A wild bug appeared! Peek at the details." \
+                "🔥 This is fine. (It is not fine. Open the details.)")" ;;
+            cancelled)
+              headline="⏹️ <b>$what stopped</b> $badge💤"
+              note="$(pick \
+                "🙌 A newer change cut in line. Nothing to do." \
+                "🏃 Replaced by a fresher run. Carry on." \
+                "🍃 Gone with the wind. The next run has it covered.")" ;;
+            *)
+              headline="🤔 <b>$what: $CONCLUSION</b> $badge"
+              note="👀 Not sure what that means. Take a look." ;;
+          esac
+          case "$EVENT" in
+            pull_request) where="Pull request from $BRANCH" ;;
+            *) where="Branch $BRANCH" ;;
+          esac
+          # Telegram reads the message as HTML, so escape text people wrote.
+          escape() { printf '%s' "$1" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g'; }
+          text="$(printf '%s\n\n📝 %s\n🌿 %s\n\n%s\n\n🔗 <a href="%s">Open details</a>' \
+            "$headline" \
+            "$(escape "$COMMIT_TITLE")" "$(escape "$where")" \
+            "$note" "$RUN_URL")"
           curl --silent --show-error --fail --max-time 20 \
             --output /dev/null \
             "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
             --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
             --data-urlencode "text=${text}" \
+            --data-urlencode "parse_mode=HTML" \
             --data-urlencode "disable_web_page_preview=true"
