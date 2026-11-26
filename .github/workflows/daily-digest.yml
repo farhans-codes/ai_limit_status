@@ -1,0 +1,112 @@
+name: Daily digest
+
+# Sends one Telegram message each morning that sums up the last 24 hours:
+# pull requests, issues, code checks, stars and forks, downloads of the
+# latest release, and how much work on develop is waiting for a release.
+#
+# 03:00 UTC is 9 AM in Dhaka. Run it by hand (Actions > Daily digest > Run
+# workflow) to get the summary right away.
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+  issues: read
+  pull-requests: read
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send the summary
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TZ: ${{ vars.NOTIFY_TIMEZONE || 'Asia/Dhaka' }}
+          REPO: ${{ github.repository }}
+        run: |
+          since="${SINCE:-$(date -u -d '24 hours ago' '+%Y-%m-%dT%H:%M:%SZ')}"
+
+          # Any lookup that fails shows as "?" instead of stopping the digest.
+          count() { gh api "search/issues?q=repo:$REPO+$1" --jq '.total_count' 2>/dev/null || echo "?"; }
+          prs_merged="$(count "is:pr+is:merged+merged:>=$since")"
+          prs_opened="$(count "is:pr+created:>=$since")"
+          prs_open="$(count "is:pr+is:open")"
+          issues_opened="$(count "is:issue+created:>=$since")"
+          issues_closed="$(count "is:issue+closed:>=$since")"
+          issues_open="$(count "is:issue+is:open")"
+
+          runs="$(gh api "repos/$REPO/actions/workflows/ci.yml/runs?created=>=$since&per_page=100" \
+            --jq '[.workflow_runs[].conclusion]' 2>/dev/null || echo '[]')"
+          checks_passed="$(printf '%s' "$runs" | jq '[.[] | select(. == "success")] | length')"
+          checks_failed="$(printf '%s' "$runs" | jq '[.[] | select(. == "failure")] | length')"
+
+          repo="$(gh api "repos/$REPO" 2>/dev/null || echo '{}')"
+          stars="$(printf '%s' "$repo" | jq -r '.stargazers_count // "?"')"
+          forks="$(printf '%s' "$repo" | jq -r '.forks_count // "?"')"
+          new_stars="$(gh api -H 'Accept: application/vnd.github.star+json' \
+            "repos/$REPO/stargazers?per_page=100" --paginate --jq '.[].starred_at' 2>/dev/null |
+            awk -v since="$since" '$0 >= since' | wc -l | tr -d ' ')"
+
+          release="$(gh api "repos/$REPO/releases/latest" 2>/dev/null || echo '{}')"
+          tag="$(printf '%s' "$release" | jq -r '.tag_name // "none"')"
+          downloads() {
+            printf '%s' "$release" | jq -r --arg name "$1" \
+              '[.assets[]? | select(.name == $name) | .download_count] | add // 0'
+          }
+          waiting="$(gh api "repos/$REPO/compare/main...develop" --jq '.ahead_by' 2>/dev/null || echo "?")"
+
+          row() { printf '<b>%s:</b> <code>%s</code>\n' "$1" "$2"; }
+          pick() { shift $((RANDOM % $#)); printf '%s' "$1"; }
+          if [ "$checks_failed" != "0" ]; then
+            note="🧯 Some checks failed yesterday. Worth a look before the coffee gets cold."
+          elif [ "$prs_merged" = "0" ] && [ "$prs_opened" = "0" ] && [ "$issues_opened" = "0" ]; then
+            note="$(pick "😴 A quiet day. The repo took a nap." "🌿 Nothing much happened. Peaceful." "🧘 All calm on the repo front.")"
+          else
+            note="$(pick "💪 Good progress. Keep it rolling." "🚀 Busy day! Nicely done." "✨ Things are moving. Lovely.")"
+          fi
+          release_row=""
+          if [ "$waiting" != "0" ]; then
+            release_row="$(row "🚧 Waiting for a release" "$waiting commits on develop")"
+          fi
+
+          text="$(printf '%s\n\n%s\n%s\n%s\n\n%s\n%s\n\n%s\n%s\n%s\n%s\n\n%s' \
+            "☀️ <b>Good morning! The last 24 hours</b> 📊" \
+            "$(row "🔀 Pull requests" "$prs_merged merged · $prs_opened opened · $prs_open open")" \
+            "$(row "🐞 Issues" "$issues_opened opened · $issues_closed closed · $issues_open open")" \
+            "$(row "🧪 Code checks" "$checks_passed passed · $checks_failed failed")" \
+            "$(row "⭐ Stars" "$stars (+$new_stars new)")" \
+            "$(row "🍴 Forks" "$forks")" \
+            "$(row "📦 Latest release" "$tag")" \
+            "$(row "🍎 macOS downloads" "$(downloads AI-Limit-Status-macOS.dmg)")" \
+            "$(row "🪟 Windows downloads" "$(downloads AI-Limit-Status-Windows-x64-Setup.exe)")" \
+            "$release_row" \
+            "$note")"
+
+          if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
+            printf '%s\n' "$text"
+            echo "Telegram secrets are not set; nothing sent." >&2
+            exit 0
+          fi
+          jq -n \
+            --arg chat_id "$TELEGRAM_CHAT_ID" --arg text "$text" \
+            --arg repo_url "https://github.com/$REPO" \
+            '{
+              chat_id: $chat_id,
+              text: $text,
+              parse_mode: "HTML",
+              disable_web_page_preview: true,
+              reply_markup: {inline_keyboard: [[
+                {text: "🔀 Pull requests", url: ($repo_url + "/pulls")},
+                {text: "📂 Repository", url: $repo_url}
+              ]]}
+            }' |
+          curl --silent --show-error --fail --max-time 20 \
+            --output /dev/null \
+            --header "Content-Type: application/json" \
+            --data @- \
+            "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage"
