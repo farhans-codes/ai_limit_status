@@ -1,8 +1,12 @@
 name: Notify Telegram
 
-# Sends a Telegram message when any other workflow finishes. `workflow_run`
-# always uses this file from the default branch and checks out no code, so a
-# pull request cannot change what runs or read the bot token.
+# Sends a Telegram message when something happens in the repository: a
+# workflow finishes, a branch or tag is created or deleted, someone forks or
+# stars the project, or a pull request or issue is opened or closed.
+#
+# These events always use this file from the default branch and the job
+# checks out no code, so a pull request cannot change what runs or read the
+# bot token.
 on:
   workflow_run:
     workflows:
@@ -11,6 +15,15 @@ on:
       - "Publish website"
       - "Build Windows installer"
     types: [completed]
+  create:
+  delete:
+  fork:
+  watch:
+    types: [started]
+  pull_request_target:
+    types: [opened, reopened, closed]
+  issues:
+    types: [opened, reopened, closed]
 
 permissions: {}
 
@@ -22,68 +35,194 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          # Branch names and commit titles come from contributors, so they
+          # Set the NOTIFY_TIMEZONE repository variable to change the clock.
+          TZ: ${{ vars.NOTIFY_TIMEZONE || 'Asia/Dhaka' }}
+          # Names, titles and branch names come from other people, so they
           # reach the shell only as environment variables.
-          CONCLUSION: ${{ github.event.workflow_run.conclusion }}
-          WORKFLOW: ${{ github.event.workflow_run.name }}
-          EVENT: ${{ github.event.workflow_run.event }}
-          BRANCH: ${{ github.event.workflow_run.head_branch }}
-          COMMIT_TITLE: ${{ github.event.workflow_run.display_title }}
+          EVENT_NAME: ${{ github.event_name }}
+          ACTION: ${{ github.event.action }}
+          ACTOR: ${{ github.event.sender.login }}
+          REPO: ${{ github.repository }}
+          REPO_URL: ${{ github.event.repository.html_url }}
+          STARS: ${{ github.event.repository.stargazers_count }}
+          REF: ${{ github.event.ref }}
+          REF_TYPE: ${{ github.event.ref_type }}
+          FORK_NAME: ${{ github.event.forkee.full_name }}
+          FORK_URL: ${{ github.event.forkee.html_url }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          PR_FROM: ${{ github.event.pull_request.head.label }}
+          PR_INTO: ${{ github.event.pull_request.base.ref }}
+          PR_MERGED: ${{ github.event.pull_request.merged }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_URL: ${{ github.event.issue.html_url }}
+          RUN_NAME: ${{ github.event.workflow_run.name }}
+          RUN_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          RUN_EVENT: ${{ github.event.workflow_run.event }}
+          RUN_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          RUN_TITLE: ${{ github.event.workflow_run.display_title }}
+          RUN_ACTOR: ${{ github.event.workflow_run.actor.login }}
           RUN_URL: ${{ github.event.workflow_run.html_url }}
         run: |
           if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
             echo "Telegram secrets are not set; skipping." >&2
             exit 0
           fi
-          # Say what happened in plain words instead of workflow jargon.
-          case "$WORKFLOW" in
-            "CI") what="Code check"; badge="🧪" ;;
-            "Publish release") what="Release workflow"; badge="🚀" ;;
-            "Publish website") what="Website update"; badge="🌐" ;;
-            "Build Windows installer") what="Windows installer"; badge="🪟" ;;
-            *) what="$WORKFLOW"; badge="⚙️" ;;
-          esac
-          # A few lines per outcome, picked at random, so the chat stays fun.
-          pick() { shift $((RANDOM % $#)); printf '%s' "$1"; }
-          case "$CONCLUSION" in
-            success)
-              headline="🎉 <b>$what passed!</b> $badge✅"
-              note="$(pick \
-                "☕ All green. Go grab a chai, you earned it." \
-                "🤖💚 Clean run. The robots are pleased." \
-                "😎 Nothing broke. Suspicious, but we'll take it." \
-                "🌈 Smooth as butter. Carry on, captain.")" ;;
-            failure)
-              headline="🚨 <b>$what failed</b> $badge💥"
-              note="$(pick \
-                "🕵️ Something broke. Time to put the detective hat on." \
-                "👟 Oops, the build tripped over its own shoelaces." \
-                "🐛 A wild bug appeared! Peek at the details." \
-                "🔥 This is fine. (It is not fine. Open the details.)")" ;;
-            cancelled)
-              headline="⏹️ <b>$what stopped</b> $badge💤"
-              note="$(pick \
-                "🙌 A newer change cut in line. Nothing to do." \
-                "🏃 Replaced by a fresher run. Carry on." \
-                "🍃 Gone with the wind. The next run has it covered.")" ;;
-            *)
-              headline="🤔 <b>$what: $CONCLUSION</b> $badge"
-              note="👀 Not sure what that means. Take a look." ;;
-          esac
-          case "$EVENT" in
-            pull_request) where="Pull request from $BRANCH" ;;
-            *) where="Branch $BRANCH" ;;
-          esac
+
           # Telegram reads the message as HTML, so escape text people wrote.
           escape() { printf '%s' "$1" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g'; }
-          text="$(printf '%s\n\n📝 %s\n🌿 %s\n\n%s\n\n🔗 <a href="%s">Open details</a>' \
-            "$headline" \
-            "$(escape "$COMMIT_TITLE")" "$(escape "$where")" \
-            "$note" "$RUN_URL")"
+          # One "Label: value" row; rows with no value are left out.
+          field() { [ -n "$2" ] && printf '<b>%s:</b> <code>%s</code>\n' "$1" "$(escape "$2")"; return 0; }
+          # A few lines per outcome, picked at random, so the chat stays fun.
+          pick() { shift $((RANDOM % $#)); printf '%s' "$1"; }
+
+          when="$(date '+%d %b %Y · %I:%M %p')"
+          headline=""; fields=""; note=""
+          button1=""; url1=""; button2="📂 Repository"; url2="$REPO_URL"
+
+          case "$EVENT_NAME" in
+            workflow_run)
+              case "$RUN_NAME" in
+                "CI") what="Code check"; badge="🧪" ;;
+                "Publish release") what="Release workflow"; badge="🚀" ;;
+                "Publish website") what="Website update"; badge="🌐" ;;
+                "Build Windows installer") what="Windows installer"; badge="🪟" ;;
+                *) what="$RUN_NAME"; badge="⚙️" ;;
+              esac
+              case "$RUN_CONCLUSION" in
+                success)
+                  headline="🎉 <b>$what passed!</b> $badge✅"
+                  note="$(pick \
+                    "☕ All green. Go grab a chai, you earned it." \
+                    "🤖💚 Clean run. The robots are pleased." \
+                    "😎 Nothing broke. Suspicious, but we'll take it." \
+                    "🌈 Smooth as butter. Carry on, captain.")" ;;
+                failure)
+                  headline="🚨 <b>$what failed</b> $badge💥"
+                  note="$(pick \
+                    "🕵️ Something broke. Time to put the detective hat on." \
+                    "👟 Oops, the build tripped over its own shoelaces." \
+                    "🐛 A wild bug appeared! Peek at the details." \
+                    "🔥 This is fine. (It is not fine. Open the details.)")" ;;
+                cancelled)
+                  headline="⏹️ <b>$what stopped</b> $badge💤"
+                  note="$(pick \
+                    "🙌 A newer change cut in line. Nothing to do." \
+                    "🏃 Replaced by a fresher run. Carry on." \
+                    "🍃 Gone with the wind. The next run has it covered.")" ;;
+                *)
+                  headline="🤔 <b>$what: $RUN_CONCLUSION</b> $badge"
+                  note="👀 Not sure what that means. Take a look." ;;
+              esac
+              if [ "$RUN_EVENT" = "pull_request" ]; then
+                fields="$(field "📝 Change" "$RUN_TITLE"; field "🔀 Pull request from" "$RUN_BRANCH")"
+              else
+                fields="$(field "📝 Change" "$RUN_TITLE"; field "🌿 Branch" "$RUN_BRANCH")"
+              fi
+              fields="$fields$(printf '\n'; field "👤 By" "$RUN_ACTOR")"
+              button1="🔍 View run"; url1="$RUN_URL" ;;
+
+            create)
+              if [ "$REF_TYPE" = "tag" ]; then
+                headline="🏷️ <b>New tag created</b> ✨"
+                fields="$(field "🏷️ Tag" "$REF")"
+                note="$(pick "📦 Fresh label, straight off the press." "🎁 Something just got a name.")"
+                button1="🏷️ View tag"; url1="$REPO_URL/releases/tag/$REF"
+              else
+                headline="🌱 <b>New branch sprouted</b> ✨"
+                fields="$(field "🌿 Branch" "$REF")"
+                note="$(pick "🚧 Someone is building something. Exciting!" "🌳 The tree grows another branch." "🧑‍🍳 Something's cooking.")"
+                button1="🌿 View branch"; url1="$REPO_URL/tree/$REF"
+              fi
+              fields="$fields$(printf '\n'; field "👤 Created by" "$ACTOR")" ;;
+
+            delete)
+              if [ "$REF_TYPE" = "tag" ]; then
+                headline="🗑️ <b>Tag deleted</b>"
+                fields="$(field "🏷️ Tag" "$REF")"
+              else
+                headline="🗑️ <b>Branch deleted</b> 🍂"
+                fields="$(field "🌿 Branch" "$REF")"
+              fi
+              fields="$fields$(printf '\n'; field "👤 Deleted by" "$ACTOR")"
+              note="$(pick "🫡 It served us well." "🧹 Tidy repo, tidy mind." "👋 Farewell, old friend.")" ;;
+
+            fork)
+              headline="🍴 <b>Someone forked the project!</b> 🎊"
+              fields="$(field "👤 Forked by" "$ACTOR"; field "📦 Their copy" "$FORK_NAME")"
+              note="$(pick "🚀 The project is spreading its wings." "👀 Somebody wants to tinker. Love to see it." "🌍 One more copy out in the wild.")"
+              button1="🍴 View fork"; url1="$FORK_URL" ;;
+
+            watch)
+              headline="⭐ <b>New star!</b> 🌟"
+              fields="$(field "👤 Starred by" "$ACTOR"; field "✨ Total stars" "$STARS")"
+              note="$(pick "😊 Somebody likes what you built." "🥳 Fame, one star at a time." "💫 Shine on.")"
+              button1="👤 View profile"; url1="https://github.com/$ACTOR" ;;
+
+            pull_request_target)
+              case "$ACTION:$PR_MERGED" in
+                closed:true)
+                  headline="🎊 <b>Pull request merged</b> 🔀✅"
+                  note="$(pick "🚢 Shipped it. Nice work." "🧩 Another piece falls into place." "🙌 In it goes.")" ;;
+                closed:*)
+                  headline="🚪 <b>Pull request closed</b> 🔀"
+                  note="$(pick "🤷 Not this time." "📪 Closed without merging.")" ;;
+                reopened:*)
+                  headline="🔁 <b>Pull request reopened</b> 🔀"
+                  note="👀 Round two." ;;
+                *)
+                  headline="📬 <b>New pull request</b> 🔀✨"
+                  note="$(pick "🎁 Someone brought a gift. Have a look." "👀 Fresh code wants your eyes." "🛠️ A contribution has arrived.")" ;;
+              esac
+              fields="$(field "📝 Title" "$PR_TITLE"; field "🔢 Number" "#$PR_NUMBER"; field "🌿 From" "$PR_FROM"; field "🎯 Into" "$PR_INTO"; field "👤 By" "$ACTOR")"
+              button1="🔀 View pull request"; url1="$PR_URL" ;;
+
+            issues)
+              case "$ACTION" in
+                closed)
+                  headline="✅ <b>Issue closed</b> 🐞"
+                  note="$(pick "🧹 One less thing on the list." "🎯 Done and dusted.")" ;;
+                reopened)
+                  headline="🔁 <b>Issue reopened</b> 🐞"
+                  note="🧟 It's back." ;;
+                *)
+                  headline="🐞 <b>New issue</b> 📮"
+                  note="$(pick "📣 Someone has something to say." "🔎 A report just came in." "💡 Could be a bug, could be an idea.")" ;;
+              esac
+              fields="$(field "📝 Title" "$ISSUE_TITLE"; field "🔢 Number" "#$ISSUE_NUMBER"; field "👤 By" "$ACTOR")"
+              button1="🐞 View issue"; url1="$ISSUE_URL" ;;
+
+            *)
+              echo "No message for $EVENT_NAME." >&2
+              exit 0 ;;
+          esac
+
+          text="$(printf '%s\n\n%s\n%s\n%s\n\n%s' \
+            "$headline" "$fields" \
+            "$(field "🕒 When" "$when")" "$(field "📂 Repository" "$REPO")" \
+            "$note")"
+
+          # Build the request with jq so every value is encoded safely.
+          jq -n \
+            --arg chat_id "$TELEGRAM_CHAT_ID" --arg text "$text" \
+            --arg b1 "$button1" --arg u1 "$url1" \
+            --arg b2 "$button2" --arg u2 "$url2" \
+            '{
+              chat_id: $chat_id,
+              text: $text,
+              parse_mode: "HTML",
+              disable_web_page_preview: true,
+              reply_markup: {
+                inline_keyboard: [
+                  [ {text: $b1, url: $u1}, {text: $b2, url: $u2} ]
+                  | map(select(.text != "" and .url != ""))
+                ]
+              }
+            }' |
           curl --silent --show-error --fail --max-time 20 \
             --output /dev/null \
-            "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-            --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
-            --data-urlencode "text=${text}" \
-            --data-urlencode "parse_mode=HTML" \
-            --data-urlencode "disable_web_page_preview=true"
+            --header "Content-Type: application/json" \
+            --data @- \
+            "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage"
