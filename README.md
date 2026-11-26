@@ -40,21 +40,21 @@ lines of registration.
 
 ## Screenshots
 
-### Menu bar and popover
+### Always in your menu bar
 
 <p align="center">
-  <img src="docs/screenshots/macos-menu-bar-and-popover.png" alt="AI Limit Status percentages in the macOS menu bar with the real details popover open" width="620">
+  <img src="docs/screenshots/macos-menu-bar.png" alt="Codex 22%, Claude 37%, and Antigravity 100% shown side by side in the macOS menu bar" width="424">
 </p>
 
-<p align="center"><sub>Real macOS menu-bar indicators and details popover.</sub></p>
+<p align="center"><sub>Your remaining limits stay in the macOS menu bar, or on the Windows taskbar, while you work.</sub></p>
 
-### Detailed usage view
+### One click for the details
 
 <p align="center">
-  <img src="docs/screenshots/macos-usage-popover.png" alt="AI Limit Status showing real Codex and Claude usage on macOS" width="380">
+  <img src="docs/screenshots/macos-usage-popover.png" alt="AI Limit Status popover showing Codex and Claude weekly limits with their reset times, and a pin on each card for the menu bar" width="380">
 </p>
 
-<p align="center"><sub>Real application capture on macOS.</sub></p>
+<p align="center"><sub>Every limit with its reset time. The pin on each card keeps that provider in the menu bar.</sub></p>
 
 ## Download
 
@@ -83,8 +83,8 @@ or [download SHA-256 checksums](https://github.com/farhans-codes/ai_limit_status
 - Lets users choose whether the Claude shortcut shows the overall weekly or Fable
   weekly limit.
 - Keeps each provider's percentage visible in the macOS menu bar or side by
-  side in the Windows taskbar, and lets users choose which providers appear
-  there separately from which ones are read.
+  side in the Windows taskbar. A pin on each provider card chooses which
+  ones appear there, up to three at a time.
 - Shows the Windows taskbar indicators on a transparent, fully clickable
   status surface, including the space between each icon and percentage.
 - Keeps the Windows details window open during taskbar and notification-area
@@ -110,7 +110,7 @@ Windows taskbar:
 - **Weekly limit** shows the overall Claude weekly allowance (the default).
 - **Fable weekly limit** shows the scoped Fable allowance reported by Claude.
 
-The Codex indicator remains visible beside the selected Claude value. If Claude
+Other pinned providers remain visible beside the selected Claude value. If Claude
 does not report the selected limit, the shortcut shows `—` instead of silently
 substituting a different limit.
 
@@ -189,8 +189,9 @@ Claude card stays visible and offers **Install & sign in**, which installs
 `Anthropic.ClaudeCode` through WinGet and starts `claude auth login`. After
 that one-time sign-in the app keeps the token fresh itself.
 
-Use **Show Codex** / **Show Claude** in App settings to hide a provider you do
-not use.
+Use the pin on a provider's card to keep it in the status shortcut or take it
+out. The shortcut shows up to three providers; unpinned providers stay in the
+details window.
 
 ### Optional Windows browser fallback
 
@@ -338,11 +339,11 @@ time, for example "Resets in 2d 16h · Fri, Nov 20 at 1:00 AM".
 Yes. AI Limit Status sends a desktop notification when a limit drops to 50%,
 20% and 10%, and reminders before it resets. Turn them off in Settings.
 
-### Is there a CodexBar alternative for Windows?
+### Does it work on Windows as well as macOS?
 
-AI Limit Status runs on both macOS and Windows and shows Codex and Claude
-limits side by side. [CodexBar](https://github.com/steipete/CodexBar), a
-similar menu bar tool, is macOS-only.
+Yes. AI Limit Status runs on both and keeps your limits in view at all times:
+in the menu bar on macOS and on the taskbar, next to the system tray, on
+Windows. Most tools like this are macOS-only.
 
 ### Does it need an API key or send my data anywhere?
 
@@ -409,9 +410,6 @@ Security vulnerabilities must not be posted in public issues. Follow
 ## Acknowledgements
 
 This project was independently conceived and developed by the author.
-
-The Antigravity reader follows the local-server approach documented by
-[CodexBar](https://github.com/steipete/CodexBar) (MIT).
 
 Special thanks to my colleagues and mentors for their valuable ideas,
 feedback, and suggestions throughout different stages of the project. Their

@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:ai_limit_status/core/constants/app_strings.dart';
+import 'package:ai_limit_status/features/settings/domain/entities/desktop_settings.dart';
 import 'package:ai_limit_status/features/usage/domain/entities/provider_usage.dart';
 import 'package:ai_limit_status/features/usage/presentation/provider_definition.dart';
 import 'package:ai_limit_status/features/usage/presentation/widgets/provider_icon.dart';
@@ -11,6 +12,8 @@ class ProviderDetailsCard extends StatelessWidget {
     required this.usage,
     required this.automaticSetupAvailable,
     required this.isSetupInProgress,
+    required this.inStatusBar,
+    required this.onStatusBarChanged,
     required this.onInstall,
     required this.onSignIn,
     required this.onOpenSetupGuide,
@@ -21,6 +24,12 @@ class ProviderDetailsCard extends StatelessWidget {
   final ProviderUsage usage;
   final bool automaticSetupAvailable;
   final bool isSetupInProgress;
+
+  /// Whether this provider is shown in the menu bar or taskbar status.
+  final bool inStatusBar;
+
+  /// `null` while the status shortcut is full and this provider is not in it.
+  final ValueChanged<bool>? onStatusBarChanged;
   final VoidCallback onInstall;
   final VoidCallback onSignIn;
   final VoidCallback onOpenSetupGuide;
@@ -132,6 +141,11 @@ class ProviderDetailsCard extends StatelessWidget {
                               ),
                             ),
                           ),
+                          _StatusBarPin(
+                            pinned: inStatusBar,
+                            onChanged: onStatusBarChanged,
+                          ),
+                          const SizedBox(width: 8),
                           _StatusPill(label: statusLabel, color: statusColor),
                         ],
                       ),
@@ -213,6 +227,64 @@ class ProviderDetailsCard extends StatelessWidget {
                   ),
                 ),
               ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Pins a provider to the menu bar or taskbar status, or unpins it.
+class _StatusBarPin extends StatelessWidget {
+  const _StatusBarPin({required this.pinned, required this.onChanged});
+
+  final bool pinned;
+
+  /// `null` while the status shortcut is full and this provider is not in it.
+  final ValueChanged<bool>? onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppStrings.instance;
+    final colorScheme = Theme.of(context).colorScheme;
+    final enabled = onChanged != null;
+    final color = pinned
+        ? colorScheme.primary
+        : colorScheme.onSurfaceVariant.withValues(alpha: enabled ? 1 : 0.4);
+    final message = !enabled
+        ? l10n.statusShortcutFull(DesktopSettings.maxStatusBarProviders)
+        : pinned
+        ? l10n.hideFromStatusShortcut
+        : l10n.showInStatusShortcut;
+
+    return Tooltip(
+      message: message,
+      child: Semantics(
+        button: true,
+        toggled: pinned,
+        label: message,
+        child: InkWell(
+          onTap: enabled ? () => onChanged!(!pinned) : null,
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
+            width: 26,
+            height: 26,
+            decoration: BoxDecoration(
+              color: pinned
+                  ? colorScheme.primary.withValues(alpha: 0.18)
+                  : null,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: pinned
+                    ? colorScheme.primary.withValues(alpha: 0.45)
+                    : colorScheme.onSurface.withValues(alpha: 0.16),
+              ),
+            ),
+            child: Icon(
+              pinned ? Icons.push_pin_rounded : Icons.push_pin_outlined,
+              size: 15,
+              color: color,
             ),
           ),
         ),

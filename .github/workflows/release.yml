@@ -186,3 +186,68 @@ jobs:
             --draft=false \
             --latest \
             --title "AI Limit Status $RELEASE_TAG"
+
+      # The release is already public at this point, so a Telegram hiccup
+      # must not turn the run red or hold back the sync to develop.
+      - name: Announce the release on Telegram
+        continue-on-error: true
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TZ: ${{ vars.NOTIFY_TIMEZONE || 'Asia/Dhaka' }}
+          RELEASE_TAG: ${{ needs.release-please.outputs.tag }}
+        run: |
+          if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
+            echo "Telegram secrets are not set; skipping." >&2
+            exit 0
+          fi
+          row() { printf '<b>%s:</b> <code>%s</code>\n' "$1" "$2"; }
+          pick() { shift $((RANDOM % $#)); printf '%s' "$1"; }
+          text="$(printf '%s\n\n%s\n%s\n%s\n%s\n\n%s\n%s' \
+            "🚀 <b>A new version is live!</b> 🎉📦" \
+            "$(row "🏷️ Version" "$RELEASE_TAG")" \
+            "$(row "💻 Installers" "macOS and Windows, both uploaded")" \
+            "$(row "🕒 When" "$(date '+%d %b %Y · %I:%M %p')")" \
+            "$(row "📂 Repository" "$GITHUB_REPOSITORY")" \
+            "📲 Installed apps check for updates every six hours, so everyone should see it by then." \
+            "$(pick "🥂 Shipped! Time to celebrate." "🎈 Out the door it goes." "🛳️ Bon voyage, little release.")")"
+          jq -n \
+            --arg chat_id "$TELEGRAM_CHAT_ID" --arg text "$text" \
+            --arg url "https://github.com/$GITHUB_REPOSITORY/releases/tag/$RELEASE_TAG" \
+            --arg notes "https://github.com/$GITHUB_REPOSITORY/blob/main/CHANGELOG.md" \
+            '{
+              chat_id: $chat_id,
+              text: $text,
+              parse_mode: "HTML",
+              disable_web_page_preview: true,
+              reply_markup: {inline_keyboard: [[
+                {text: "📦 View release", url: $url},
+                {text: "📝 What changed", url: $notes}
+              ]]}
+            }' |
+          curl --silent --show-error --fail --max-time 20 \
+            --output /dev/null \
+            --header "Content-Type: application/json" \
+            --data @- \
+            "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage"
+
+  # The release bumped the version and changelog on main; bring them back to
+  # develop so the two branches do not drift apart.
+  sync-develop:
+    needs: [release-please, publish]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Open a pull request from main into develop
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.release-please.outputs.tag }}
+        run: |
+          gh pr create \
+            --repo "$GITHUB_REPOSITORY" \
+            --base develop \
+            --head main \
+            --title "chore: sync develop with $RELEASE_TAG" \
+            --body "Brings the version bump and changelog from the $RELEASE_TAG release back to develop. Merge with a merge commit, not a squash."

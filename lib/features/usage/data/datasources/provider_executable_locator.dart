@@ -78,8 +78,8 @@ class ProviderExecutableLocator {
   static Future<List<String>>? _loginShellPathFuture;
 
   Future<ProviderExecutable?> find(UsageProvider provider) async {
-    // 1) Explicit override, mirroring CodexBar's CODEX_CLI_PATH and
-    // CLAUDE_CLI_PATH escape hatches.
+    // 1) Explicit override through the CODEX_CLI_PATH and CLAUDE_CLI_PATH
+    // escape hatches.
     final override =
         Platform.environment[switch (provider) {
           UsageProvider.codex => 'CODEX_CLI_PATH',
@@ -152,8 +152,8 @@ class ProviderExecutableLocator {
     ];
   }
 
-  /// Captures the login shell's PATH once per app run, the same trick
-  /// CodexBar uses so version-manager installs (nvm, fnm, mise) resolve.
+  /// Captures the login shell's PATH once per app run, so version-manager
+  /// installs (nvm, fnm, mise) resolve.
   /// A failed capture is not kept: right after login the shell can be too slow
   /// to answer, and caching that empty result would make every later lookup
   /// fall back to well-known paths, which may hold a stale second install.

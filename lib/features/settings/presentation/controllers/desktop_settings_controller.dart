@@ -11,7 +11,6 @@ import 'package:ai_limit_status/features/settings/data/app_updates.dart';
 import 'package:ai_limit_status/features/settings/domain/entities/desktop_settings.dart';
 import 'package:ai_limit_status/features/settings/domain/repositories/desktop_settings_repository.dart';
 import 'package:ai_limit_status/features/settings/presentation/widgets/desktop_settings_dialog.dart';
-import 'package:ai_limit_status/features/usage/domain/entities/provider_usage.dart';
 
 class DesktopSettingsController extends GetxController
     with WidgetsBindingObserver {
@@ -38,8 +37,6 @@ class DesktopSettingsController extends GetxController
   final notificationsEnabled = false.obs;
   final launchAtStartupEnabled = false.obs;
   final claudeStatusLimitPreference = ClaudeStatusLimitPreference.weekly.obs;
-  final visibleProviders = UsageProvider.values.toSet().obs;
-  final statusBarHiddenProviders = <UsageProvider>{}.obs;
   final isUpdating = false.obs;
 
   bool _isInitialized = false;
@@ -200,53 +197,6 @@ class DesktopSettingsController extends GetxController
     }
   }
 
-  Future<void> setProviderVisible(UsageProvider provider, bool visible) async {
-    if (isUpdating.value) {
-      return;
-    }
-    isUpdating.value = true;
-    try {
-      final result = await _repository.setProviderVisible(provider, visible);
-      if (result == DesktopSettingUpdateResult.succeeded) {
-        final providers = {...visibleProviders};
-        if (visible) {
-          providers.add(provider);
-        } else {
-          providers.remove(provider);
-        }
-        visibleProviders.assignAll(providers);
-      } else {
-        _showUpdateFailure(result, isNotification: false);
-      }
-    } finally {
-      isUpdating.value = false;
-    }
-  }
-
-  Future<void> setProviderInStatusBar(
-    UsageProvider provider,
-    bool shown,
-  ) async {
-    if (isUpdating.value) {
-      return;
-    }
-    isUpdating.value = true;
-    try {
-      final result = await _repository.setProviderInStatusBar(provider, shown);
-      if (result == DesktopSettingUpdateResult.succeeded) {
-        if (shown) {
-          statusBarHiddenProviders.remove(provider);
-        } else {
-          statusBarHiddenProviders.add(provider);
-        }
-      } else {
-        _showUpdateFailure(result, isNotification: false);
-      }
-    } finally {
-      isUpdating.value = false;
-    }
-  }
-
   Future<void> finish() async {
     if (!_onboardingCompleted) {
       await _repository.completeOnboarding();
@@ -266,8 +216,6 @@ class DesktopSettingsController extends GetxController
     notificationsEnabled.value = settings.notificationsEnabled;
     launchAtStartupEnabled.value = settings.launchAtStartupEnabled;
     claudeStatusLimitPreference.value = settings.claudeStatusLimitPreference;
-    visibleProviders.assignAll(settings.visibleProviders);
-    statusBarHiddenProviders.assignAll(settings.statusBarHiddenProviders);
     _onboardingCompleted = settings.onboardingCompleted;
   }
 

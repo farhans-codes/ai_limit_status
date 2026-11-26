@@ -22,7 +22,7 @@ class CodexUsageReader implements ProviderUsageReader {
 
   @override
   Future<ProviderUsageModel> read() async {
-    // Mirror CodexBar's auto mode: prefer the OAuth strategy (auth.json plus
+    // Prefer the OAuth strategy (auth.json plus
     // the usage API) and fall back to the CLI app-server only for issues the
     // CLI can actually repair, so transient network errors never spawn
     // processes in a loop.
@@ -153,7 +153,7 @@ class CodexUsageReader implements ProviderUsageReader {
       throw const UsageReadException(UsageConnectionIssue.cliNotFound);
     }
     try {
-      // Same launch arguments CodexBar uses: a read-only sandbox with
+      // Launch with a read-only sandbox and
       // approvals disabled, so the app-server can never prompt or mutate
       // anything, and no extra flags that newer CLI versions reject.
       return await executable.start(const [

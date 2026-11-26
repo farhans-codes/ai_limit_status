@@ -110,6 +110,12 @@ class UsagePage extends GetView<UsageController> {
                           );
                         }
 
+                        // Read here, not in the lazily built list items, so
+                        // this Obx rebuilds when the status shortcut changes.
+                        final statusBarProviders = controller.statusBarProviders
+                            .toSet();
+                        final statusBarHasRoom = controller.statusBarHasRoom;
+
                         return Column(
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -152,6 +158,21 @@ class UsagePage extends GetView<UsageController> {
                                     isSetupInProgress: controller.isSettingUp(
                                       usage.provider,
                                     ),
+                                    inStatusBar: statusBarProviders.contains(
+                                      usage.provider,
+                                    ),
+                                    // A card that is off cannot be added
+                                    // while the status shortcut is full.
+                                    onStatusBarChanged:
+                                        statusBarProviders.contains(
+                                              usage.provider,
+                                            ) ||
+                                            statusBarHasRoom
+                                        ? (shown) => controller.setInStatusBar(
+                                            usage.provider,
+                                            shown,
+                                          )
+                                        : null,
                                     onInstall: () => controller.installProvider(
                                       usage.provider,
                                     ),

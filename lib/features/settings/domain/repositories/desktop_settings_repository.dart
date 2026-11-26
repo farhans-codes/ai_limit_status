@@ -4,11 +4,6 @@ import 'package:ai_limit_status/features/usage/domain/entities/provider_usage.da
 abstract interface class DesktopSettingsRepository {
   Stream<ClaudeStatusLimitPreference> get claudeStatusLimitChanges;
 
-  /// Emits whenever provider visibility changes, in the details window or in
-  /// the status shortcut, so usage can be refreshed
-  /// immediately.
-  Stream<void> get providerConfigurationChanges;
-
   Future<void> initialize(String appName);
 
   Future<DesktopSettings> load();
@@ -23,12 +18,9 @@ abstract interface class DesktopSettingsRepository {
     ClaudeStatusLimitPreference preference,
   );
 
+  /// Every provider is read; the status shortcut is the only place a
+  /// provider can be hidden.
   Future<Set<UsageProvider>> loadVisibleProviders();
-
-  Future<DesktopSettingUpdateResult> setProviderVisible(
-    UsageProvider provider,
-    bool visible,
-  );
 
   Future<Set<UsageProvider>> loadStatusBarHiddenProviders();
 

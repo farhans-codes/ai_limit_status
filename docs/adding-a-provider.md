@@ -73,18 +73,17 @@ not be merged:
 - Never write a credential, token, or cookie to a cache or log file, and never
   send one anywhere except the provider it belongs to.
 - Only contact the provider's own hosts, or `127.0.0.1` for a local app.
-- Keep each read fast and bounded: set timeouts, and do nothing on providers
-  the user turned off.
+- Keep each read fast and bounded: every provider is read on every refresh,
+  so set timeouts.
 
 ## Before opening a pull request
 
+- Open the pull request against `develop`.
 - Test with a real account on every platform you can, and say in the pull
   request which platforms you verified. Code for a platform you could not run
   is welcome when it is marked as untested.
 - Run `flutter analyze` and `flutter test`.
 - Add the provider to the README provider list and the changelog.
 
-Provider APIs used for usage are often undocumented and change without notice.
-[CodexBar](https://github.com/steipete/CodexBar) (MIT) documents how many
-providers expose usage and is a good starting point; credit it in your reader
-when you follow its approach.
+Provider APIs used for usage are often undocumented and change without notice,
+so say in the pull request where the endpoint and response format come from.

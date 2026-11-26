@@ -28,8 +28,8 @@ know how much they have left.
 ## Positioning
 
 It runs on both macOS (menu bar) and Windows (taskbar) and shows Codex and
-Claude side by side. Comparable tools, such as CodexBar, are macOS-only. This
-is the lead difference to communicate.
+Claude side by side, right in the menu bar or taskbar. Most comparable tools
+are macOS-only. This is the lead difference to communicate.
 
 ## Operating Context
 

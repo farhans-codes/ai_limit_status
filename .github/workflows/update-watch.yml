@@ -1,0 +1,113 @@
+name: Update watch
+
+# The app updates itself from the latest GitHub release: it needs a stable
+# `vX.Y.Z` tag and both installers, downloadable by their fixed names. This
+# checks that every six hours and sends a Telegram alert when something is
+# off, so a broken release is noticed before users are stuck without updates.
+#
+# Run it by hand (Actions > Update watch > Run workflow) to get a status
+# message with download counts even when everything is fine.
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check the latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TZ: ${{ vars.NOTIFY_TIMEZONE || 'Asia/Dhaka' }}
+          REPO: ${{ github.repository }}
+          MANUAL: ${{ github.event_name == 'workflow_dispatch' }}
+        run: |
+          installers="AI-Limit-Status-macOS.dmg AI-Limit-Status-Windows-x64-Setup.exe"
+          problems=""
+          add_problem() { problems="$problems$(printf '\n• %s' "$1")"; }
+
+          release="$(gh api "repos/$REPO/releases/latest" 2>/dev/null || true)"
+          tag="$(printf '%s' "$release" | jq -r '.tag_name // empty' 2>/dev/null || true)"
+          if [ -z "$tag" ]; then
+            add_problem "GitHub has no latest release to offer."
+          else
+            if ! printf '%s' "$tag" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+              add_problem "The tag $tag is not a plain vX.Y.Z version, so the app ignores it."
+            fi
+            for name in $installers; do
+              state="$(printf '%s' "$release" | jq -r --arg name "$name" '.assets[] | select(.name == $name) | .state')"
+              if [ "$state" != "uploaded" ]; then
+                add_problem "$name is missing from $tag."
+                continue
+              fi
+              code="$(curl --silent --location --head --max-time 30 --output /dev/null \
+                --write-out '%{http_code}' \
+                "https://github.com/$REPO/releases/latest/download/$name" || true)"
+              if [ "$code" != "200" ]; then
+                add_problem "$name does not download (HTTP $code)."
+              fi
+            done
+          fi
+
+          downloads() {
+            printf '%s' "$release" | jq -r --arg name "$1" \
+              '[.assets[] | select(.name == $name) | .download_count] | add // 0'
+          }
+          when="$(date '+%d %b %Y · %I:%M %p')"
+          row() { printf '<b>%s:</b> <code>%s</code>\n' "$1" "$2"; }
+
+          if [ -n "$problems" ]; then
+            quiet=false
+            text="$(printf '%s\n\n%s\n%s\n%s\n\n<b>What is wrong:</b>%s\n\n%s' \
+              "🚨 <b>Auto-update needs attention</b> 🛟" \
+              "$(row "🏷️ Latest release" "${tag:-none}")" \
+              "$(row "🕒 When" "$when")" \
+              "$(row "📂 Repository" "$REPO")" \
+              "$problems" \
+              "🔧 Users cannot update until this is fixed.")"
+          elif [ "$MANUAL" = "true" ]; then
+            quiet=true
+            text="$(printf '%s\n\n%s\n%s\n%s\n%s\n%s\n\n%s' \
+              "🛡️ <b>Auto-update is healthy</b> ✅" \
+              "$(row "🏷️ Latest release" "$tag")" \
+              "$(row "🍎 macOS downloads" "$(downloads AI-Limit-Status-macOS.dmg)")" \
+              "$(row "🪟 Windows downloads" "$(downloads AI-Limit-Status-Windows-x64-Setup.exe)")" \
+              "$(row "🕒 When" "$when")" \
+              "$(row "📂 Repository" "$REPO")" \
+              "😌 Both installers are in place and download fine.")"
+          else
+            echo "Latest release $tag is healthy."
+            exit 0
+          fi
+
+          if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
+            printf '%s\n' "$text"
+            echo "Telegram secrets are not set; nothing sent." >&2
+          else
+            jq -n \
+              --arg chat_id "$TELEGRAM_CHAT_ID" --arg text "$text" \
+              --arg url "https://github.com/$REPO/releases/latest" \
+              --argjson quiet "$quiet" \
+              '{
+                chat_id: $chat_id,
+                text: $text,
+                parse_mode: "HTML",
+                disable_web_page_preview: true,
+                disable_notification: $quiet,
+                reply_markup: {inline_keyboard: [[{text: "📦 View release", url: $url}]]}
+              }' |
+            curl --silent --show-error --fail --max-time 20 \
+              --output /dev/null \
+              --header "Content-Type: application/json" \
+              --data @- \
+              "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage"
+          fi
+
+          # A red run makes the problem visible on the Actions page too.
+          [ -z "$problems" ]

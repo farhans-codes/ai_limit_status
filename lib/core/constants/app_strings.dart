@@ -107,11 +107,10 @@ class AppStrings {
       'Choose the percentage shown in the menu bar or Windows taskbar.';
   String get claudeWeeklyShortcut => 'Weekly';
   String get claudeFableShortcut => 'Fable weekly';
-  String get statusShortcutProvidersDescription =>
-      'Choose which providers appear in the menu bar or Windows taskbar.';
-  String get providersSectionTitle => 'Providers';
-  String get providerVisibilityDescription =>
-      'Turn a provider off to stop reading it and remove its card.';
+  String get showInStatusShortcut => 'Show in the menu bar or taskbar';
+  String get hideFromStatusShortcut => 'Hide from the menu bar or taskbar';
+  String statusShortcutFull(int maximum) =>
+      'The status shortcut shows up to $maximum providers. Unpin one first.';
   String appVersion(String version) => 'Version $version';
   String get checkForAppUpdates => 'Check for updates';
   String get checkingForAppUpdates => 'Checking for updates…';
