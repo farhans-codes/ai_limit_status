@@ -9,6 +9,7 @@ import 'package:ai_limit_status/core/platform/app_window_service.dart';
 import 'package:ai_limit_status/features/settings/presentation/controllers/desktop_settings_controller.dart';
 import 'package:ai_limit_status/features/usage/domain/entities/provider_usage.dart';
 import 'package:ai_limit_status/features/usage/presentation/controllers/usage_controller.dart';
+import 'package:ai_limit_status/features/usage/presentation/provider_definition.dart';
 import 'package:ai_limit_status/features/usage/presentation/widgets/provider_details_card.dart';
 
 class UsagePage extends GetView<UsageController> {
@@ -102,21 +103,10 @@ class UsagePage extends GetView<UsageController> {
                           return _NoProvidersState(
                             title: l10n.noProvidersDetected,
                             message: l10n.noProvidersDetectedDescription,
-                            codexLabel: l10n.setUpProvider(l10n.providerCodex),
-                            claudeLabel: l10n.setUpProvider(
-                              l10n.providerClaude,
-                            ),
-                            isCodexLoading: controller.isSettingUp(
-                              UsageProvider.codex,
-                            ),
-                            isClaudeLoading: controller.isSettingUp(
-                              UsageProvider.claude,
-                            ),
-                            onSetupCodex: () =>
-                                controller.installProvider(UsageProvider.codex),
-                            onSetupClaude: () => controller.installProvider(
-                              UsageProvider.claude,
-                            ),
+                            setupLabel: (provider) =>
+                                l10n.setUpProvider(provider.definition.name),
+                            isLoading: controller.isSettingUp,
+                            onSetup: controller.installProvider,
                           );
                         }
 
@@ -232,22 +222,16 @@ class _NoProvidersState extends StatelessWidget {
   const _NoProvidersState({
     required this.title,
     required this.message,
-    required this.codexLabel,
-    required this.claudeLabel,
-    required this.isCodexLoading,
-    required this.isClaudeLoading,
-    required this.onSetupCodex,
-    required this.onSetupClaude,
+    required this.setupLabel,
+    required this.isLoading,
+    required this.onSetup,
   });
 
   final String title;
   final String message;
-  final String codexLabel;
-  final String claudeLabel;
-  final bool isCodexLoading;
-  final bool isClaudeLoading;
-  final VoidCallback onSetupCodex;
-  final VoidCallback onSetupClaude;
+  final String Function(UsageProvider provider) setupLabel;
+  final bool Function(UsageProvider provider) isLoading;
+  final void Function(UsageProvider provider) onSetup;
 
   @override
   Widget build(BuildContext context) {
@@ -272,20 +256,17 @@ class _NoProvidersState extends StatelessWidget {
             spacing: 8,
             runSpacing: 8,
             children: [
-              OutlinedButton(
-                onPressed: isCodexLoading ? null : onSetupCodex,
-                child: _SetupButtonLabel(
-                  label: codexLabel,
-                  isLoading: isCodexLoading,
-                ),
-              ),
-              OutlinedButton(
-                onPressed: isClaudeLoading ? null : onSetupClaude,
-                child: _SetupButtonLabel(
-                  label: claudeLabel,
-                  isLoading: isClaudeLoading,
-                ),
-              ),
+              for (final provider in UsageProvider.values)
+                if (provider.definition.hasCliSetup)
+                  OutlinedButton(
+                    onPressed: isLoading(provider)
+                        ? null
+                        : () => onSetup(provider),
+                    child: _SetupButtonLabel(
+                      label: setupLabel(provider),
+                      isLoading: isLoading(provider),
+                    ),
+                  ),
             ],
           ),
         ],

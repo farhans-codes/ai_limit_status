@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:flutter/services.dart';
 
+import 'package:ai_limit_status/features/usage/data/datasources/provider_usage_reader.dart';
 import 'package:ai_limit_status/core/diagnostics/app_log.dart';
 import 'package:ai_limit_status/features/usage/data/datasources/browser_session_reader.dart';
 import 'package:ai_limit_status/features/usage/data/datasources/provider_executable_locator.dart';
@@ -24,7 +25,7 @@ import 'package:ai_limit_status/features/usage/domain/entities/provider_usage.da
 /// 2. The user's claude.ai browser session (`sessionKey` cookie) from the
 ///    opt-in browser bridge (Windows) or the browser cookie stores (macOS),
 ///    sent to `https://claude.ai/api`.
-class ClaudeUsageReader {
+class ClaudeUsageReader implements ProviderUsageReader {
   ClaudeUsageReader(this._executableLocator);
 
   static const _requestTimeout = Duration(seconds: 8);
@@ -92,6 +93,7 @@ class ClaudeUsageReader {
   String? _cachedWebOrganizationId;
   DateTime? _webSessionReadAt;
 
+  @override
   Future<ProviderUsageModel> read() async {
     final cachedUsage = _lastSuccessfulUsage;
     final minimumInterval = freshReadRequested

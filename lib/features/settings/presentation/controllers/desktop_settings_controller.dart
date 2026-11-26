@@ -39,6 +39,7 @@ class DesktopSettingsController extends GetxController
   final launchAtStartupEnabled = false.obs;
   final claudeStatusLimitPreference = ClaudeStatusLimitPreference.weekly.obs;
   final visibleProviders = UsageProvider.values.toSet().obs;
+  final statusBarHiddenProviders = <UsageProvider>{}.obs;
   final isUpdating = false.obs;
 
   bool _isInitialized = false;
@@ -222,6 +223,30 @@ class DesktopSettingsController extends GetxController
     }
   }
 
+  Future<void> setProviderInStatusBar(
+    UsageProvider provider,
+    bool shown,
+  ) async {
+    if (isUpdating.value) {
+      return;
+    }
+    isUpdating.value = true;
+    try {
+      final result = await _repository.setProviderInStatusBar(provider, shown);
+      if (result == DesktopSettingUpdateResult.succeeded) {
+        if (shown) {
+          statusBarHiddenProviders.remove(provider);
+        } else {
+          statusBarHiddenProviders.add(provider);
+        }
+      } else {
+        _showUpdateFailure(result, isNotification: false);
+      }
+    } finally {
+      isUpdating.value = false;
+    }
+  }
+
   Future<void> finish() async {
     if (!_onboardingCompleted) {
       await _repository.completeOnboarding();
@@ -242,6 +267,7 @@ class DesktopSettingsController extends GetxController
     launchAtStartupEnabled.value = settings.launchAtStartupEnabled;
     claudeStatusLimitPreference.value = settings.claudeStatusLimitPreference;
     visibleProviders.assignAll(settings.visibleProviders);
+    statusBarHiddenProviders.assignAll(settings.statusBarHiddenProviders);
     _onboardingCompleted = settings.onboardingCompleted;
   }
 

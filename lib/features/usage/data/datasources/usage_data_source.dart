@@ -1,6 +1,7 @@
 import 'package:ai_limit_status/features/usage/data/models/provider_usage_model.dart';
 import 'package:ai_limit_status/features/usage/data/datasources/claude_usage_reader.dart';
 import 'package:ai_limit_status/features/usage/data/datasources/codex_usage_reader.dart';
+import 'package:ai_limit_status/features/usage/data/datasources/provider_usage_reader.dart';
 import 'package:ai_limit_status/features/usage/data/datasources/usage_read_exception.dart';
 import 'package:ai_limit_status/features/usage/data/datasources/usage_cache_store.dart';
 import 'package:ai_limit_status/features/usage/domain/entities/provider_usage.dart';
@@ -12,33 +13,46 @@ abstract interface class UsageDataSource {
 }
 
 class LiveUsageDataSource implements UsageDataSource {
-  LiveUsageDataSource(this._codexReader, this._claudeReader, this._cacheStore);
+  LiveUsageDataSource(
+    CodexUsageReader codexReader,
+    ClaudeUsageReader claudeReader,
+    this._cacheStore, {
+    Map<UsageProvider, ProviderUsageReader> additionalReaders = const {},
+  }) : _readers = {
+         UsageProvider.codex: codexReader,
+         UsageProvider.claude: claudeReader,
+         ...additionalReaders,
+       };
+
+  /// Providers that get no card until they are found on this machine, so
+  /// people who do not use them are not asked to set them up.
+  static const _hiddenUntilInstalled = {UsageProvider.antigravity};
 
   static const _maximumCachedUsageAge = Duration(hours: 24);
 
-  final CodexUsageReader _codexReader;
-  final ClaudeUsageReader _claudeReader;
+  final Map<UsageProvider, ProviderUsageReader> _readers;
   final UsageCacheStore _cacheStore;
   final Map<UsageProvider, ProviderUsageModel> _lastSuccessfulUsage = {};
   final Set<UsageProvider> _loadedPersistentCache = {};
 
   @override
-  Future<List<ProviderUsageModel>> fetchUsage({Set<UsageProvider>? providers}) {
+  Future<List<ProviderUsageModel>> fetchUsage({
+    Set<UsageProvider>? providers,
+  }) async {
     final requested = providers ?? UsageProvider.values.toSet();
-    return Future.wait([
-      if (requested.contains(UsageProvider.codex))
-        _readProvider(UsageProvider.codex, _codexReader.read),
-      if (requested.contains(UsageProvider.claude))
-        _readProvider(UsageProvider.claude, _claudeReader.read),
+    final usages = await Future.wait([
+      for (final MapEntry(key: provider, value: reader) in _readers.entries)
+        if (requested.contains(provider)) _readProvider(provider, reader),
     ]);
+    return usages.nonNulls.toList();
   }
 
-  Future<ProviderUsageModel> _readProvider(
+  Future<ProviderUsageModel?> _readProvider(
     UsageProvider provider,
-    Future<ProviderUsageModel> Function() read,
+    ProviderUsageReader reader,
   ) async {
     try {
-      final usage = await read();
+      final usage = await reader.read();
       _lastSuccessfulUsage[provider] = usage;
       try {
         await _cacheStore.writeUsage(usage);
@@ -47,11 +61,16 @@ class LiveUsageDataSource implements UsageDataSource {
       }
       return usage;
     } on UsageReadException catch (error) {
-      if (error.issue == UsageConnectionIssue.unavailable) {
+      if (error.issue == UsageConnectionIssue.unavailable ||
+          error.issue == UsageConnectionIssue.appNotRunning) {
         final cachedUsage = await _readCachedUsage(provider);
         if (cachedUsage != null) {
           return cachedUsage.asStale();
         }
+      }
+      if (error.issue == UsageConnectionIssue.cliNotFound &&
+          _hiddenUntilInstalled.contains(provider)) {
+        return null;
       }
       return ProviderUsageModel.disconnected(
         provider: provider,

@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:ai_limit_status/core/constants/app_strings.dart';
 import 'package:ai_limit_status/features/usage/domain/entities/provider_usage.dart';
+import 'package:ai_limit_status/features/usage/presentation/provider_definition.dart';
 import 'package:ai_limit_status/features/usage/presentation/widgets/provider_icon.dart';
 import 'package:flutter/material.dart';
 
@@ -30,12 +31,8 @@ class ProviderDetailsCard extends StatelessWidget {
     final l10n = AppStrings.instance;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final providerName = usage.provider == UsageProvider.codex
-        ? l10n.providerCodex
-        : l10n.providerClaude;
-    final providerAccent = usage.provider == UsageProvider.codex
-        ? const Color(0xFF42C7B2)
-        : const Color(0xFFE7835B);
+    final providerName = usage.provider.definition.name;
+    final providerAccent = usage.provider.definition.accent;
     final statusColor = usage.isStale
         ? const Color(0xFFE2A341)
         : usage.isConnected
@@ -146,6 +143,21 @@ class ProviderDetailsCard extends StatelessWidget {
                           index++
                         ) ...[
                           if (index > 0) const SizedBox(height: 16),
+                          // Name each model group once, above its limits.
+                          if (usage.limits[index].groupLabel case final group?
+                              when index == 0 ||
+                                  usage.limits[index - 1].groupId !=
+                                      usage.limits[index].groupId) ...[
+                            Text(
+                              group,
+                              style: theme.textTheme.labelMedium?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.2,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                          ],
                           _LimitMetric(
                             label: _limitLabel(l10n, usage.limits[index].type),
                             limit: usage.limits[index],
@@ -321,7 +333,10 @@ class _LimitMetric extends StatelessWidget {
             const SizedBox(width: 5),
             Expanded(
               child: Text(
-                _resetLabel(context, l10n, limit.resetsAt),
+                // A full window with no reset time has not started yet.
+                limit.resetsAt == null && limit.remainingPercent == 100
+                    ? l10n.limitNotStarted
+                    : _resetLabel(context, l10n, limit.resetsAt),
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -502,6 +517,7 @@ String? _primarySetupLabel(
     UsageConnectionIssue.cliNotFound =>
       automaticSetupAvailable ? l10n.installAndSignIn : l10n.openSetupGuide,
     UsageConnectionIssue.notSignedIn => l10n.signIn,
+    UsageConnectionIssue.appNotRunning => l10n.openAntigravity,
     UsageConnectionIssue.browserSessionExpired ||
     UsageConnectionIssue.browserBlocked ||
     UsageConnectionIssue.unavailable ||
@@ -519,6 +535,7 @@ IconData? _primarySetupIcon(
           ? Icons.download_rounded
           : Icons.open_in_new_rounded,
     UsageConnectionIssue.notSignedIn => Icons.login_rounded,
+    UsageConnectionIssue.appNotRunning => Icons.open_in_new_rounded,
     UsageConnectionIssue.browserSessionExpired ||
     UsageConnectionIssue.browserBlocked ||
     UsageConnectionIssue.unavailable ||
@@ -536,7 +553,8 @@ VoidCallback? _primarySetupAction(
   return switch (issue) {
     UsageConnectionIssue.cliNotFound =>
       automaticSetupAvailable ? onInstall : onOpenSetupGuide,
-    UsageConnectionIssue.notSignedIn => onSignIn,
+    UsageConnectionIssue.notSignedIn ||
+    UsageConnectionIssue.appNotRunning => onSignIn,
     UsageConnectionIssue.browserSessionExpired ||
     UsageConnectionIssue.browserBlocked ||
     UsageConnectionIssue.unavailable ||
@@ -624,6 +642,7 @@ String _connectionMessage(AppStrings l10n, UsageConnectionIssue? issue) {
   return switch (issue) {
     UsageConnectionIssue.cliNotFound => l10n.cliNotFoundMessage,
     UsageConnectionIssue.notSignedIn => l10n.notSignedInMessage,
+    UsageConnectionIssue.appNotRunning => l10n.appNotRunningMessage,
     UsageConnectionIssue.browserSessionExpired =>
       l10n.browserSessionExpiredMessage,
     UsageConnectionIssue.browserBlocked => l10n.browserBlockedMessage,

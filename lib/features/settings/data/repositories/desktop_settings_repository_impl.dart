@@ -52,6 +52,7 @@ class DesktopSettingsRepositoryImpl implements DesktopSettingsRepository {
       onboardingCompleted: stored.onboardingCompleted,
       claudeStatusLimitPreference: stored.claudeStatusLimitPreference,
       visibleProviders: stored.visibleProviders,
+      statusBarHiddenProviders: stored.statusBarHiddenProviders,
     );
   }
 
@@ -74,6 +75,32 @@ class DesktopSettingsRepositoryImpl implements DesktopSettingsRepository {
         hidden.add(provider);
       }
       await _store.write(stored.copyWith(hiddenProviders: hidden));
+      _providerConfigurationChanges.add(null);
+      return DesktopSettingUpdateResult.succeeded;
+    } on Object {
+      return DesktopSettingUpdateResult.failed;
+    }
+  }
+
+  @override
+  Future<Set<UsageProvider>> loadStatusBarHiddenProviders() async {
+    return (await _store.read()).statusBarHiddenProviders;
+  }
+
+  @override
+  Future<DesktopSettingUpdateResult> setProviderInStatusBar(
+    UsageProvider provider,
+    bool shown,
+  ) async {
+    try {
+      final stored = await _store.read();
+      final hidden = {...stored.statusBarHiddenProviders};
+      if (shown) {
+        hidden.remove(provider);
+      } else {
+        hidden.add(provider);
+      }
+      await _store.write(stored.copyWith(statusBarHiddenProviders: hidden));
       _providerConfigurationChanges.add(null);
       return DesktopSettingUpdateResult.succeeded;
     } on Object {

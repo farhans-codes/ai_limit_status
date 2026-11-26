@@ -13,6 +13,7 @@ class ProviderSetupRepositoryImpl implements ProviderSetupRepository {
   static const _codexGuideUrl = 'https://developers.openai.com/codex/cli/';
   static const _claudeGuideUrl =
       'https://code.claude.com/docs/en/getting-started';
+  static const _antigravityGuideUrl = 'https://antigravity.google/';
 
   final ProviderExecutableLocator _executableLocator;
 
@@ -33,7 +34,11 @@ class ProviderSetupRepositoryImpl implements ProviderSetupRepository {
     final packageId = switch (provider) {
       UsageProvider.codex => 'OpenAI.Codex',
       UsageProvider.claude => 'Anthropic.ClaudeCode',
+      UsageProvider.antigravity => null,
     };
+    if (packageId == null) {
+      return ProviderSetupResult.unsupported;
+    }
     try {
       final result = await Process.run(winget, [
         'install',
@@ -64,6 +69,9 @@ class ProviderSetupRepositoryImpl implements ProviderSetupRepository {
 
   @override
   Future<ProviderSetupResult> signIn(UsageProvider provider) async {
+    if (provider == UsageProvider.antigravity) {
+      return _openAntigravity();
+    }
     final executable = await _executableLocator.find(provider);
     if (executable == null) {
       return ProviderSetupResult.failed;
@@ -71,6 +79,7 @@ class ProviderSetupRepositoryImpl implements ProviderSetupRepository {
     final arguments = switch (provider) {
       UsageProvider.codex => const ['login'],
       UsageProvider.claude => const ['auth', 'login'],
+      UsageProvider.antigravity => const <String>[],
     };
 
     try {
@@ -116,10 +125,29 @@ class ProviderSetupRepositoryImpl implements ProviderSetupRepository {
     final url = switch (provider) {
       UsageProvider.codex => _codexGuideUrl,
       UsageProvider.claude => _claudeGuideUrl,
+      UsageProvider.antigravity => _antigravityGuideUrl,
     };
     return await openExternalUrl(Uri.parse(url))
         ? ProviderSetupResult.succeeded
         : ProviderSetupResult.failed;
+  }
+
+  /// Antigravity is read from its running app, so "signing in" is opening it.
+  Future<ProviderSetupResult> _openAntigravity() async {
+    if (!Platform.isMacOS) {
+      return ProviderSetupResult.unsupported;
+    }
+    for (final app in const ['Antigravity', 'Antigravity IDE']) {
+      try {
+        final result = await Process.run('/usr/bin/open', ['-a', app]);
+        if (result.exitCode == 0) {
+          return ProviderSetupResult.succeeded;
+        }
+      } on Object {
+        continue;
+      }
+    }
+    return ProviderSetupResult.failed;
   }
 
   Future<String?> _findWinget() async {

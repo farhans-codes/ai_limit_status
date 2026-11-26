@@ -25,13 +25,19 @@ void main() {
 
     expect(json['hiddenProviders'], ['claude']);
     expect(json['claudeStatusLimitPreference'], 'fableWeekly');
-    expect(settings.visibleProviders, {UsageProvider.codex});
+    expect(settings.visibleProviders, {
+      UsageProvider.codex,
+      UsageProvider.antigravity,
+    });
   });
 
   test('copyWith replaces the hidden set', () {
     const settings = StoredDesktopSettings.defaults();
     final hidden = settings.copyWith(hiddenProviders: {UsageProvider.codex});
-    expect(hidden.visibleProviders, {UsageProvider.claude});
+    expect(hidden.visibleProviders, {
+      UsageProvider.claude,
+      UsageProvider.antigravity,
+    });
     expect(
       hidden.copyWith(hiddenProviders: {}).visibleProviders,
       UsageProvider.values.toSet(),

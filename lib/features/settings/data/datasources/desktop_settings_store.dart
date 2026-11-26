@@ -11,6 +11,7 @@ class StoredDesktopSettings {
     required this.onboardingCompleted,
     required this.claudeStatusLimitPreference,
     required this.hiddenProviders,
+    this.statusBarHiddenProviders = const {},
   });
 
   const StoredDesktopSettings.defaults()
@@ -18,7 +19,8 @@ class StoredDesktopSettings {
       notificationPreferenceConfigured = false,
       onboardingCompleted = false,
       claudeStatusLimitPreference = ClaudeStatusLimitPreference.weekly,
-      hiddenProviders = const {};
+      hiddenProviders = const {},
+      statusBarHiddenProviders = const {};
 
   final bool notificationsEnabled;
   final bool notificationPreferenceConfigured;
@@ -29,6 +31,10 @@ class StoredDesktopSettings {
   /// provider is visible by default, including ones added later.
   final Set<UsageProvider> hiddenProviders;
 
+  /// Providers kept out of the menu bar or taskbar status while still read
+  /// and shown in the details window.
+  final Set<UsageProvider> statusBarHiddenProviders;
+
   Set<UsageProvider> get visibleProviders =>
       UsageProvider.values.toSet().difference(hiddenProviders);
 
@@ -38,6 +44,7 @@ class StoredDesktopSettings {
     bool? onboardingCompleted,
     ClaudeStatusLimitPreference? claudeStatusLimitPreference,
     Set<UsageProvider>? hiddenProviders,
+    Set<UsageProvider>? statusBarHiddenProviders,
   }) {
     return StoredDesktopSettings(
       notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
@@ -48,6 +55,8 @@ class StoredDesktopSettings {
       claudeStatusLimitPreference:
           claudeStatusLimitPreference ?? this.claudeStatusLimitPreference,
       hiddenProviders: hiddenProviders ?? this.hiddenProviders,
+      statusBarHiddenProviders:
+          statusBarHiddenProviders ?? this.statusBarHiddenProviders,
     );
   }
 
@@ -58,6 +67,9 @@ class StoredDesktopSettings {
     'claudeStatusLimitPreference': claudeStatusLimitPreference.name,
     'hiddenProviders': hiddenProviders.map((provider) => provider.name).toList()
       ..sort(),
+    'statusBarHiddenProviders':
+        statusBarHiddenProviders.map((provider) => provider.name).toList()
+          ..sort(),
   };
 }
 
@@ -81,6 +93,9 @@ class DesktopSettingsStore {
           decoded['claudeStatusLimitPreference'],
         ),
         hiddenProviders: _parseHiddenProviders(decoded['hiddenProviders']),
+        statusBarHiddenProviders: _parseHiddenProviders(
+          decoded['statusBarHiddenProviders'],
+        ),
       );
     } on Object {
       return const StoredDesktopSettings.defaults();

@@ -73,7 +73,10 @@ void main() {
 
     final usages = await dataSource.fetchUsage();
 
-    expect(usages.map((usage) => usage.provider), UsageProvider.values);
+    expect(usages.map((usage) => usage.provider), [
+      UsageProvider.codex,
+      UsageProvider.claude,
+    ]);
     expect(codex.reads, 1);
     expect(claude.reads, 1);
   });

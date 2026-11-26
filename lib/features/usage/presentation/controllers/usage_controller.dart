@@ -16,6 +16,7 @@ import 'package:ai_limit_status/features/usage/domain/usecases/install_provider.
 import 'package:ai_limit_status/features/usage/domain/usecases/open_provider_setup_guide.dart';
 import 'package:ai_limit_status/features/usage/domain/usecases/show_usage_warning.dart';
 import 'package:ai_limit_status/features/usage/domain/usecases/sign_in_provider.dart';
+import 'package:ai_limit_status/features/usage/presentation/provider_definition.dart';
 
 class UsageController extends GetxController {
   UsageController(
@@ -86,6 +87,10 @@ class UsageController extends GetxController {
         quit: l10n.quit,
         initialTooltip: l10n.appTitle,
       ),
+      providerIcons: {
+        for (final provider in UsageProvider.values)
+          provider.name: provider.definition.iconAsset,
+      },
       onRefresh: () => refreshUsage(userInitiated: true),
     );
     await _showUsageWarning.initialize(l10n.appTitle);
@@ -162,7 +167,11 @@ class UsageController extends GetxController {
     try {
       final result = await _signInProvider(provider);
       if (result == ProviderSetupResult.succeeded) {
-        _showSignInStarted(provider);
+        // Providers without a CLI are "signed in" by opening their app,
+        // which needs no terminal instructions.
+        if (provider.definition.hasCliSetup) {
+          _showSignInStarted(provider);
+        }
         _startConnectionPolling(provider);
       } else {
         _showSetupResult(provider, result);
@@ -256,7 +265,10 @@ class UsageController extends GetxController {
       previousUsages: previousUsages,
     )) {
       final provider = _providerName(l10n, warning.provider);
-      final limit = _limitName(l10n, warning.limitType);
+      final limitName = _limitName(l10n, warning.limitType);
+      final limit = warning.groupLabel == null
+          ? limitName
+          : l10n.groupedLimit(warning.groupLabel!, limitName);
       final title = switch (warning.kind) {
         UsageWarningKind.remaining => l10n.usageWarningTitle(provider),
         UsageWarningKind.resetSoon => l10n.resetWarningTitle(provider),
@@ -315,10 +327,7 @@ class UsageController extends GetxController {
   AppStrings get _localizations => AppStrings.instance;
 
   String _providerName(AppStrings l10n, UsageProvider provider) {
-    return switch (provider) {
-      UsageProvider.codex => l10n.providerCodex,
-      UsageProvider.claude => l10n.providerClaude,
-    };
+    return provider.definition.name;
   }
 
   String _limitName(AppStrings l10n, UsageLimitType type) {
@@ -333,47 +342,44 @@ class UsageController extends GetxController {
 
   Future<void> _updateTray() async {
     final l10n = AppStrings.instance;
-    final codex = _usageFor(UsageProvider.codex);
-    final claude = _usageFor(UsageProvider.claude);
-    final codexValue = codex == null ? null : _compactValue(l10n, codex);
+    final hidden = await _settingsRepository.loadStatusBarHiddenProviders();
     final claudeLimitType = switch (_claudeStatusLimitPreference) {
       ClaudeStatusLimitPreference.weekly => UsageLimitType.weekly,
       ClaudeStatusLimitPreference.fableWeekly => UsageLimitType.fableWeekly,
     };
-    final claudeLimitName = _limitName(l10n, claudeLimitType);
-    final claudeValue = claude == null
-        ? null
-        : _compactValue(l10n, claude, preferredType: claudeLimitType);
-    final tooltip = switch ((codexValue, claudeValue)) {
-      (final String codexValue, final String claudeValue) => l10n.trayTooltip(
-        codexValue,
-        claudeLimitName,
-        claudeValue,
-      ),
-      (final String codexValue, null) => l10n.singleProviderTrayTooltip(
-        l10n.providerCodex,
-        codexValue,
-      ),
-      (null, final String claudeValue) => l10n.singleClaudeTrayTooltip(
-        claudeLimitName,
-        claudeValue,
-      ),
-      _ => l10n.noProvidersDetected,
-    };
-    await _trayService.updateUsage(
-      codexValue: codexValue,
-      claudeValue: claudeValue,
-      tooltip: tooltip,
-    );
-  }
-
-  ProviderUsage? _usageFor(UsageProvider provider) {
+    final items = <({String id, String value})>[];
+    final tooltipParts = <String>[];
     for (final usage in usages) {
-      if (usage.provider == provider) {
-        return usage;
+      if (hidden.contains(usage.provider)) {
+        continue;
       }
+      // Claude shows the limit chosen in Settings; other providers show
+      // their most constrained limit.
+      final isClaude = usage.provider == UsageProvider.claude;
+      final value = _compactValue(
+        l10n,
+        usage,
+        preferredType: isClaude ? claudeLimitType : null,
+      );
+      items.add((id: usage.provider.name, value: value));
+      tooltipParts.add(
+        isClaude
+            ? l10n.singleClaudeTrayTooltip(
+                _limitName(l10n, claudeLimitType),
+                value,
+              )
+            : l10n.singleProviderTrayTooltip(
+                usage.provider.definition.name,
+                value,
+              ),
+      );
     }
-    return null;
+    await _trayService.updateUsage(
+      items: items,
+      tooltip: tooltipParts.isEmpty
+          ? l10n.noProvidersDetected
+          : tooltipParts.join(' · '),
+    );
   }
 
   String _compactValue(

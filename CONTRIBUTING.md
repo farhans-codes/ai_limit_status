@@ -10,6 +10,16 @@ Thank you for helping improve AI Limit Status.
 - Do not post credentials, access tokens, private logs, or account data.
 - For vulnerabilities, follow `SECURITY.md` instead of opening a public issue.
 
+## Adding an AI provider
+
+The app reads Codex, Claude, and Antigravity today. Support for other tools
+(Cursor, Copilot, Gemini, OpenRouter, and so on) is wanted and is the easiest
+way to contribute: each provider is one reader class plus a few lines of
+registration. Follow [docs/adding-a-provider.md](docs/adding-a-provider.md).
+
+Maintainers can only test the providers they have accounts for, so a provider
+pull request should come from someone who uses that provider.
+
 ## Development setup
 
 1. Fork the repository and create a focused branch from `main`.

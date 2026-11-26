@@ -2,13 +2,14 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:ai_limit_status/features/usage/data/datasources/provider_usage_reader.dart';
 import 'package:ai_limit_status/features/usage/data/datasources/codex_oauth_usage_reader.dart';
 import 'package:ai_limit_status/features/usage/data/datasources/provider_executable_locator.dart';
 import 'package:ai_limit_status/features/usage/data/datasources/usage_read_exception.dart';
 import 'package:ai_limit_status/features/usage/data/models/provider_usage_model.dart';
 import 'package:ai_limit_status/features/usage/domain/entities/provider_usage.dart';
 
-class CodexUsageReader {
+class CodexUsageReader implements ProviderUsageReader {
   const CodexUsageReader(this._executableLocator, this._oauthReader);
 
   /// The app-server handshake includes a cold process start (on Windows
@@ -19,6 +20,7 @@ class CodexUsageReader {
   final ProviderExecutableLocator _executableLocator;
   final CodexOAuthUsageReader _oauthReader;
 
+  @override
   Future<ProviderUsageModel> read() async {
     // Mirror CodexBar's auto mode: prefer the OAuth strategy (auth.json plus
     // the usage API) and fall back to the CLI app-server only for issues the

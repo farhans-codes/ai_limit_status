@@ -6,6 +6,8 @@ class UsageWarning {
   const UsageWarning({
     required this.provider,
     required this.limitType,
+    this.groupId,
+    this.groupLabel,
     required this.kind,
     required this.threshold,
     required this.currentRemainingPercent,
@@ -14,6 +16,8 @@ class UsageWarning {
 
   final UsageProvider provider;
   final UsageLimitType limitType;
+  final String? groupId;
+  final String? groupLabel;
   final UsageWarningKind kind;
   final int threshold;
   final int currentRemainingPercent;
@@ -24,7 +28,12 @@ class UsageWarning {
     final window = resetTime == null
         ? 'unknown'
         : resetTime.millisecondsSinceEpoch ~/ _windowDuration.inMilliseconds;
-    return '${provider.name}:${limitType.name}:$window:${kind.name}:$threshold';
+    // Ungrouped limits keep their original identifier so warnings already
+    // shown by earlier versions are not repeated.
+    final limit = groupId == null
+        ? limitType.name
+        : '$groupId:${limitType.name}';
+    return '${provider.name}:$limit:$window:${kind.name}:$threshold';
   }
 
   Duration get _windowDuration => switch (limitType) {
