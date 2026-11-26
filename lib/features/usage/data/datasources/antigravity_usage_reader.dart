@@ -6,8 +6,10 @@ import 'package:ai_limit_status/features/usage/data/datasources/usage_read_excep
 import 'package:ai_limit_status/features/usage/data/models/provider_usage_model.dart';
 import 'package:ai_limit_status/features/usage/domain/entities/provider_usage.dart';
 
-/// Reads Antigravity quota from the language server that the Antigravity app
-/// (or Antigravity IDE) runs on this machine while it is open.
+/// Reads Antigravity quota from the local server that the Antigravity app or
+/// Antigravity IDE runs on this machine while it is open. The app runs a
+/// `language_server`; the IDE runs the `agy` command-line tool as a hub. Both
+/// answer the same quota request.
 ///
 /// The server listens on a random loopback port and requires the CSRF token
 /// it was started with, so both are taken from its process: the token from
@@ -80,14 +82,17 @@ class AntigravityUsageReader implements ProviderUsageReader {
     return false;
   }
 
-  /// Running Antigravity language servers, the standalone app before the IDE.
+  /// Matches the `agy` executable itself, not a path that merely contains it.
+  static final _agyExecutable = RegExp(r'(^|[/\\])agy(\.exe)?(\s|$)');
+
+  /// Running Antigravity servers, the standalone app before the IDE.
   Future<List<({int pid, String csrfToken})>> _languageServers() async {
     final lines = Platform.isWindows
         ? await _run('powershell.exe', const [
             '-NoProfile',
             '-NonInteractive',
             '-Command',
-            "Get-CimInstance Win32_Process -Filter \"Name LIKE 'language_server%'\" "
+            "Get-CimInstance Win32_Process -Filter \"Name LIKE 'language_server%' OR Name = 'agy.exe'\" "
                 "| ForEach-Object { \"\$(\$_.ProcessId) \$(\$_.CommandLine)\" }",
           ])
         : await _run('/bin/ps', const ['-axww', '-o', 'pid=,command=']);
@@ -99,8 +104,10 @@ class AntigravityUsageReader implements ProviderUsageReader {
       }
       final command = match[2]!;
       final lower = command.toLowerCase();
-      if (!lower.contains('language_server') ||
-          !lower.contains('antigravity')) {
+      final isAgy = _agyExecutable.hasMatch(lower);
+      final isLanguageServer =
+          lower.contains('language_server') && lower.contains('antigravity');
+      if (!isAgy && !isLanguageServer) {
         continue;
       }
       final pid = int.parse(match[1]!);
@@ -114,6 +121,7 @@ class AntigravityUsageReader implements ProviderUsageReader {
         pid: pid,
         csrfToken: token,
         isIde:
+            isAgy ||
             lower.contains('antigravity-ide') ||
             lower.contains('antigravity ide'),
       ));
