@@ -78,6 +78,7 @@ not be merged:
 
 ## Before opening a pull request
 
+- Open the pull request against `develop`.
 - Test with a real account on every platform you can, and say in the pull
   request which platforms you verified. Code for a platform you could not run
   is welcome when it is marked as untested.
