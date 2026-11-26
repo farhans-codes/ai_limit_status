@@ -9,17 +9,8 @@ The project follows Semantic Versioning for public releases.
 
 ### Added
 
-* add Antigravity usage and separate status shortcut providers ([5d895cb](https://github.com/farhans-codes/ai_limit_status/commit/5d895cb3062b27e72cd7bd408d062e13d1f72750))
-* **settings:** choose status shortcut providers separately ([db098d7](https://github.com/farhans-codes/ai_limit_status/commit/db098d72aada5c6563bd93e580c3718af554996d)), closes [#52](https://github.com/farhans-codes/ai_limit_status/issues/52)
-* **site:** add landing page and GitHub Pages workflow ([8f44cc7](https://github.com/farhans-codes/ai_limit_status/commit/8f44cc727453b956e218167ce85deb2705139907))
-* **status:** pin providers to the status shortcut from their cards ([1fedd2d](https://github.com/farhans-codes/ai_limit_status/commit/1fedd2d49f613ae736fd203a7f5c626e9e5bf9ce))
-* **status:** pin providers to the status shortcut from their cards ([45ef44b](https://github.com/farhans-codes/ai_limit_status/commit/45ef44bb48d76c554c97e73e62a8f221f827a622)), closes [#52](https://github.com/farhans-codes/ai_limit_status/issues/52)
 * **usage:** add Antigravity usage ([c446d19](https://github.com/farhans-codes/ai_limit_status/commit/c446d19e2eb708aee540a384cddcf155468e935e))
-
-
-### Fixed
-
-* **ci:** cut releases from main, not the default branch ([287fd9f](https://github.com/farhans-codes/ai_limit_status/commit/287fd9f9f60b485aadf05d21c28969943cb04188))
+* **status:** pin providers to the status shortcut from their cards ([45ef44b](https://github.com/farhans-codes/ai_limit_status/commit/45ef44bb48d76c554c97e73e62a8f221f827a622)), closes [#52](https://github.com/farhans-codes/ai_limit_status/issues/52)
 
 ## [1.0.1] - 2026-11-17
 
