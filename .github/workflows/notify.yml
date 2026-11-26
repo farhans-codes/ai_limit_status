@@ -80,6 +80,9 @@ jobs:
 
           when="$(date '+%d %b %Y · %I:%M %p')"
           headline=""; fields=""; note=""
+          # Routine news arrives silently; only things worth a glance right
+          # away (failures, new people, new work to review) make a sound.
+          quiet=true
           button1=""; url1=""; button2="📂 Repository"; url2="$REPO_URL"
 
           case "$EVENT_NAME" in
@@ -100,6 +103,7 @@ jobs:
                     "😎 Nothing broke. Suspicious, but we'll take it." \
                     "🌈 Smooth as butter. Carry on, captain.")" ;;
                 failure)
+                  quiet=false
                   headline="🚨 <b>$what failed</b> $badge💥"
                   note="$(pick \
                     "🕵️ Something broke. Time to put the detective hat on." \
@@ -150,12 +154,14 @@ jobs:
               note="$(pick "🫡 It served us well." "🧹 Tidy repo, tidy mind." "👋 Farewell, old friend.")" ;;
 
             fork)
+              quiet=false
               headline="🍴 <b>Someone forked the project!</b> 🎊"
               fields="$(field "👤 Forked by" "$ACTOR"; field "📦 Their copy" "$FORK_NAME")"
               note="$(pick "🚀 The project is spreading its wings." "👀 Somebody wants to tinker. Love to see it." "🌍 One more copy out in the wild.")"
               button1="🍴 View fork"; url1="$FORK_URL" ;;
 
             watch)
+              quiet=false
               headline="⭐ <b>New star!</b> 🌟"
               fields="$(field "👤 Starred by" "$ACTOR"; field "✨ Total stars" "$STARS")"
               note="$(pick "😊 Somebody likes what you built." "🥳 Fame, one star at a time." "💫 Shine on.")"
@@ -173,6 +179,7 @@ jobs:
                   headline="🔁 <b>Pull request reopened</b> 🔀"
                   note="👀 Round two." ;;
                 *)
+                  quiet=false
                   headline="📬 <b>New pull request</b> 🔀✨"
                   note="$(pick "🎁 Someone brought a gift. Have a look." "👀 Fresh code wants your eyes." "🛠️ A contribution has arrived.")" ;;
               esac
@@ -188,6 +195,7 @@ jobs:
                   headline="🔁 <b>Issue reopened</b> 🐞"
                   note="🧟 It's back." ;;
                 *)
+                  quiet=false
                   headline="🐞 <b>New issue</b> 📮"
                   note="$(pick "📣 Someone has something to say." "🔎 A report just came in." "💡 Could be a bug, could be an idea.")" ;;
               esac
@@ -209,11 +217,13 @@ jobs:
             --arg chat_id "$TELEGRAM_CHAT_ID" --arg text "$text" \
             --arg b1 "$button1" --arg u1 "$url1" \
             --arg b2 "$button2" --arg u2 "$url2" \
+            --argjson quiet "$quiet" \
             '{
               chat_id: $chat_id,
               text: $text,
               parse_mode: "HTML",
               disable_web_page_preview: true,
+              disable_notification: $quiet,
               reply_markup: {
                 inline_keyboard: [
                   [ {text: $b1, url: $u1}, {text: $b2, url: $u2} ]
