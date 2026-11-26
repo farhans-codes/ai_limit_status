@@ -22,7 +22,7 @@ pull request should come from someone who uses that provider.
 
 ## Development setup
 
-1. Fork the repository and create a focused branch from `main`.
+1. Fork the repository and create a focused branch from `develop`.
 2. Install Flutter `3.44.2` or a compatible stable version.
 3. Run:
 
@@ -54,8 +54,8 @@ Studio with the Desktop development with C++ workload.
 
 ## Pull requests
 
-Open contributor pull requests against the protected `main` branch. Maintainers
-merge verified changes directly into `main` and delete merged feature branches.
+Open pull requests against `develop`, the default branch. Maintainers merge
+verified changes there and delete merged feature branches.
 
 A pull request should include:
 
@@ -64,6 +64,18 @@ A pull request should include:
 - Screenshots for visible UI changes.
 - Privacy, security, or credential-handling impact.
 - Documentation and changelog updates when behavior changes.
+
+## Branches and releases
+
+- `develop` holds work in progress. Every pull request targets it.
+- `main` holds only code that is ready to ship. Maintainers open a pull request
+  from `develop` into `main` when a release is due, and merge it with a merge
+  commit so each `feat:` and `fix:` commit stays visible to the changelog.
+- A push to `main` makes release-please open or update a Release PR with the
+  next version and changelog. Merging that Release PR builds the installers and
+  publishes the release, which is the only point where users get an update.
+- After a release, a pull request from `main` into `develop` brings the version
+  bump back.
 
 By contributing, you agree that your contribution is licensed under the
 project's MIT License.
