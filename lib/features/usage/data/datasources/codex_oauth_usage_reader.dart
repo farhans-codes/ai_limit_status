@@ -26,7 +26,7 @@ class CodexOAuthReadException implements Exception {
   final CodexOAuthIssue issue;
 }
 
-/// Reads Codex usage the way CodexBar's OAuth strategy does: parse the Codex
+/// Reads Codex usage with the CLI's own sign-in: parse the Codex
 /// CLI's auth.json, refresh the token through the official endpoint shortly
 /// before it expires, and query the ChatGPT backend usage API directly.
 ///
@@ -43,7 +43,7 @@ class CodexOAuthUsageReader {
   /// Public client identifier used by the Codex CLI's own login flow.
   static const _oauthClientId = 'app_EMoamEEZ73f0CkXaXp7hrann';
 
-  /// Refresh slightly before the access token expires, like CodexBar.
+  /// Refresh slightly before the access token expires.
   static const _refreshWindow = Duration(minutes: 5);
 
   /// Without an exp claim, rotate tokens once the stored refresh timestamp
@@ -349,7 +349,7 @@ class CodexOAuthUsageReader {
 
   /// Persists rotated tokens back into auth.json (merged with the existing
   /// content) so the Codex CLI keeps working with the new refresh token,
-  /// exactly like CodexBar and the CLI itself do. The write goes through a
+  /// exactly like the CLI itself does. The write goes through a
   /// temporary file plus rename so a crash mid-write cannot corrupt the
   /// CLI's credentials.
   Future<void> _persist(_CodexCredentials credentials) async {
