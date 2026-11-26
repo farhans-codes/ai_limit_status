@@ -85,7 +85,5 @@ not be merged:
 - Run `flutter analyze` and `flutter test`.
 - Add the provider to the README provider list and the changelog.
 
-Provider APIs used for usage are often undocumented and change without notice.
-[CodexBar](https://github.com/steipete/CodexBar) (MIT) documents how many
-providers expose usage and is a good starting point; credit it in your reader
-when you follow its approach.
+Provider APIs used for usage are often undocumented and change without notice,
+so say in the pull request where the endpoint and response format come from.

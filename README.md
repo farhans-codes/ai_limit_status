@@ -339,11 +339,11 @@ time, for example "Resets in 2d 16h · Fri, Nov 20 at 1:00 AM".
 Yes. AI Limit Status sends a desktop notification when a limit drops to 50%,
 20% and 10%, and reminders before it resets. Turn them off in Settings.
 
-### Is there a CodexBar alternative for Windows?
+### Does it work on Windows as well as macOS?
 
-AI Limit Status runs on both macOS and Windows and shows Codex and Claude
-limits side by side. [CodexBar](https://github.com/steipete/CodexBar), a
-similar menu bar tool, is macOS-only.
+Yes. AI Limit Status runs on both and keeps your limits in view at all times:
+in the menu bar on macOS and on the taskbar, next to the system tray, on
+Windows. Most tools like this are macOS-only.
 
 ### Does it need an API key or send my data anywhere?
 
@@ -410,9 +410,6 @@ Security vulnerabilities must not be posted in public issues. Follow
 ## Acknowledgements
 
 This project was independently conceived and developed by the author.
-
-The Antigravity reader follows the local-server approach documented by
-[CodexBar](https://github.com/steipete/CodexBar) (MIT).
 
 Special thanks to my colleagues and mentors for their valuable ideas,
 feedback, and suggestions throughout different stages of the project. Their

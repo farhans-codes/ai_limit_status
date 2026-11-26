@@ -15,7 +15,7 @@ import 'package:ai_limit_status/features/usage/domain/entities/provider_usage.da
 
 /// Reads Claude subscription usage.
 ///
-/// Sources, in order (mirroring CodexBar's planner):
+/// Sources, in order:
 ///
 /// 1. The Claude Code OAuth credential (`claudeAiOauth.accessToken`) from the
 ///    macOS keychain, `.credentials.json`, or Windows Credential Manager, sent to
@@ -75,7 +75,7 @@ class ClaudeUsageReader implements ProviderUsageReader {
   static const _keychainService = 'Claude Code-credentials';
 
   /// Claude Code's public OAuth client, used only to refresh a token the CLI
-  /// itself issued. Same value CodexBar uses.
+  /// itself issued.
   static const _oauthClientId = '9d1c250a-e61b-44d9-88ed-5944d1962f5e';
   static const _oauthTokenEndpoint =
       'https://platform.claude.com/v1/oauth/token';
@@ -210,7 +210,7 @@ class ClaudeUsageReader implements ProviderUsageReader {
 
     // With a custom CLAUDE_CONFIG_DIR the credentials file is authoritative.
     // Otherwise, on macOS the CLI stores credentials in the keychain first
-    // and keeps the file as a fallback. Reading both sides mirrors CodexBar.
+    // and keeps the file as a fallback, so both are read.
     final sources = <Future<_ClaudeCredentials?> Function()>[
       if (hasOverride) _readCredentialsFile,
       if (Platform.isMacOS) _readMacKeychainCredentials,
@@ -383,7 +383,7 @@ class ClaudeUsageReader implements ProviderUsageReader {
     }
   }
 
-  /// Resolves the credentials file like CodexBar: `CLAUDE_CONFIG_DIR` is a
+  /// Resolves the credentials file: `CLAUDE_CONFIG_DIR` is a
   /// single literal directory (no `~` expansion), and
   /// `CLAUDE_SECURESTORAGE_CONFIG_DIR` overrides where `.credentials.json`
   /// itself lives.
@@ -963,7 +963,7 @@ class ClaudeUsageReader implements ProviderUsageReader {
   }
 
   /// The usage endpoint is called as an external client, not as Claude Code
-  /// itself, so it is identified the way CodexBar identifies itself.
+  /// itself, so it is identified as an external CLI client.
   static String _userAgentFor(String version) =>
       'claude-cli/$version (external, cli)';
 
@@ -1173,7 +1173,7 @@ class _ClaudeCredentials {
 
   bool isExpiringWithin(Duration leeway) {
     final expiry = expiresAt;
-    // Like CodexBar, treat a missing expiry as expired so a stale file token
+    // Treat a missing expiry as expired so a stale file token
     // is refreshed rather than sent blindly.
     return expiry == null || DateTime.now().add(leeway).isAfter(expiry);
   }

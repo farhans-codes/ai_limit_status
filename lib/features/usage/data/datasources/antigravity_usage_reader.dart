@@ -13,8 +13,7 @@ import 'package:ai_limit_status/features/usage/domain/entities/provider_usage.da
 /// it was started with, so both are taken from its process: the token from
 /// its command line (Antigravity up to 2.32) or its environment (2.35 and
 /// later), the port from its listening sockets. Nothing is read when the app
-/// is closed. The approach follows CodexBar's local probe
-/// (https://github.com/steipete/CodexBar, MIT).
+/// is closed.
 ///
 /// Windows cannot read another process's environment from here, so newer
 /// Antigravity versions are only readable on macOS for now.
