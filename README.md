@@ -5,8 +5,8 @@
 <h1 align="center">AI Limit Status</h1>
 
 <p align="center">
-  Monitor Codex and Claude usage limits from your macOS menu bar or Windows
-  taskbar.
+  Monitor Codex, Claude, and Antigravity usage limits from your macOS menu bar
+  or Windows taskbar.
 </p>
 
 <p align="center">
@@ -23,7 +23,20 @@ connected providers automatically, and does not include analytics or telemetry.
 
 > [!IMPORTANT]
 > AI Limit Status is an independent community project. It is not affiliated
-> with, endorsed by, or sponsored by OpenAI or Anthropic.
+> with, endorsed by, or sponsored by OpenAI, Anthropic, or Google.
+
+## Supported providers
+
+| Provider | macOS | Windows | How usage is read |
+|---|---|---|---|
+| Codex | Yes | Yes | Your Codex CLI sign-in |
+| Claude | Yes | Yes | Your Claude Code sign-in |
+| Antigravity | Yes | Older Antigravity versions only, untested | The running Antigravity app |
+
+More providers are planned and open for contribution. If you use Cursor,
+Copilot, Gemini, OpenRouter, or another AI tool and want it here, see
+[Adding a provider](docs/adding-a-provider.md): one reader class and a few
+lines of registration.
 
 ## Screenshots
 
@@ -65,10 +78,13 @@ or [download SHA-256 checksums](https://github.com/farhans-codes/ai_limit_status
   credentials on the current computer.
 - Displays available Codex usage windows and Claude's weekly, Fable, Opus, and
   Sonnet allowances, including weekly-only Ultra usage.
+- Displays Antigravity's weekly and five-hour limits for its Gemini and
+  Claude/GPT model groups while the Antigravity app is open.
 - Lets users choose whether the Claude shortcut shows the overall weekly or Fable
   weekly limit.
-- Keeps Codex and the selected Claude percentages visible in the macOS menu bar
-  or side by side in the Windows taskbar.
+- Keeps each provider's percentage visible in the macOS menu bar or side by
+  side in the Windows taskbar, and lets users choose which providers appear
+  there separately from which ones are read.
 - Shows the Windows taskbar indicators on a transparent, fully clickable
   status surface, including the space between each icon and percentage.
 - Keeps the Windows details window open during taskbar and notification-area
@@ -214,6 +230,11 @@ On macOS, install the provider from the official
 [Claude Code](https://code.claude.com/docs/en/getting-started) guide. The app
 detects common native, Homebrew, npm, and application-bundled CLI locations.
 
+Antigravity needs no setup: open the Antigravity app (or Antigravity IDE) and
+its limits appear. They are read from the app's own local server on this
+computer, so the last reading is shown as cached while the app is closed.
+Antigravity gets no card on computers where it is not installed.
+
 AI Limit Status does not ask users to paste an API key into the app.
 
 ## Privacy and credential handling
@@ -333,6 +354,9 @@ the providers for your usage directly, and has no analytics or telemetry. See
 
 - Provider CLIs and usage endpoints can change without notice and temporarily
   break usage detection.
+- Antigravity usage comes from an internal, undocumented local server. It is
+  only available while Antigravity is open, and Antigravity 2.35 and later can
+  currently be read on macOS only.
 - Direct browser-cookie fallback requires macOS 13 or newer. Windows requires
   the bundled opt-in extension; marketplace publication is still pending.
 - The Windows taskbar status is an experimental overlay because Windows 11 does
@@ -372,7 +396,10 @@ included GitHub Actions workflows for reproducible platform builds.
 
 ## Contributing
 
-Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md), follow the
+Contributions are welcome, and new AI providers most of all: see
+[Adding a provider](docs/adding-a-provider.md).
+
+Read [CONTRIBUTING.md](CONTRIBUTING.md), follow the
 [Code of Conduct](CODE_OF_CONDUCT.md), and use the repository issue templates
 before opening a pull request.
 
@@ -382,6 +409,9 @@ Security vulnerabilities must not be posted in public issues. Follow
 ## Acknowledgements
 
 This project was independently conceived and developed by the author.
+
+The Antigravity reader follows the local-server approach documented by
+[CodexBar](https://github.com/steipete/CodexBar) (MIT).
 
 Special thanks to my colleagues and mentors for their valuable ideas,
 feedback, and suggestions throughout different stages of the project. Their

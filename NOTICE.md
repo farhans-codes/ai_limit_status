@@ -1,12 +1,15 @@
 # Notices and trademarks
 
 AI Limit Status is an independent open-source project. It is not affiliated
-with, endorsed by, or sponsored by OpenAI or Anthropic.
+with, endorsed by, or sponsored by OpenAI, Anthropic, or Google.
 
 OpenAI, ChatGPT, Codex, and their associated names and logos are trademarks or
 registered trademarks of OpenAI and its affiliates. Anthropic, Claude, and
 their associated names and logos are trademarks or registered trademarks of
-Anthropic and its affiliates.
+Anthropic and its affiliates. Google, Gemini, Antigravity, and their associated
+names and logos are trademarks of Google LLC. The Antigravity mark in
+`assets/icons/antigravity.svg` is an original drawing for this project, not
+Google's logo.
 
 Provider names and icons are used only to identify compatibility. No trademark
 license is granted by the MIT License. Downstream redistributors are responsible
