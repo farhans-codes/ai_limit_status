@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:ai_limit_status/features/usage/data/datasources/antigravity_cli_usage.dart';
 import 'package:ai_limit_status/features/usage/data/datasources/provider_usage_reader.dart';
 import 'package:ai_limit_status/features/usage/data/datasources/usage_read_exception.dart';
 import 'package:ai_limit_status/features/usage/data/models/provider_usage_model.dart';
@@ -33,29 +34,39 @@ class AntigravityUsageReader implements ProviderUsageReader {
   @override
   Future<ProviderUsageModel> read() async {
     final servers = await _languageServers();
-    if (servers.isEmpty) {
-      throw UsageReadException(
-        await isInstalled()
-            ? UsageConnectionIssue.appNotRunning
-            : UsageConnectionIssue.cliNotFound,
-      );
-    }
     for (final server in servers) {
       for (final port in await _listeningPorts(server.pid)) {
         final limits = await _readLimits(port, server.csrfToken);
         if (limits != null && limits.isNotEmpty) {
-          return ProviderUsageModel(
-            provider: UsageProvider.antigravity,
-            limits: limits,
-            isConnected: true,
-            isInstalled: true,
-            fetchedAt: DateTime.now(),
-          );
+          return _connected(limits);
         }
       }
     }
-    // The app is open but no server answered: still starting, or signed out.
-    throw const UsageReadException(UsageConnectionIssue.unavailable);
+    // Nothing is open, or nothing answered: ask the command-line tool, which
+    // needs neither the app nor the IDE.
+    final cliLimits = await AntigravityCliUsage.read();
+    if (cliLimits != null) {
+      return _connected(cliLimits);
+    }
+    if (servers.isNotEmpty) {
+      // The app is open but did not answer: still starting, or signed out.
+      throw const UsageReadException(UsageConnectionIssue.unavailable);
+    }
+    throw UsageReadException(
+      await isInstalled()
+          ? UsageConnectionIssue.appNotRunning
+          : UsageConnectionIssue.cliNotFound,
+    );
+  }
+
+  static ProviderUsageModel _connected(List<UsageLimit> limits) {
+    return ProviderUsageModel(
+      provider: UsageProvider.antigravity,
+      limits: limits,
+      isConnected: true,
+      isInstalled: true,
+      fetchedAt: DateTime.now(),
+    );
   }
 
   /// Whether Antigravity is on this machine, so a closed app can be told
@@ -246,7 +257,8 @@ class AntigravityUsageReader implements ProviderUsageReader {
 
   /// Maps a `RetrieveUserQuotaSummary` response to limits. Each group
   /// ("Gemini Models", "Claude and GPT models") has a weekly and a five-hour
-  /// bucket.
+  /// bucket. The command-line tool reports the same groups with snake_case
+  /// names, so both spellings are read.
   static List<UsageLimit> parseQuotaSummary(Object? decoded) {
     if (decoded is! Map<String, dynamic>) {
       return const [];
@@ -263,10 +275,11 @@ class AntigravityUsageReader implements ProviderUsageReader {
         continue;
       }
       for (final bucket in buckets.whereType<Map<String, dynamic>>()) {
-        final id = bucket['bucketId'];
+        final id = bucket['bucketId'] ?? bucket['id'];
         final remaining = bucket['remaining'];
         final fraction =
             bucket['remainingFraction'] ??
+            bucket['remaining_fraction'] ??
             (remaining is Map<String, dynamic>
                 ? remaining['remainingFraction']
                 : null);
@@ -284,7 +297,7 @@ class AntigravityUsageReader implements ProviderUsageReader {
         if (type == null) {
           continue;
         }
-        final resetTime = bucket['resetTime'];
+        final resetTime = bucket['resetTime'] ?? bucket['reset_time'];
         limits.add(
           UsageLimit(
             type: type,
@@ -295,7 +308,7 @@ class AntigravityUsageReader implements ProviderUsageReader {
                 ? null
                 : DateTime.tryParse(resetTime)?.toLocal(),
             groupId: id.replaceFirst(RegExp(r'-(5h|weekly)$'), ''),
-            groupLabel: group['displayName'] as String?,
+            groupLabel: (group['displayName'] ?? group['name']) as String?,
           ),
         );
       }
