@@ -456,6 +456,12 @@ code {
   background: var(--housing);
   box-shadow: 0 24px 48px -24px rgba(18, 19, 21, 0.45);
 }
+.shot__frame .shot__bar {
+  display: block;
+  margin-bottom: 10px;
+  border-radius: 9px;
+  box-shadow: none;
+}
 .shot__frame figcaption {
   margin-top: 12px;
   font-size: 0.9rem;
