@@ -29,24 +29,48 @@ jobs:
           EVENT: ${{ github.event.workflow_run.event }}
           BRANCH: ${{ github.event.workflow_run.head_branch }}
           COMMIT_TITLE: ${{ github.event.workflow_run.display_title }}
-          ACTOR: ${{ github.event.workflow_run.actor.login }}
           RUN_URL: ${{ github.event.workflow_run.html_url }}
         run: |
           if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
             echo "Telegram secrets are not set; skipping." >&2
             exit 0
           fi
-          case "$CONCLUSION" in
-            success) icon="✅" ;;
-            failure) icon="❌" ;;
-            *) icon="⚠️" ;;
+          # Say what happened in plain words instead of workflow jargon.
+          case "$WORKFLOW" in
+            "CI") what="Code check" ;;
+            "Publish release") what="Release workflow" ;;
+            "Publish website") what="Website update" ;;
+            "Build Windows installer") what="Windows installer" ;;
+            *) what="$WORKFLOW" ;;
           esac
-          text="$(printf '%s %s: %s\n%s\n%s on %s, by %s\n%s' \
-            "$icon" "$WORKFLOW" "$CONCLUSION" \
-            "$COMMIT_TITLE" "$EVENT" "$BRANCH" "$ACTOR" "$RUN_URL")"
+          case "$CONCLUSION" in
+            success)
+              icon="✅"; result="passed"
+              note="Everything is fine. Nothing to do." ;;
+            failure)
+              icon="❌"; result="failed"
+              note="Something broke. Open the details to see what." ;;
+            cancelled)
+              icon="⏹"; result="stopped"
+              note="A newer change replaced this run. Nothing to do." ;;
+            *)
+              icon="⚠️"; result="$CONCLUSION"
+              note="Open the details to check." ;;
+          esac
+          case "$EVENT" in
+            pull_request) where="Pull request from $BRANCH" ;;
+            *) where="Branch $BRANCH" ;;
+          esac
+          # Telegram reads the message as HTML, so escape text people wrote.
+          escape() { printf '%s' "$1" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g'; }
+          text="$(printf '%s <b>%s %s</b>\n\n📝 %s\n🌿 %s\n\n%s\n\n<a href="%s">Open details</a>' \
+            "$icon" "$what" "$result" \
+            "$(escape "$COMMIT_TITLE")" "$(escape "$where")" \
+            "$note" "$RUN_URL")"
           curl --silent --show-error --fail --max-time 20 \
             --output /dev/null \
             "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
             --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
             --data-urlencode "text=${text}" \
+            --data-urlencode "parse_mode=HTML" \
             --data-urlencode "disable_web_page_preview=true"
