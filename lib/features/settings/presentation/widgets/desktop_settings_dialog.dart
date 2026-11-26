@@ -195,6 +195,50 @@ class DesktopSettingsDialog extends StatelessWidget {
                           ),
                         ),
                       ),
+                      const SizedBox(height: 8),
+                      Card(
+                        child: Column(
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  strings.statusShortcutProvidersDescription,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            for (final provider in UsageProvider.values) ...[
+                              if (provider != UsageProvider.values.first)
+                                const Divider(height: 1),
+                              Obx(
+                                () => _SettingsSwitchTile(
+                                  icon: provider.definition.settingsIcon,
+                                  title: provider.definition.name,
+                                  value: !controller.statusBarHiddenProviders
+                                      .contains(provider),
+                                  // A provider that is not read has nothing
+                                  // to show in the status shortcut.
+                                  onChanged:
+                                      controller.isUpdating.value ||
+                                          !controller.visibleProviders.contains(
+                                            provider,
+                                          )
+                                      ? null
+                                      : (shown) =>
+                                            controller.setProviderInStatusBar(
+                                              provider,
+                                              shown,
+                                            ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
                       const SizedBox(height: 20),
                       _SectionLabel(strings.providersSectionTitle),
                       const SizedBox(height: 8),

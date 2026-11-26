@@ -342,6 +342,7 @@ class UsageController extends GetxController {
 
   Future<void> _updateTray() async {
     final l10n = AppStrings.instance;
+    final hidden = await _settingsRepository.loadStatusBarHiddenProviders();
     final claudeLimitType = switch (_claudeStatusLimitPreference) {
       ClaudeStatusLimitPreference.weekly => UsageLimitType.weekly,
       ClaudeStatusLimitPreference.fableWeekly => UsageLimitType.fableWeekly,
@@ -349,6 +350,9 @@ class UsageController extends GetxController {
     final items = <({String id, String value})>[];
     final tooltipParts = <String>[];
     for (final usage in usages) {
+      if (hidden.contains(usage.provider)) {
+        continue;
+      }
       // Claude shows the limit chosen in Settings; other providers show
       // their most constrained limit.
       final isClaude = usage.provider == UsageProvider.claude;
