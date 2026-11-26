@@ -12,6 +12,7 @@ import 'package:ai_limit_status/features/settings/presentation/controllers/deskt
 import 'package:ai_limit_status/features/usage/data/datasources/provider_executable_locator.dart';
 import 'package:ai_limit_status/features/usage/data/datasources/usage_data_source.dart';
 import 'package:ai_limit_status/features/usage/data/datasources/usage_cache_store.dart';
+import 'package:ai_limit_status/features/usage/data/datasources/antigravity_usage_reader.dart';
 import 'package:ai_limit_status/features/usage/data/datasources/claude_usage_reader.dart';
 import 'package:ai_limit_status/features/usage/data/datasources/codex_oauth_usage_reader.dart';
 import 'package:ai_limit_status/features/usage/data/datasources/codex_usage_reader.dart';
@@ -19,6 +20,7 @@ import 'package:ai_limit_status/features/usage/data/datasources/usage_warning_st
 import 'package:ai_limit_status/features/usage/data/repositories/provider_setup_repository_impl.dart';
 import 'package:ai_limit_status/features/usage/data/repositories/usage_repository_impl.dart';
 import 'package:ai_limit_status/features/usage/data/repositories/usage_warning_repository_impl.dart';
+import 'package:ai_limit_status/features/usage/domain/entities/provider_usage.dart';
 import 'package:ai_limit_status/features/usage/domain/repositories/provider_setup_repository.dart';
 import 'package:ai_limit_status/features/usage/domain/repositories/usage_repository.dart';
 import 'package:ai_limit_status/features/usage/domain/repositories/usage_warning_repository.dart';
@@ -68,6 +70,9 @@ class UsageBinding extends Bindings {
         Get.find<CodexUsageReader>(),
         Get.find<ClaudeUsageReader>(),
         Get.find<UsageCacheStore>(),
+        additionalReaders: const {
+          UsageProvider.antigravity: AntigravityUsageReader(),
+        },
       ),
     );
     Get.lazyPut<UsageRepository>(

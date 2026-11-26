@@ -162,8 +162,20 @@ void WindowsTaskbarStatus::HandleMethodCall(
     return;
   }
   if (method_call.method_name() == "update" && arguments != nullptr) {
-    codex_value_ = ReadOptionalValue(*arguments, "codexValue");
-    claude_value_ = ReadOptionalValue(*arguments, "claudeValue");
+    providers_.clear();
+    const auto* items_value = ValueOrNull(*arguments, "items");
+    const auto* items = items_value == nullptr
+                            ? nullptr
+                            : std::get_if<flutter::EncodableList>(items_value);
+    if (items != nullptr) {
+      for (const auto& item : *items) {
+        const auto* entry = std::get_if<flutter::EncodableMap>(&item);
+        if (entry != nullptr) {
+          providers_.emplace_back(RequiredString(*entry, "id"),
+                                  RequiredString(*entry, "value"));
+        }
+      }
+    }
     tooltip_ = RequiredString(*arguments, "tooltip");
     UpdateOverlay();
     result->Success();
@@ -284,8 +296,7 @@ void WindowsTaskbarStatus::PositionOverlay() {
   }
   const UINT dpi = DpiForWindowOrDefault(taskbar);
   const int provider_count =
-      std::max(1, static_cast<int>(codex_value_.has_value()) +
-                      static_cast<int>(claude_value_.has_value()));
+      std::max(1, static_cast<int>(providers_.size()));
   const int width = ScaleForDpi(
       provider_count * kSegmentWidth + (provider_count - 1) * kSegmentGap,
       dpi);
@@ -336,10 +347,12 @@ void WindowsTaskbarStatus::PositionOverlay() {
   // be behind Explorer after a taskbar click.
   const RECT bounds{x, y, x + width, y + height};
   std::wstring signature = tooltip_;
-  signature += L'|';
-  signature += codex_value_.value_or(L"<none>");
-  signature += L'|';
-  signature += claude_value_.value_or(L"<none>");
+  for (const auto& provider : providers_) {
+    signature += L'|';
+    signature += provider.first;
+    signature += L'=';
+    signature += provider.second;
+  }
   signature += L'|';
   signature += std::to_wstring(dpi);
   if (overlay_rendered_ && IsWindowVisible(overlay_window_) &&
@@ -557,23 +570,15 @@ bool WindowsTaskbarStatus::RenderLayeredOverlay(int x,
 }
 
 void WindowsTaskbarStatus::PaintOverlay(HDC dc, const RECT& client, UINT dpi) {
-  std::array<std::pair<std::wstring, bool>, 2> providers{};
-  int provider_count = 0;
-  if (codex_value_.has_value()) {
-    providers[provider_count++] = {DisplayValue(*codex_value_), false};
-  }
-  if (claude_value_.has_value()) {
-    providers[provider_count++] = {DisplayValue(*claude_value_), true};
-  }
+  const int provider_count = static_cast<int>(providers_.size());
 
   if (provider_count == 0) {
-    PaintProvider(dc, client, L"AI", false, dpi);
+    PaintProvider(dc, client, L"AI", L"codex", dpi);
   } else {
-    const int gap = provider_count == 2
-                        ? ScaleForDpi(kSegmentGap, dpi)
-                        : 0;
+    const int gap = ScaleForDpi(kSegmentGap, dpi);
     const int segment_width =
-        ((client.right - client.left) - gap) / provider_count;
+        ((client.right - client.left) - gap * (provider_count - 1)) /
+        provider_count;
     for (int index = 0; index < provider_count; ++index) {
       RECT segment{
           index * (segment_width + gap),
@@ -581,8 +586,8 @@ void WindowsTaskbarStatus::PaintOverlay(HDC dc, const RECT& client, UINT dpi) {
           index * (segment_width + gap) + segment_width,
           client.bottom,
       };
-      PaintProvider(dc, segment, providers[index].first,
-                    providers[index].second, dpi);
+      PaintProvider(dc, segment, DisplayValue(providers_[index].second),
+                    providers_[index].first, dpi);
     }
   }
 }
@@ -590,7 +595,7 @@ void WindowsTaskbarStatus::PaintOverlay(HDC dc, const RECT& client, UINT dpi) {
 void WindowsTaskbarStatus::PaintProvider(HDC dc,
                                          const RECT& bounds,
                                          const std::wstring& value,
-                                         bool is_claude,
+                                         const std::wstring& provider_id,
                                          UINT dpi) const {
   const int icon_size = ScaleForDpi(kProviderIconSize, dpi);
   const int padding = ScaleForDpi(kProviderContentPadding, dpi);
@@ -598,7 +603,7 @@ void WindowsTaskbarStatus::PaintProvider(HDC dc,
   RECT mark_bounds{bounds.left + padding, center_y - icon_size / 2,
                    bounds.left + padding + icon_size,
                    center_y - icon_size / 2 + icon_size};
-  PaintProviderMark(dc, mark_bounds, is_claude);
+  PaintProviderMark(dc, mark_bounds, provider_id);
 
   RECT text_bounds = bounds;
   text_bounds.left = mark_bounds.right + ScaleForDpi(kProviderIconGap, dpi);
@@ -619,10 +624,11 @@ void WindowsTaskbarStatus::PaintProvider(HDC dc,
 
 void WindowsTaskbarStatus::PaintProviderMark(HDC dc,
                                              const RECT& bounds,
-                                             bool is_claude) const {
+                                             const std::wstring& provider_id) const {
   const int center_x = (bounds.left + bounds.right) / 2;
   const int center_y = (bounds.top + bounds.bottom) / 2;
-  if (!is_claude) {
+  const bool is_claude = provider_id == L"claude";
+  if (provider_id == L"codex") {
     const int icon_width = static_cast<int>(bounds.right - bounds.left);
     const int icon_height = static_cast<int>(bounds.bottom - bounds.top);
     const int icon_size = std::max(12, std::min(icon_width, icon_height));
@@ -657,6 +663,11 @@ void WindowsTaskbarStatus::PaintProviderMark(HDC dc,
              center_y - radius * 3 / 4, nullptr);
     LineTo(dc, center_x - radius * 3 / 4,
            center_y + radius * 3 / 4);
+  } else if (provider_id == L"antigravity") {
+    // An upward chevron, echoing the app's arrow-shaped mark.
+    MoveToEx(dc, center_x - radius, center_y + radius, nullptr);
+    LineTo(dc, center_x, center_y - radius);
+    LineTo(dc, center_x + radius, center_y + radius);
   } else {
     Ellipse(dc, center_x - radius, center_y - radius,
             center_x + radius, center_y + radius);
@@ -721,18 +732,6 @@ bool WindowsTaskbarStatus::IsPointerOverTaskbarUi() const {
          PointIsInsideWindowClass(L"NotifyIconOverflowWindow", pointer) ||
          PointIsInsideWindowClass(L"TopLevelWindowForOverflowXamlIsland",
                                   pointer);
-}
-
-std::optional<std::wstring> WindowsTaskbarStatus::ReadOptionalValue(
-    const flutter::EncodableMap& arguments,
-    const char* key) const {
-  const auto* value = ValueOrNull(arguments, key);
-  if (value == nullptr || std::holds_alternative<std::monostate>(*value)) {
-    return std::nullopt;
-  }
-  const auto* text = std::get_if<std::string>(value);
-  return text == nullptr ? std::nullopt
-                         : std::optional<std::wstring>(Utf8ToWide(*text));
 }
 
 void WindowsTaskbarStatus::Destroy() {

@@ -67,6 +67,8 @@ class UsageCacheStore {
                 'type': limit.type.name,
                 'remainingPercent': limit.remainingPercent,
                 'resetsAt': limit.resetsAt?.toUtc().toIso8601String(),
+                'groupId': ?limit.groupId,
+                'groupLabel': ?limit.groupLabel,
               },
             )
             .toList(),
@@ -95,6 +97,8 @@ class UsageCacheStore {
       type: type,
       remainingPercent: remainingPercent.toInt().clamp(0, 100),
       resetsAt: resetsAt,
+      groupId: value['groupId'] as String?,
+      groupLabel: value['groupLabel'] as String?,
     );
   }
 

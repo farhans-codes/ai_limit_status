@@ -58,16 +58,16 @@ class WindowsTaskbarStatusService {
   }
 
   Future<void> update({
-    required String? codexValue,
-    required String? claudeValue,
+    required List<({String id, String value})> items,
     required String tooltip,
   }) async {
     if (!Platform.isWindows) {
       return;
     }
     await _channel.invokeMethod<void>('update', {
-      'codexValue': codexValue,
-      'claudeValue': claudeValue,
+      'items': [
+        for (final item in items) {'id': item.id, 'value': item.value},
+      ],
       'tooltip': tooltip,
     });
   }

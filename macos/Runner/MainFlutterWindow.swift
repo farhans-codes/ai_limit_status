@@ -315,8 +315,8 @@ private final class MacStatusBarController: NSObject {
   private let channel: FlutterMethodChannel
   private var statusItem: NSStatusItem?
   private var anchorPoint: NSPoint?
-  private var codexImage: NSImage?
-  private var claudeImage: NSImage?
+  /// Template marks for each provider, keyed by provider id.
+  private var providerImages: [String: NSImage] = [:]
   private var appImage: NSImage?
   private let contextMenu = NSMenu()
 
@@ -339,8 +339,8 @@ private final class MacStatusBarController: NSObject {
         result(FlutterError(code: "invalid_arguments", message: nil, details: nil))
         return
       }
-      codexImage = templateImage(from: arguments["codexSvg"] as? String)
-      claudeImage = templateImage(from: arguments["claudeSvg"] as? String)
+      providerImages = (arguments["icons"] as? [String: String] ?? [:])
+        .compactMapValues { templateImage(from: $0) }
       appImage = NSImage(named: NSImage.applicationIconName)
       configureMenu(arguments)
       createStatusItemIfNeeded()
@@ -407,31 +407,27 @@ private final class MacStatusBarController: NSObject {
 
   private func updateStatusItem(_ arguments: [String: Any]) {
     guard let button = statusItem?.button else { return }
-    let codexValue = arguments["codexValue"] as? String
-    let claudeValue = arguments["claudeValue"] as? String
-    button.attributedTitle = statusTitle(
-      codexValue: codexValue,
-      claudeValue: claudeValue
-    )
+    // Providers to show, in display order: [{"id": ..., "value": ...}].
+    let items = arguments["items"] as? [[String: String]] ?? []
+    button.attributedTitle = statusTitle(items: items)
     if let tooltip = arguments["tooltip"] as? String {
       button.toolTip = tooltip
     }
   }
 
-  private func statusTitle(codexValue: String?, claudeValue: String?) -> NSAttributedString {
+  private func statusTitle(items: [[String: String]]) -> NSAttributedString {
     let title = NSMutableAttributedString()
-    if let codexValue, let codexImage {
-      title.append(attachment(for: codexImage))
-      title.append(statusText(" \(codexValue)"))
+    for item in items {
+      guard let id = item["id"], let value = item["value"],
+        let image = providerImages[id]
+      else { continue }
+      if title.length > 0 {
+        title.append(statusText("   "))
+      }
+      title.append(attachment(for: image))
+      title.append(statusText(" \(value)"))
     }
-    if codexValue != nil, claudeValue != nil {
-      title.append(statusText("   "))
-    }
-    if let claudeValue, let claudeImage {
-      title.append(attachment(for: claudeImage))
-      title.append(statusText(" \(claudeValue)"))
-    }
-    if codexValue == nil, claudeValue == nil, let appImage {
+    if title.length == 0, let appImage {
       title.append(attachment(for: appImage))
     }
     return title

@@ -4,6 +4,7 @@ import 'package:ai_limit_status/features/settings/domain/entities/desktop_settin
 import 'package:ai_limit_status/features/settings/presentation/controllers/desktop_settings_controller.dart';
 import 'package:ai_limit_status/features/settings/presentation/widgets/app_updates_card.dart';
 import 'package:ai_limit_status/features/usage/domain/entities/provider_usage.dart';
+import 'package:ai_limit_status/features/usage/presentation/provider_definition.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -212,39 +213,26 @@ class DesktopSettingsDialog extends StatelessWidget {
                                 ),
                               ),
                             ),
-                            Obx(
-                              () => _SettingsSwitchTile(
-                                icon: Icons.code_rounded,
-                                title: strings.showCodexTitle,
-                                value: controller.visibleProviders.contains(
-                                  UsageProvider.codex,
+                            for (final provider in UsageProvider.values) ...[
+                              if (provider != UsageProvider.values.first)
+                                const Divider(height: 1),
+                              Obx(
+                                () => _SettingsSwitchTile(
+                                  icon: provider.definition.settingsIcon,
+                                  title: provider.definition.name,
+                                  value: controller.visibleProviders.contains(
+                                    provider,
+                                  ),
+                                  onChanged: controller.isUpdating.value
+                                      ? null
+                                      : (visible) =>
+                                            controller.setProviderVisible(
+                                              provider,
+                                              visible,
+                                            ),
                                 ),
-                                onChanged: controller.isUpdating.value
-                                    ? null
-                                    : (visible) =>
-                                          controller.setProviderVisible(
-                                            UsageProvider.codex,
-                                            visible,
-                                          ),
                               ),
-                            ),
-                            const Divider(height: 1),
-                            Obx(
-                              () => _SettingsSwitchTile(
-                                icon: Icons.auto_awesome_rounded,
-                                title: strings.showClaudeTitle,
-                                value: controller.visibleProviders.contains(
-                                  UsageProvider.claude,
-                                ),
-                                onChanged: controller.isUpdating.value
-                                    ? null
-                                    : (visible) =>
-                                          controller.setProviderVisible(
-                                            UsageProvider.claude,
-                                            visible,
-                                          ),
-                              ),
-                            ),
+                            ],
                           ],
                         ),
                       ),

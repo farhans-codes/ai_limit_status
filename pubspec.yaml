@@ -26,6 +26,7 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
+    - assets/icons/antigravity.svg
     - assets/icons/claude.svg
     - assets/icons/codex.svg
     - assets/sounds/limit_warning.wav

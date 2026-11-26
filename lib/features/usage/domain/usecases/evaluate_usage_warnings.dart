@@ -28,7 +28,7 @@ class EvaluateUsageWarnings {
             limit.type == UsageLimitType.session) {
           continue;
         }
-        final previousLimit = _findLimit(previousUsage, limit.type);
+        final previousLimit = _findLimit(previousUsage, limit);
         final remainingThreshold = _firstMatchingThreshold(
           remainingThresholds,
           limit.remainingPercent,
@@ -39,6 +39,8 @@ class EvaluateUsageWarnings {
             UsageWarning(
               provider: usage.provider,
               limitType: limit.type,
+              groupId: limit.groupId,
+              groupLabel: limit.groupLabel,
               kind: UsageWarningKind.remaining,
               threshold: remainingThreshold,
               currentRemainingPercent: limit.remainingPercent,
@@ -53,6 +55,8 @@ class EvaluateUsageWarnings {
             UsageWarning(
               provider: usage.provider,
               limitType: limit.type,
+              groupId: limit.groupId,
+              groupLabel: limit.groupLabel,
               kind: UsageWarningKind.restored,
               threshold: 100,
               currentRemainingPercent: limit.remainingPercent,
@@ -83,6 +87,8 @@ class EvaluateUsageWarnings {
             UsageWarning(
               provider: usage.provider,
               limitType: limit.type,
+              groupId: limit.groupId,
+              groupLabel: limit.groupLabel,
               kind: UsageWarningKind.resetSoon,
               threshold: resetThreshold,
               currentRemainingPercent: limit.remainingPercent,
@@ -95,12 +101,12 @@ class EvaluateUsageWarnings {
     return warnings;
   }
 
-  UsageLimit? _findLimit(ProviderUsage? usage, UsageLimitType type) {
+  UsageLimit? _findLimit(ProviderUsage? usage, UsageLimit current) {
     if (usage == null || !usage.isConnected || usage.isStale) {
       return null;
     }
     for (final limit in usage.limits) {
-      if (limit.type == type) {
+      if (limit.isSameLimitAs(current)) {
         return limit;
       }
     }

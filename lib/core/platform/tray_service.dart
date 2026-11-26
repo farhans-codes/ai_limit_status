@@ -41,8 +41,11 @@ class TrayService extends GetxService with TrayListener {
 
   Future<void> get whenReady => _ready.future;
 
+  /// [providerIcons] maps each provider id to its SVG asset, for platforms
+  /// that draw the provider marks themselves.
   Future<void> initialize({
     required TrayMenuCopy copy,
+    required Map<String, String> providerIcons,
     required Future<void> Function() onRefresh,
   }) async {
     if (_isInitialized) {
@@ -53,6 +56,7 @@ class TrayService extends GetxService with TrayListener {
 
     if (Platform.isMacOS) {
       await _macStatusBarService.initialize(
+        providerIcons: providerIcons,
         openLabel: copy.openDashboard,
         refreshLabel: copy.refresh,
         quitLabel: copy.quit,
@@ -120,28 +124,20 @@ class TrayService extends GetxService with TrayListener {
     await _windowService.showPopover();
   }
 
+  /// [items] are the providers to show, in display order.
   Future<void> updateUsage({
-    required String? codexValue,
-    required String? claudeValue,
+    required List<({String id, String value})> items,
     required String tooltip,
   }) async {
     if (!_isInitialized) {
       return;
     }
     if (Platform.isMacOS) {
-      await _macStatusBarService.update(
-        codexValue: codexValue,
-        claudeValue: claudeValue,
-        tooltip: tooltip,
-      );
+      await _macStatusBarService.update(items: items, tooltip: tooltip);
       return;
     }
     if (Platform.isWindows) {
-      await _windowsTaskbarStatusService.update(
-        codexValue: codexValue,
-        claudeValue: claudeValue,
-        tooltip: tooltip,
-      );
+      await _windowsTaskbarStatusService.update(items: items, tooltip: tooltip);
       return;
     }
     await trayManager.setToolTip(tooltip);

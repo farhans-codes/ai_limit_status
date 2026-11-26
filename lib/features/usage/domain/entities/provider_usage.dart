@@ -1,4 +1,4 @@
-enum UsageProvider { codex, claude }
+enum UsageProvider { codex, claude, antigravity }
 
 enum UsageLimitType { session, weekly, fableWeekly, opusWeekly, sonnetWeekly }
 
@@ -18,6 +18,10 @@ enum UsageConnectionIssue {
   /// datacenter networks). Signing in again does not help.
   browserBlocked,
 
+  /// The provider's desktop app must be running to read usage and is not;
+  /// the last successful snapshot is kept when present.
+  appNotRunning,
+
   /// A temporary failure; the last successful snapshot is kept when present.
   unavailable,
 }
@@ -27,11 +31,24 @@ class UsageLimit {
     required this.type,
     required this.remainingPercent,
     this.resetsAt,
+    this.groupId,
+    this.groupLabel,
   });
 
   final UsageLimitType type;
   final int remainingPercent;
   final DateTime? resetsAt;
+
+  /// Set when a provider reports the same [type] for several model groups
+  /// (Antigravity's Gemini and Claude/GPT pools). [type] and [groupId]
+  /// together identify a limit within its provider.
+  final String? groupId;
+
+  /// The provider's own name for the group, shown above its limits.
+  final String? groupLabel;
+
+  bool isSameLimitAs(UsageLimit other) =>
+      type == other.type && groupId == other.groupId;
 }
 
 class ProviderUsage {

@@ -84,6 +84,7 @@ class ProviderExecutableLocator {
         Platform.environment[switch (provider) {
           UsageProvider.codex => 'CODEX_CLI_PATH',
           UsageProvider.claude => 'CLAUDE_CLI_PATH',
+          UsageProvider.antigravity => 'ANTIGRAVITY_CLI_PATH',
         }];
     if (override != null &&
         override.isNotEmpty &&
@@ -131,6 +132,7 @@ class ProviderExecutableLocator {
     return switch (provider) {
       UsageProvider.codex => 'codex',
       UsageProvider.claude => 'claude',
+      UsageProvider.antigravity => 'agy',
     };
   }
 

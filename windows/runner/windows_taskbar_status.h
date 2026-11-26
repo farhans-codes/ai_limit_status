@@ -9,6 +9,8 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <utility>
+#include <vector>
 
 class WindowsTaskbarStatus {
  public:
@@ -58,18 +60,14 @@ class WindowsTaskbarStatus {
   void PaintProvider(HDC dc,
                      const RECT& bounds,
                      const std::wstring& value,
-                     bool is_claude,
+                     const std::wstring& provider_id,
                      UINT dpi) const;
   void PaintProviderMark(HDC dc,
                          const RECT& bounds,
-                         bool is_claude) const;
+                         const std::wstring& provider_id) const;
   void ShowContextMenu();
   void InvokeDart(const std::string& method);
   bool IsPointerOverTaskbarUi() const;
-
-  std::optional<std::wstring> ReadOptionalValue(
-      const flutter::EncodableMap& arguments,
-      const char* key) const;
 
   HWND host_window_;
   HWND overlay_window_ = nullptr;
@@ -77,8 +75,8 @@ class WindowsTaskbarStatus {
   HWINEVENTHOOK reorder_hook_ = nullptr;
   UINT taskbar_created_message_;
   std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>> channel_;
-  std::optional<std::wstring> codex_value_;
-  std::optional<std::wstring> claude_value_;
+  // Providers to show, in display order, as (provider id, value).
+  std::vector<std::pair<std::wstring, std::wstring>> providers_;
   std::wstring tooltip_;
   std::wstring open_label_;
   std::wstring refresh_label_;

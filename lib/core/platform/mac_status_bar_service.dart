@@ -8,6 +8,7 @@ class MacStatusBarService {
   static const _channel = MethodChannel('com.ailimitstatus/status_item');
 
   Future<void> initialize({
+    required Map<String, String> providerIcons,
     required String openLabel,
     required String refreshLabel,
     required String quitLabel,
@@ -31,11 +32,11 @@ class MacStatusBarService {
       }
     });
 
-    final codexSvg = await rootBundle.loadString('assets/icons/codex.svg');
-    final claudeSvg = await rootBundle.loadString('assets/icons/claude.svg');
     await _channel.invokeMethod<void>('initialize', {
-      'codexSvg': codexSvg,
-      'claudeSvg': claudeSvg,
+      'icons': {
+        for (final MapEntry(key: id, value: asset) in providerIcons.entries)
+          id: await rootBundle.loadString(asset),
+      },
       'openLabel': openLabel,
       'refreshLabel': refreshLabel,
       'quitLabel': quitLabel,
@@ -44,16 +45,16 @@ class MacStatusBarService {
   }
 
   Future<void> update({
-    required String? codexValue,
-    required String? claudeValue,
+    required List<({String id, String value})> items,
     required String tooltip,
   }) async {
     if (!Platform.isMacOS) {
       return;
     }
     await _channel.invokeMethod<void>('update', {
-      'codexValue': codexValue,
-      'claudeValue': claudeValue,
+      'items': [
+        for (final item in items) {'id': item.id, 'value': item.value},
+      ],
       'tooltip': tooltip,
     });
   }

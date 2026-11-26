@@ -6,6 +6,7 @@ class AppStrings {
   String get appTitle => 'AI Limit Status';
   String get providerCodex => 'Codex';
   String get providerClaude => 'Claude';
+  String get providerAntigravity => 'Antigravity';
 
   String remainingCompact(int percent) => '$percent%';
   String remainingLabel(int percent) => '$percent% remaining';
@@ -39,13 +40,17 @@ class AppStrings {
   String get unableToLoadUsage => 'Could not load usage information.';
   String get noProvidersDetected => 'No providers detected';
   String get noProvidersDetectedDescription =>
-      'Install Codex or Claude to start monitoring usage.';
+      'Install Codex or Claude, or open Antigravity, to start monitoring usage.';
   String setUpProvider(String provider) => 'Set up $provider';
   String get notAvailableCompact => '—';
   String get cliNotFoundMessage =>
       'Install the provider CLI to read live subscription usage.';
   String get notSignedInMessage =>
       'Sign in to the provider CLI to read live subscription usage.';
+  String get appNotRunningMessage => 'Open Antigravity to read live usage.';
+  String get openAntigravity => 'Open Antigravity';
+  String get limitNotStarted => 'Not used yet';
+  String groupedLimit(String group, String limit) => '$group: $limit';
   String get providerUnavailableMessage =>
       'Live usage is temporarily unavailable.';
   String get browserSessionExpiredMessage =>
@@ -103,8 +108,6 @@ class AppStrings {
   String get claudeWeeklyShortcut => 'Weekly';
   String get claudeFableShortcut => 'Fable weekly';
   String get providersSectionTitle => 'Visible providers';
-  String get showCodexTitle => 'Codex';
-  String get showClaudeTitle => 'Claude';
   String get providerVisibilityDescription =>
       'Only enabled providers are read and shown.';
   String appVersion(String version) => 'Version $version';
@@ -180,12 +183,6 @@ class AppStrings {
 
   String trayTitle(String codexValue, String claudeValue) =>
       '$codexValue · $claudeValue';
-
-  String trayTooltip(
-    String codexValue,
-    String claudeLimit,
-    String claudeValue,
-  ) => 'Codex: $codexValue · Claude $claudeLimit: $claudeValue';
 
   String singleClaudeTrayTooltip(String claudeLimit, String value) =>
       'Claude $claudeLimit: $value';
