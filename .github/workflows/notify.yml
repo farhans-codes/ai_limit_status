@@ -1,0 +1,52 @@
+name: Notify Telegram
+
+# Sends a Telegram message when any other workflow finishes. `workflow_run`
+# always uses this file from the default branch and checks out no code, so a
+# pull request cannot change what runs or read the bot token.
+on:
+  workflow_run:
+    workflows:
+      - "CI"
+      - "Publish release"
+      - "Publish website"
+      - "Build Windows installer"
+    types: [completed]
+
+permissions: {}
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send message
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          # Branch names and commit titles come from contributors, so they
+          # reach the shell only as environment variables.
+          CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          WORKFLOW: ${{ github.event.workflow_run.name }}
+          EVENT: ${{ github.event.workflow_run.event }}
+          BRANCH: ${{ github.event.workflow_run.head_branch }}
+          COMMIT_TITLE: ${{ github.event.workflow_run.display_title }}
+          ACTOR: ${{ github.event.workflow_run.actor.login }}
+          RUN_URL: ${{ github.event.workflow_run.html_url }}
+        run: |
+          if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
+            echo "Telegram secrets are not set; skipping." >&2
+            exit 0
+          fi
+          case "$CONCLUSION" in
+            success) icon="✅" ;;
+            failure) icon="❌" ;;
+            *) icon="⚠️" ;;
+          esac
+          text="$(printf '%s %s: %s\n%s\n%s on %s, by %s\n%s' \
+            "$icon" "$WORKFLOW" "$CONCLUSION" \
+            "$COMMIT_TITLE" "$EVENT" "$BRANCH" "$ACTOR" "$RUN_URL")"
+          curl --silent --show-error --fail --max-time 20 \
+            --output /dev/null \
+            "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
+            --data-urlencode "text=${text}" \
+            --data-urlencode "disable_web_page_preview=true"
