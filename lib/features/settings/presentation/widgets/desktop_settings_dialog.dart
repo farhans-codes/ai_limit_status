@@ -3,8 +3,6 @@ import 'package:ai_limit_status/features/settings/data/app_updates.dart';
 import 'package:ai_limit_status/features/settings/domain/entities/desktop_settings.dart';
 import 'package:ai_limit_status/features/settings/presentation/controllers/desktop_settings_controller.dart';
 import 'package:ai_limit_status/features/settings/presentation/widgets/app_updates_card.dart';
-import 'package:ai_limit_status/features/usage/domain/entities/provider_usage.dart';
-import 'package:ai_limit_status/features/usage/presentation/provider_definition.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -193,91 +191,6 @@ class DesktopSettingsDialog extends StatelessWidget {
                               ),
                             ],
                           ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Card(
-                        child: Column(
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
-                              child: Align(
-                                alignment: Alignment.centerLeft,
-                                child: Text(
-                                  strings.statusShortcutProvidersDescription,
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: theme.colorScheme.onSurfaceVariant,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            for (final provider in UsageProvider.values) ...[
-                              if (provider != UsageProvider.values.first)
-                                const Divider(height: 1),
-                              Obx(
-                                () => _SettingsSwitchTile(
-                                  icon: provider.definition.settingsIcon,
-                                  title: provider.definition.name,
-                                  value: !controller.statusBarHiddenProviders
-                                      .contains(provider),
-                                  // A provider that is not read has nothing
-                                  // to show in the status shortcut.
-                                  onChanged:
-                                      controller.isUpdating.value ||
-                                          !controller.visibleProviders.contains(
-                                            provider,
-                                          )
-                                      ? null
-                                      : (shown) =>
-                                            controller.setProviderInStatusBar(
-                                              provider,
-                                              shown,
-                                            ),
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      _SectionLabel(strings.providersSectionTitle),
-                      const SizedBox(height: 8),
-                      Card(
-                        child: Column(
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
-                              child: Align(
-                                alignment: Alignment.centerLeft,
-                                child: Text(
-                                  strings.providerVisibilityDescription,
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: theme.colorScheme.onSurfaceVariant,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            for (final provider in UsageProvider.values) ...[
-                              if (provider != UsageProvider.values.first)
-                                const Divider(height: 1),
-                              Obx(
-                                () => _SettingsSwitchTile(
-                                  icon: provider.definition.settingsIcon,
-                                  title: provider.definition.name,
-                                  value: controller.visibleProviders.contains(
-                                    provider,
-                                  ),
-                                  onChanged: controller.isUpdating.value
-                                      ? null
-                                      : (visible) =>
-                                            controller.setProviderVisible(
-                                              provider,
-                                              visible,
-                                            ),
-                                ),
-                              ),
-                            ],
-                          ],
                         ),
                       ),
                     ],

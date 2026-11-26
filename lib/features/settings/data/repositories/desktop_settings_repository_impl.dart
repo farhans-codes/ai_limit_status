@@ -19,18 +19,12 @@ class DesktopSettingsRepositoryImpl implements DesktopSettingsRepository {
   final DesktopStartupService _startupService;
   final StreamController<ClaudeStatusLimitPreference>
   _claudeStatusLimitChanges = StreamController.broadcast();
-  final StreamController<void> _providerConfigurationChanges =
-      StreamController.broadcast();
 
   bool _isInitialized = false;
 
   @override
   Stream<ClaudeStatusLimitPreference> get claudeStatusLimitChanges =>
       _claudeStatusLimitChanges.stream;
-
-  @override
-  Stream<void> get providerConfigurationChanges =>
-      _providerConfigurationChanges.stream;
 
   @override
   Future<void> initialize(String appName) async {
@@ -51,40 +45,19 @@ class DesktopSettingsRepositoryImpl implements DesktopSettingsRepository {
       launchAtStartupEnabled: await _startupService.isEnabled(),
       onboardingCompleted: stored.onboardingCompleted,
       claudeStatusLimitPreference: stored.claudeStatusLimitPreference,
-      visibleProviders: stored.visibleProviders,
-      statusBarHiddenProviders: stored.statusBarHiddenProviders,
+      visibleProviders: UsageProvider.values.toSet(),
+      statusBarHiddenProviders: _statusBarHidden(stored),
     );
   }
 
   @override
   Future<Set<UsageProvider>> loadVisibleProviders() async {
-    return (await _store.read()).visibleProviders;
-  }
-
-  @override
-  Future<DesktopSettingUpdateResult> setProviderVisible(
-    UsageProvider provider,
-    bool visible,
-  ) async {
-    try {
-      final stored = await _store.read();
-      final hidden = {...stored.hiddenProviders};
-      if (visible) {
-        hidden.remove(provider);
-      } else {
-        hidden.add(provider);
-      }
-      await _store.write(stored.copyWith(hiddenProviders: hidden));
-      _providerConfigurationChanges.add(null);
-      return DesktopSettingUpdateResult.succeeded;
-    } on Object {
-      return DesktopSettingUpdateResult.failed;
-    }
+    return UsageProvider.values.toSet();
   }
 
   @override
   Future<Set<UsageProvider>> loadStatusBarHiddenProviders() async {
-    return (await _store.read()).statusBarHiddenProviders;
+    return _statusBarHidden(await _store.read());
   }
 
   @override
@@ -94,14 +67,19 @@ class DesktopSettingsRepositoryImpl implements DesktopSettingsRepository {
   ) async {
     try {
       final stored = await _store.read();
-      final hidden = {...stored.statusBarHiddenProviders};
+      final hidden = _statusBarHidden(stored);
       if (shown) {
         hidden.remove(provider);
       } else {
         hidden.add(provider);
       }
-      await _store.write(stored.copyWith(statusBarHiddenProviders: hidden));
-      _providerConfigurationChanges.add(null);
+      // Writing the merged set retires the old "hidden providers" setting.
+      await _store.write(
+        stored.copyWith(
+          hiddenProviders: const {},
+          statusBarHiddenProviders: hidden,
+        ),
+      );
       return DesktopSettingUpdateResult.succeeded;
     } on Object {
       return DesktopSettingUpdateResult.failed;
@@ -190,6 +168,14 @@ class DesktopSettingsRepositoryImpl implements DesktopSettingsRepository {
   Future<void> openNotificationSettings() {
     return _notificationService.openPermissionSettings();
   }
+
+  /// Providers kept out of the status shortcut. Earlier versions could hide
+  /// a provider entirely; those now keep their card and stay out of the
+  /// status shortcut instead.
+  Set<UsageProvider> _statusBarHidden(StoredDesktopSettings stored) => {
+    ...stored.statusBarHiddenProviders,
+    ...stored.hiddenProviders,
+  };
 
   Future<bool> _notificationsEnabled(StoredDesktopSettings stored) async {
     final permissionGranted = await _notificationService.isPermissionGranted();
