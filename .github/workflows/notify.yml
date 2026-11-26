@@ -37,25 +37,38 @@ jobs:
           fi
           # Say what happened in plain words instead of workflow jargon.
           case "$WORKFLOW" in
-            "CI") what="Code check" ;;
-            "Publish release") what="Release workflow" ;;
-            "Publish website") what="Website update" ;;
-            "Build Windows installer") what="Windows installer" ;;
-            *) what="$WORKFLOW" ;;
+            "CI") what="Code check"; badge="🧪" ;;
+            "Publish release") what="Release workflow"; badge="🚀" ;;
+            "Publish website") what="Website update"; badge="🌐" ;;
+            "Build Windows installer") what="Windows installer"; badge="🪟" ;;
+            *) what="$WORKFLOW"; badge="⚙️" ;;
           esac
+          # A few lines per outcome, picked at random, so the chat stays fun.
+          pick() { shift $((RANDOM % $#)); printf '%s' "$1"; }
           case "$CONCLUSION" in
             success)
-              icon="✅"; result="passed"
-              note="Everything is fine. Nothing to do." ;;
+              headline="🎉 <b>$what passed!</b> $badge✅"
+              note="$(pick \
+                "☕ All green. Go grab a chai, you earned it." \
+                "🤖💚 Clean run. The robots are pleased." \
+                "😎 Nothing broke. Suspicious, but we'll take it." \
+                "🌈 Smooth as butter. Carry on, captain.")" ;;
             failure)
-              icon="❌"; result="failed"
-              note="Something broke. Open the details to see what." ;;
+              headline="🚨 <b>$what failed</b> $badge💥"
+              note="$(pick \
+                "🕵️ Something broke. Time to put the detective hat on." \
+                "👟 Oops, the build tripped over its own shoelaces." \
+                "🐛 A wild bug appeared! Peek at the details." \
+                "🔥 This is fine. (It is not fine. Open the details.)")" ;;
             cancelled)
-              icon="⏹"; result="stopped"
-              note="A newer change replaced this run. Nothing to do." ;;
+              headline="⏹️ <b>$what stopped</b> $badge💤"
+              note="$(pick \
+                "🙌 A newer change cut in line. Nothing to do." \
+                "🏃 Replaced by a fresher run. Carry on." \
+                "🍃 Gone with the wind. The next run has it covered.")" ;;
             *)
-              icon="⚠️"; result="$CONCLUSION"
-              note="Open the details to check." ;;
+              headline="🤔 <b>$what: $CONCLUSION</b> $badge"
+              note="👀 Not sure what that means. Take a look." ;;
           esac
           case "$EVENT" in
             pull_request) where="Pull request from $BRANCH" ;;
@@ -63,8 +76,8 @@ jobs:
           esac
           # Telegram reads the message as HTML, so escape text people wrote.
           escape() { printf '%s' "$1" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g'; }
-          text="$(printf '%s <b>%s %s</b>\n\n📝 %s\n🌿 %s\n\n%s\n\n<a href="%s">Open details</a>' \
-            "$icon" "$what" "$result" \
+          text="$(printf '%s\n\n📝 %s\n🌿 %s\n\n%s\n\n🔗 <a href="%s">Open details</a>' \
+            "$headline" \
             "$(escape "$COMMIT_TITLE")" "$(escape "$where")" \
             "$note" "$RUN_URL")"
           curl --silent --show-error --fail --max-time 20 \
