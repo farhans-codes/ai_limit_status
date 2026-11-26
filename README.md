@@ -40,21 +40,21 @@ lines of registration.
 
 ## Screenshots
 
-### Menu bar and popover
+### Always in your menu bar
 
 <p align="center">
-  <img src="docs/screenshots/macos-menu-bar-and-popover.png" alt="AI Limit Status percentages in the macOS menu bar with the real details popover open" width="620">
+  <img src="docs/screenshots/macos-menu-bar.png" alt="Codex 22%, Claude 37%, and Antigravity 100% shown side by side in the macOS menu bar" width="424">
 </p>
 
-<p align="center"><sub>Real macOS menu-bar indicators and details popover.</sub></p>
+<p align="center"><sub>Your remaining limits stay in the macOS menu bar, or on the Windows taskbar, while you work.</sub></p>
 
-### Detailed usage view
+### One click for the details
 
 <p align="center">
-  <img src="docs/screenshots/macos-usage-popover.png" alt="AI Limit Status showing real Codex and Claude usage on macOS" width="380">
+  <img src="docs/screenshots/macos-usage-popover.png" alt="AI Limit Status popover showing Codex and Claude weekly limits with their reset times, and a pin on each card for the menu bar" width="380">
 </p>
 
-<p align="center"><sub>Real application capture on macOS.</sub></p>
+<p align="center"><sub>Every limit with its reset time. The pin on each card keeps that provider in the menu bar.</sub></p>
 
 ## Download
 
