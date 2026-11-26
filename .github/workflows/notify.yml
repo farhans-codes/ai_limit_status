@@ -2,11 +2,13 @@ name: Notify Telegram
 
 # Sends a Telegram message when something happens in the repository: a
 # workflow finishes, a branch or tag is created or deleted, someone forks or
-# stars the project, or a pull request or issue is opened or closed.
+# stars the project, a pull request or issue is opened or closed, or someone
+# reviews or comments.
 #
-# These events always use this file from the default branch and the job
-# checks out no code, so a pull request cannot change what runs or read the
-# bot token.
+# The job checks out no code and has no permissions. Every event except
+# reviews uses this file from the default branch. Reviews use the pull
+# request's copy, and GitHub gives pull requests from forks no secrets, so
+# reviews on those send nothing and the bot token stays out of reach.
 on:
   workflow_run:
     workflows:
@@ -24,6 +26,10 @@ on:
     types: [opened, reopened, closed]
   issues:
     types: [opened, reopened, closed]
+  issue_comment:
+    types: [created]
+  pull_request_review:
+    types: [submitted]
 
 permissions: {}
 
@@ -42,6 +48,8 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
           ACTION: ${{ github.event.action }}
           ACTOR: ${{ github.event.sender.login }}
+          ACTOR_TYPE: ${{ github.event.sender.type }}
+          OWNER: ${{ github.repository_owner }}
           REPO: ${{ github.repository }}
           REPO_URL: ${{ github.event.repository.html_url }}
           STARS: ${{ github.event.repository.stargazers_count }}
@@ -55,9 +63,16 @@ jobs:
           PR_FROM: ${{ github.event.pull_request.head.label }}
           PR_INTO: ${{ github.event.pull_request.base.ref }}
           PR_MERGED: ${{ github.event.pull_request.merged }}
+          PR_AUTHOR_ROLE: ${{ github.event.pull_request.author_association }}
           ISSUE_TITLE: ${{ github.event.issue.title }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
           ISSUE_URL: ${{ github.event.issue.html_url }}
+          ON_PULL_REQUEST: ${{ github.event.issue.pull_request != null }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
+          COMMENT_URL: ${{ github.event.comment.html_url }}
+          REVIEW_STATE: ${{ github.event.review.state }}
+          REVIEW_BODY: ${{ github.event.review.body }}
+          REVIEW_URL: ${{ github.event.review.html_url }}
           RUN_NAME: ${{ github.event.workflow_run.name }}
           RUN_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
           RUN_EVENT: ${{ github.event.workflow_run.event }}
@@ -75,6 +90,13 @@ jobs:
           escape() { printf '%s' "$1" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g'; }
           # One "Label: value" row; rows with no value are left out.
           field() { [ -n "$2" ] && printf '<b>%s:</b> <code>%s</code>\n' "$1" "$(escape "$2")"; return 0; }
+          # The start of a comment on one line, so a long one stays readable.
+          excerpt() {
+            local text
+            text="$(printf '%s' "$1" | tr '\r\n\t' '   ' | sed -e 's/  */ /g' -e 's/^ //')"
+            if [ "${#text}" -gt 200 ]; then text="${text:0:200}…"; fi
+            printf '%s' "$text"
+          }
           # A few lines per outcome, picked at random, so the chat stays fun.
           pick() { shift $((RANDOM % $#)); printf '%s' "$1"; }
 
@@ -180,8 +202,17 @@ jobs:
                   note="👀 Round two." ;;
                 *)
                   quiet=false
-                  headline="📬 <b>New pull request</b> 🔀✨"
-                  note="$(pick "🎁 Someone brought a gift. Have a look." "👀 Fresh code wants your eyes." "🛠️ A contribution has arrived.")" ;;
+                  case "$PR_AUTHOR_ROLE" in
+                    FIRST_TIME_CONTRIBUTOR | FIRST_TIMER)
+                      headline="🎉 <b>A first-time contributor!</b> 👋🔀"
+                      note="$(pick \
+                        "🥳 A brand new face! Roll out the welcome mat." \
+                        "🌟 Their very first pull request here. Be extra kind." \
+                        "🤝 Someone new wants to help. Say hello!")" ;;
+                    *)
+                      headline="📬 <b>New pull request</b> 🔀✨"
+                      note="$(pick "🎁 Someone brought a gift. Have a look." "👀 Fresh code wants your eyes." "🛠️ A contribution has arrived.")" ;;
+                  esac ;;
               esac
               fields="$(field "📝 Title" "$PR_TITLE"; field "🔢 Number" "#$PR_NUMBER"; field "🌿 From" "$PR_FROM"; field "🎯 Into" "$PR_INTO"; field "👤 By" "$ACTOR")"
               button1="🔀 View pull request"; url1="$PR_URL" ;;
@@ -202,9 +233,45 @@ jobs:
               fields="$(field "📝 Title" "$ISSUE_TITLE"; field "🔢 Number" "#$ISSUE_NUMBER"; field "👤 By" "$ACTOR")"
               button1="🐞 View issue"; url1="$ISSUE_URL" ;;
 
+            issue_comment)
+              # Bots comment a lot; only people are worth a message.
+              if [ "$ACTOR_TYPE" = "Bot" ]; then
+                echo "Comment by a bot; skipping." >&2
+                exit 0
+              fi
+              if [ "$ON_PULL_REQUEST" = "true" ]; then
+                headline="💬 <b>New comment on a pull request</b> 🔀"
+              else
+                headline="💬 <b>New comment on an issue</b> 🐞"
+              fi
+              note="$(pick "🗣️ The conversation continues." "👂 Someone has thoughts." "✍️ Fresh words just landed.")"
+              fields="$(field "📝 On" "#$ISSUE_NUMBER $ISSUE_TITLE"; field "👤 By" "$ACTOR"; field "💬 Says" "$(excerpt "$COMMENT_BODY")")"
+              button1="💬 View comment"; url1="$COMMENT_URL" ;;
+
+            pull_request_review)
+              case "$REVIEW_STATE" in
+                approved)
+                  headline="👍 <b>Pull request approved</b> 🔀✅"
+                  note="$(pick "🟢 Green light. Good to go." "🏅 Stamp of approval earned." "🙌 Looks good to them.")" ;;
+                changes_requested)
+                  headline="🛠️ <b>Changes requested</b> 🔀✏️"
+                  note="$(pick "🔧 A few things to tweak first." "📝 Almost there. Some notes to go through." "🧐 The reviewer spotted something.")" ;;
+                *)
+                  headline="👀 <b>Pull request reviewed</b> 🔀💬"
+                  note="$(pick "🗒️ Notes were left. Have a read." "🔎 Someone took a close look.")" ;;
+              esac
+              fields="$(field "📝 On" "#$PR_NUMBER $PR_TITLE"; field "👤 Reviewed by" "$ACTOR"; field "💬 Says" "$(excerpt "$REVIEW_BODY")")"
+              button1="👀 View review"; url1="$REVIEW_URL" ;;
+
             *)
               echo "No message for $EVENT_NAME." >&2
               exit 0 ;;
+          esac
+
+          # What other people write makes a sound; your own words stay silent.
+          case "$EVENT_NAME" in
+            issue_comment | pull_request_review)
+              if [ "$ACTOR" != "$OWNER" ]; then quiet=false; fi ;;
           esac
 
           text="$(printf '%s\n\n%s\n%s\n%s\n\n%s' \
