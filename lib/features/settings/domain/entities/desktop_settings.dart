@@ -10,6 +10,10 @@ enum ClaudeStatusLimitPreference {
 }
 
 class DesktopSettings {
+  /// The most providers the menu bar or taskbar status shows at once, so the
+  /// app never crowds out the user's other status items.
+  static const maxStatusBarProviders = 3;
+
   const DesktopSettings({
     required this.notificationsEnabled,
     required this.launchAtStartupEnabled,

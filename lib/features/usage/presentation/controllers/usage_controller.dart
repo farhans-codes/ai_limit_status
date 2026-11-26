@@ -46,16 +46,35 @@ class UsageController extends GetxController {
   final hasError = false.obs;
   final setupProviders = <UsageProvider>{}.obs;
 
+  /// Providers currently shown in the menu bar or taskbar status.
+  final statusBarProviders = <UsageProvider>{}.obs;
+
   Timer? _refreshTimer;
   final Map<UsageProvider, Timer> _connectionPollingTimers = {};
   StreamSubscription<ClaudeStatusLimitPreference>?
   _claudeStatusLimitSubscription;
-  StreamSubscription<void>? _providerConfigurationSubscription;
   ClaudeStatusLimitPreference _claudeStatusLimitPreference =
       ClaudeStatusLimitPreference.weekly;
   bool _isRefreshing = false;
 
   bool get supportsAutomaticInstall => _installProvider.isSupported;
+
+  /// Whether another provider can be added to the status shortcut.
+  bool get statusBarHasRoom =>
+      statusBarProviders.length < DesktopSettings.maxStatusBarProviders;
+
+  Future<void> setInStatusBar(UsageProvider provider, bool shown) async {
+    if (shown && !statusBarHasRoom) {
+      return;
+    }
+    final result = await _settingsRepository.setProviderInStatusBar(
+      provider,
+      shown,
+    );
+    if (result == DesktopSettingUpdateResult.succeeded) {
+      await _updateTray();
+    }
+  }
 
   bool isSettingUp(UsageProvider provider) {
     return setupProviders.contains(provider);
@@ -75,9 +94,6 @@ class UsageController extends GetxController {
           _claudeStatusLimitPreference = preference;
           unawaited(_updateTray());
         });
-    _providerConfigurationSubscription = _settingsRepository
-        .providerConfigurationChanges
-        .listen((_) => unawaited(refreshUsage()));
     _claudeStatusLimitPreference = await _settingsRepository
         .loadClaudeStatusLimitPreference();
     await _trayService.initialize(
@@ -350,7 +366,8 @@ class UsageController extends GetxController {
     final items = <({String id, String value})>[];
     final tooltipParts = <String>[];
     for (final usage in usages) {
-      if (hidden.contains(usage.provider)) {
+      if (hidden.contains(usage.provider) ||
+          items.length == DesktopSettings.maxStatusBarProviders) {
         continue;
       }
       // Claude shows the limit chosen in Settings; other providers show
@@ -374,6 +391,9 @@ class UsageController extends GetxController {
               ),
       );
     }
+    statusBarProviders.assignAll({
+      for (final item in items) UsageProvider.values.byName(item.id),
+    });
     await _trayService.updateUsage(
       items: items,
       tooltip: tooltipParts.isEmpty
@@ -399,7 +419,6 @@ class UsageController extends GetxController {
   void onClose() {
     _refreshTimer?.cancel();
     _claudeStatusLimitSubscription?.cancel();
-    _providerConfigurationSubscription?.cancel();
     for (final timer in _connectionPollingTimers.values) {
       timer.cancel();
     }
