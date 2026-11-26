@@ -56,28 +56,63 @@ class AntigravityUsageReader implements ProviderUsageReader {
     throw const UsageReadException(UsageConnectionIssue.unavailable);
   }
 
-  /// Whether an Antigravity app exists on this machine, so a closed app can
-  /// be told apart from a provider the user does not have.
+  /// Whether Antigravity is on this machine, so a closed app can be told
+  /// apart from a provider the user does not have.
+  ///
+  /// People install it wherever they like, so the app's location is not
+  /// relied on: the folders Antigravity keeps in the user's home are the same
+  /// wherever the app itself lives, and macOS can find the app by its
+  /// identifier.
   static Future<bool> isInstalled() async {
     final environment = Platform.environment;
+    final home = environment[Platform.isWindows ? 'USERPROFILE' : 'HOME'];
     final candidates = <String>[
-      if (Platform.isMacOS)
+      if (home != null) ...[
+        '$home/.gemini/antigravity',
+        '$home/.gemini/antigravity-ide',
+        '$home/.antigravity',
+        '$home/.antigravity-ide',
+      ],
+      if (Platform.isMacOS) ...[
         for (final root in [
           '/Applications',
-          if (environment['HOME'] case final home?) '$home/Applications',
+          if (home != null) '$home/Applications',
         ]) ...['$root/Antigravity.app', '$root/Antigravity IDE.app'],
-      if (Platform.isWindows)
+        if (home != null) ...[
+          '$home/Library/Application Support/Antigravity',
+          '$home/Library/Application Support/Antigravity IDE',
+        ],
+      ],
+      if (Platform.isWindows) ...[
         if (environment['LOCALAPPDATA'] case final local?) ...[
           '$local\\Programs\\Antigravity',
           '$local\\Programs\\Antigravity IDE',
         ],
+        if (environment['APPDATA'] case final roaming?) ...[
+          '$roaming\\Antigravity',
+          '$roaming\\Antigravity IDE',
+        ],
+      ],
     ];
     for (final candidate in candidates) {
       if (await Directory(candidate).exists()) {
         return true;
       }
     }
-    return false;
+    return Platform.isMacOS && await _spotlightFindsApp();
+  }
+
+  /// Asks Spotlight for the app by bundle identifier, which finds it in any
+  /// folder or on another drive.
+  static Future<bool> _spotlightFindsApp() async {
+    try {
+      final result = await Process.run('/usr/bin/mdfind', const [
+        "kMDItemCFBundleIdentifier == 'com.google.antigravity*'",
+      ]).timeout(_commandTimeout);
+      return result.stdout.toString().trim().isNotEmpty;
+    } on Object {
+      return false;
+    }
   }
 
   /// Running Antigravity language servers, the standalone app before the IDE.
