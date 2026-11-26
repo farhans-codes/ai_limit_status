@@ -4,6 +4,12 @@ name: Daily digest
 # pull requests, issues, code checks, stars and forks, downloads of the
 # latest release, and how much work on develop is waiting for a release.
 #
+# Visitor numbers and open security alerts are added when the NOTIFY_GH_TOKEN
+# secret holds a fine-grained token for this repository with read access to
+# "Administration" (visitor numbers) and "Dependabot alerts". GitHub does not
+# let the built-in token read either, so without the secret those rows are
+# simply left out.
+#
 # 03:00 UTC is 9 AM in Dhaka. Run it by hand (Actions > Daily digest > Run
 # workflow) to get the summary right away.
 on:
@@ -24,6 +30,7 @@ jobs:
       - name: Send the summary
         env:
           GH_TOKEN: ${{ github.token }}
+          EXTRA_TOKEN: ${{ secrets.NOTIFY_GH_TOKEN }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           TZ: ${{ vars.NOTIFY_TIMEZONE || 'Asia/Dhaka' }}
@@ -60,9 +67,31 @@ jobs:
           }
           waiting="$(gh api "repos/$REPO/compare/main...develop" --jq '.ahead_by' 2>/dev/null || echo "?")"
 
+          # Rows that need the extra token; each is left out if it cannot be read.
+          traffic_rows=""; security_row=""; alerts=0
+          if [ -n "$EXTRA_TOKEN" ]; then
+            extra() { GH_TOKEN="$EXTRA_TOKEN" gh api "repos/$REPO/$1" --jq "$2" 2>/dev/null; }
+            people() { [ "$1" = "1" ] && printf '1 person' || printf '%s people' "$1"; }
+            if views="$(extra traffic/views '"\(.count) \(.uniques)"')"; then
+              traffic_rows="$(printf '\n<b>%s:</b> <code>%s</code>' \
+                "👀 Page views (14 days)" "${views% *} by $(people "${views#* }")")"
+            fi
+            if clones="$(extra traffic/clones '"\(.count) \(.uniques)"')"; then
+              traffic_rows="$traffic_rows$(printf '\n<b>%s:</b> <code>%s</code>' \
+                "📥 Clones (14 days)" "${clones% *} by $(people "${clones#* }")")"
+            fi
+            if found="$(extra 'dependabot/alerts?state=open&per_page=100' 'length')"; then
+              alerts="$found"
+              if [ "$alerts" = "0" ]; then state="none open ✅"; else state="$alerts open ⚠️"; fi
+              security_row="$(printf '\n<b>%s:</b> <code>%s</code>' "🛡️ Security alerts" "$state")"
+            fi
+          fi
+
           row() { printf '<b>%s:</b> <code>%s</code>\n' "$1" "$2"; }
           pick() { shift $((RANDOM % $#)); printf '%s' "$1"; }
-          if [ "$checks_failed" != "0" ]; then
+          if [ "$alerts" != "0" ]; then
+            note="🛡️ A dependency has a known security problem. Open the Security tab when you can."
+          elif [ "$checks_failed" != "0" ]; then
             note="🧯 Some checks failed yesterday. Worth a look before the coffee gets cold."
           elif [ "$prs_merged" = "0" ] && [ "$prs_opened" = "0" ] && [ "$issues_opened" = "0" ]; then
             note="$(pick "😴 A quiet day. The repo took a nap." "🌿 Nothing much happened. Peaceful." "🧘 All calm on the repo front.")"
@@ -71,20 +100,22 @@ jobs:
           fi
           release_row=""
           if [ "$waiting" != "0" ]; then
-            release_row="$(row "🚧 Waiting for a release" "$waiting commits on develop")"
+            release_row="$(printf '\n%s' "$(row "🚧 Waiting for a release" "$waiting commits on develop")")"
           fi
 
-          text="$(printf '%s\n\n%s\n%s\n%s\n\n%s\n%s\n\n%s\n%s\n%s\n%s\n\n%s' \
+          text="$(printf '%s\n\n%s\n%s\n%s\n\n%s\n%s%s\n\n%s\n%s\n%s%s%s\n\n%s' \
             "☀️ <b>Good morning! The last 24 hours</b> 📊" \
             "$(row "🔀 Pull requests" "$prs_merged merged · $prs_opened opened · $prs_open open")" \
             "$(row "🐞 Issues" "$issues_opened opened · $issues_closed closed · $issues_open open")" \
             "$(row "🧪 Code checks" "$checks_passed passed · $checks_failed failed")" \
             "$(row "⭐ Stars" "$stars (+$new_stars new)")" \
             "$(row "🍴 Forks" "$forks")" \
+            "$traffic_rows" \
             "$(row "📦 Latest release" "$tag")" \
             "$(row "🍎 macOS downloads" "$(downloads AI-Limit-Status-macOS.dmg)")" \
             "$(row "🪟 Windows downloads" "$(downloads AI-Limit-Status-Windows-x64-Setup.exe)")" \
             "$release_row" \
+            "$security_row" \
             "$note")"
 
           if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
