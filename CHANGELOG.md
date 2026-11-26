@@ -4,6 +4,14 @@ All notable changes to AI Limit Status are documented here.
 
 The project follows Semantic Versioning for public releases.
 
+## [1.1.0](https://github.com/farhans-codes/ai_limit_status/compare/v1.0.1...v1.1.0) (2026-11-26)
+
+
+### Added
+
+* **usage:** add Antigravity usage ([c446d19](https://github.com/farhans-codes/ai_limit_status/commit/c446d19e2eb708aee540a384cddcf155468e935e))
+* **status:** pin providers to the status shortcut from their cards ([45ef44b](https://github.com/farhans-codes/ai_limit_status/commit/45ef44bb48d76c554c97e73e62a8f221f827a622)), closes [#52](https://github.com/farhans-codes/ai_limit_status/issues/52)
+
 ## [1.0.1] - 2026-11-17
 
 ### Added
